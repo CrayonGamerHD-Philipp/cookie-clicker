@@ -24,6 +24,7 @@
           </div>
 
           <button id="cookieButton" class="cookie" aria-label="Keks backen">
+            <span id="cookieSkin" class="cookie-skin skin-none" aria-hidden="true"></span>
             <span id="cookieAccessory" class="cookie-accessory accessory-none" aria-hidden="true"></span>
             <span class="cookie-text">KLICK!</span>
           </button>
@@ -40,6 +41,29 @@
             <div class="stat stat-wide">
               <span class="label">Gesamt</span>
               <span id="total" class="value">0</span>
+            </div>
+          </div>
+
+          <div class="level-panel">
+            <div class="level-orbit" aria-hidden="true">
+              <span class="level-orbit-ring"></span>
+              <span id="levelValue" class="level-orbit-value">1</span>
+            </div>
+            <div class="level-main">
+              <div class="level-copy">
+                <span class="label">Dein Backstuben-Level</span>
+                <span id="levelMultiplier" class="level-title">Gewinn-Multiplikator x1</span>
+                <span id="levelRequirement" class="level-meta">Naechstes Level: 1 Mrd</span>
+              </div>
+              <div class="level-progress-block">
+                <div id="levelProgressWrap" class="level-progress-wrap">
+                  <div class="level-progress-track" aria-hidden="true">
+                    <span id="levelProgressFill" class="level-progress-fill"></span>
+                  </div>
+                  <span id="levelProgressText" class="level-progress-text">0 / 1 Mrd</span>
+                </div>
+                <button id="levelButton" class="level-button hidden">Auf Level 2</button>
+              </div>
             </div>
           </div>
 
@@ -240,11 +264,12 @@
         <div class="modal-head">
           <p class="eyebrow">Atelier</p>
           <h2 id="cosmeticsTitle">Cookie Cosmetics</h2>
-          <p class="modal-sub">Waehle genau eine Farbe und genau einen Hut gleichzeitig.</p>
+          <p class="modal-sub">Kombiniere Farbe, Hut und optional einen Skin.</p>
         </div>
         <div class="cosmetics-panel">
           <div class="cosmetics-stage">
             <div id="cosmeticsPreviewCookie" class="cosmetics-preview-cookie">
+              <span class="cookie-skin skin-none" id="cosmeticsPreviewSkin" aria-hidden="true"></span>
               <span class="cookie-accessory accessory-none" id="cosmeticsPreviewAccessory" aria-hidden="true"></span>
               <span class="cosmetics-preview-label">Preview</span>
             </div>
@@ -272,6 +297,15 @@
             >
               Huete
             </button>
+            <button
+              type="button"
+              class="cosmetics-tab"
+              data-cosmetics-category="skins"
+              role="tab"
+              aria-selected="false"
+            >
+              Skins
+            </button>
           </div>
           <div class="cosmetics-browser">
             <div id="cosmeticsCatalogList" class="cosmetics-catalog"></div>
@@ -289,6 +323,10 @@
           <h2 id="resetTitle">Alles zuruecksetzen?</h2>
           <p class="modal-sub">Dies loescht deinen Fortschritt und alle Freischaltungen.</p>
         </div>
+        <label class="reset-option" for="resetCosmeticsToggle">
+          <input id="resetCosmeticsToggle" type="checkbox" checked>
+          <span>Cosmetics ebenfalls zuruecksetzen</span>
+        </label>
         <div class="reset-actions">
           <button id="resetConfirm" class="reset-confirm">Ja, resetten</button>
           <button id="resetCancel" class="reset-cancel">Abbrechen</button>

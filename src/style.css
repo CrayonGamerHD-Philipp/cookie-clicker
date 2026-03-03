@@ -151,6 +151,42 @@ h1 {
   letter-spacing: 0.2em;
 }
 
+.cookie-skin {
+  position: absolute;
+  inset: -12% -8% -10%;
+  pointer-events: none;
+  z-index: 1;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.skin-none {
+  display: none;
+}
+
+.skin-kurbee {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 280'%3E%3Cpath d='M78 228c-30 0-48-18-48-36c0-22 18-42 52-42c13 0 26 3 37 9l2 1c-9 5-16 14-20 25c-5 13-5 28 0 43H78Z' fill='%23ff0a73' stroke='%23111111' stroke-width='10' stroke-linejoin='round'/%3E%3Cpath d='M242 228c30 0 48-18 48-36c0-22-18-42-52-42c-13 0-26 3-37 9l-2 1c9 5 16 14 20 25c5 13 5 28 0 43h23Z' fill='%23ff0a73' stroke='%23111111' stroke-width='10' stroke-linejoin='round'/%3E%3Ccircle cx='160' cy='134' r='96' fill='%23f9a7c8' stroke='%23111111' stroke-width='10'/%3E%3Cpath d='M101 91c-24-12-44-35-44-58c0-20 15-35 35-35c25 0 47 17 61 42' fill='%23f9a7c8' stroke='%23111111' stroke-width='10' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M239 166c23 0 41-18 41-41c0-19-12-35-30-40' fill='%23f9a7c8' stroke='%23111111' stroke-width='10' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cellipse cx='134' cy='106' rx='15' ry='33' fill='%23111111'/%3E%3Cellipse cx='186' cy='106' rx='15' ry='33' fill='%23111111'/%3E%3Cellipse cx='137' cy='90' rx='7' ry='12' fill='%23ffffff'/%3E%3Cellipse cx='189' cy='90' rx='7' ry='12' fill='%23ffffff'/%3E%3Cpath d='M120 118c0 13 6 21 14 21s14-8 14-21' fill='%230a76df'/%3E%3Cpath d='M172 118c0 13 6 21 14 21s14-8 14-21' fill='%230a76df'/%3E%3Cellipse cx='104' cy='140' rx='18' ry='12' fill='%23f1869d'/%3E%3Cellipse cx='216' cy='140' rx='18' ry='12' fill='%23f1869d'/%3E%3Cpath d='M160 150c-12 0-22 10-22 22c0 7 3 14 8 18c6 4 10 6 14 6s8-2 14-6c5-4 8-11 8-18c0-12-10-22-22-22Z' fill='%238b2d5a' stroke='%23111111' stroke-width='8'/%3E%3Cpath d='M147 177c4 9 9 13 13 13s9-4 13-13' fill='none' stroke='%23ff9f92' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M87 67c12-20 31-32 52-36' fill='none' stroke='rgba(255,255,255,0.28)' stroke-width='10' stroke-linecap='round'/%3E%3Cpath d='M220 181c17 3 30 13 38 28' fill='none' stroke='rgba(255,255,255,0.14)' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.cookie[data-skin="kurbee"]::before,
+.cookie[data-skin="kurbee"]::after,
+.cosmetics-preview-cookie[data-skin="kurbee"]::before,
+.cosmetics-preview-cookie[data-skin="kurbee"]::after {
+  display: none;
+}
+
+.cookie[data-skin="kurbee"],
+.cosmetics-preview-cookie[data-skin="kurbee"] {
+  background: transparent;
+  box-shadow: none;
+}
+
+.cookie[data-skin="kurbee"] .cookie-text,
+.cosmetics-preview-cookie[data-skin="kurbee"] .cosmetics-preview-label {
+  opacity: 0;
+}
+
 .cookie-accessory {
   position: absolute;
   top: -24px;
@@ -368,6 +404,120 @@ h1 {
   font-size: 1.4rem;
   margin-top: 4px;
   display: block;
+}
+
+.level-panel {
+  margin-top: 12px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 243, 214, 0.95), transparent 38%),
+    linear-gradient(135deg, #fff4d8, #f1c88f 52%, #d97a32 100%);
+  border: 2px solid #f4d29d;
+  box-shadow: 0 12px 22px rgba(154, 78, 23, 0.14);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.level-orbit {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  position: relative;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 35% 30%, #fff8e8, #f7d289 62%, #b75a20 100%);
+  box-shadow: inset 0 4px 10px rgba(255, 255, 255, 0.5), 0 10px 20px rgba(95, 45, 15, 0.22);
+}
+
+.level-orbit-ring {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 2px dashed rgba(115, 51, 13, 0.32);
+}
+
+.level-orbit-value {
+  position: relative;
+  z-index: 1;
+  font-family: "Fraunces", "Georgia", serif;
+  font-size: 1.6rem;
+  color: #6d2f12;
+}
+
+.level-main,
+.level-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.level-title {
+  font-family: "Fraunces", "Georgia", serif;
+  font-size: 1.08rem;
+  line-height: 1.1;
+  color: #50200c;
+}
+
+.level-meta {
+  font-size: 0.82rem;
+  color: rgba(80, 32, 12, 0.82);
+}
+
+.level-progress-block {
+  display: grid;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.level-progress-wrap {
+  display: grid;
+  gap: 4px;
+}
+
+.level-progress-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(111, 48, 15, 0.16);
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(61, 26, 8, 0.14);
+}
+
+.level-progress-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #fff6b3, #ffd166 45%, #ff9f43 100%);
+  box-shadow: 0 0 14px rgba(255, 209, 102, 0.5);
+  transition: width 180ms ease-out;
+}
+
+.level-progress-text {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: rgba(80, 32, 12, 0.78);
+}
+
+.level-button {
+  border: none;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #8f3815, #5e210b);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  justify-self: start;
+  box-shadow: 0 6px 12px rgba(79, 26, 6, 0.18);
+}
+
+.level-button:disabled {
+  background: #c9b5a2;
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
 .bonus {
@@ -646,6 +796,10 @@ h1 {
   filter: none;
 }
 
+.cosmetic-preview .cookie-skin {
+  inset: -10% -8% -8%;
+}
+
 .cosmetic-card h3 {
   margin: 0 0 4px;
   font-size: 1rem;
@@ -732,6 +886,10 @@ h1 {
 
 .cosmetics-preview-cookie .cookie-accessory {
   --accessory-scale: 1.25;
+}
+
+.cosmetics-preview-cookie .cookie-skin {
+  inset: -10% -7% -8%;
 }
 
 .cosmetics-stage-copy h3 {
@@ -1398,6 +1556,22 @@ h1 {
   gap: 10px;
 }
 
+.reset-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 14px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.reset-option input {
+  width: 16px;
+  height: 16px;
+  accent-color: #c2411c;
+  cursor: pointer;
+}
+
 .reset-confirm {
   border: none;
   padding: 12px 16px;
@@ -1465,6 +1639,20 @@ h1 {
 @media (max-width: 720px) {
   .scene {
     padding: 32px 16px 24px;
+  }
+
+  .level-panel {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .level-main {
+    width: 100%;
+  }
+
+  .level-button {
+    justify-self: stretch;
   }
 
   .cookie {

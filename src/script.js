@@ -4,6 +4,14 @@ const clickCountEl = document.getElementById("clickCount");
 const totalEl = document.getElementById("total");
 const rateEl = document.getElementById("rate");
 const cookieButton = document.getElementById("cookieButton");
+const levelEl = document.getElementById("levelValue");
+const levelMultiplierEl = document.getElementById("levelMultiplier");
+const levelRequirementEl = document.getElementById("levelRequirement");
+const levelProgressWrapEl = document.getElementById("levelProgressWrap");
+const levelProgressFillEl = document.getElementById("levelProgressFill");
+const levelProgressTextEl = document.getElementById("levelProgressText");
+const levelButton = document.getElementById("levelButton");
+const cookieSkinEl = document.getElementById("cookieSkin");
 const cookieAccessoryEl = document.getElementById("cookieAccessory");
 const upgradeList = document.getElementById("upgradeList");
 const cosmeticsModal = document.getElementById("cosmeticsModal");
@@ -12,6 +20,7 @@ const cosmeticsCloseButton = document.getElementById("cosmeticsClose");
 const cosmeticsCloseOverlay = document.getElementById("cosmeticsCloseOverlay");
 const cosmeticsCatalogList = document.getElementById("cosmeticsCatalogList");
 const cosmeticsPreviewCookie = document.getElementById("cosmeticsPreviewCookie");
+const cosmeticsPreviewSkin = document.getElementById("cosmeticsPreviewSkin");
 const cosmeticsPreviewAccessory = document.getElementById("cosmeticsPreviewAccessory");
 const cosmeticsPreviewName = document.getElementById("cosmeticsPreviewName");
 const cosmeticsPreviewMeta = document.getElementById("cosmeticsPreviewMeta");
@@ -98,6 +107,7 @@ const resetCloseButton = document.getElementById("resetClose");
 const resetCloseOverlay = document.getElementById("resetCloseOverlay");
 const resetConfirmButton = document.getElementById("resetConfirm");
 const resetCancelButton = document.getElementById("resetCancel");
+const resetCosmeticsToggle = document.getElementById("resetCosmeticsToggle");
 const wheelModal = document.getElementById("wheelModal");
 const wheelOpenButton = document.getElementById("wheelOpen");
 const wheelBuyButton = document.getElementById("wheelBuy");
@@ -115,6 +125,10 @@ const towerStatus = document.getElementById("towerStatus");
 const towerMultiplierEl = document.getElementById("towerMultiplier");
 const towerPayoutEl = document.getElementById("towerPayout");
 const STORAGE_KEY = "hethey-cookie-clicker-v1";
+const LEVEL_UP_BASE_COST = 1_000_000_000;
+const LEVEL_UP_SCALE = 5;
+const LEVEL_GAIN_STEP = 0.5;
+const UPGRADE_LEVEL_COST_SCALE = 5;
 
 const upgrades = [
   { name: "Sprinkles", type: "click", power: 1, baseCost: 20, desc: "+1 pro Klick" },
@@ -223,13 +237,41 @@ const accessoryCosmetics = [
   { key: "captain", name: "Kapitaenshut", cost: 10_000_000, desc: "Legacy", owned: false, hidden: true }
 ];
 
+const skinCosmetics = [
+  {
+    key: "none",
+    name: "Ohne Skin",
+    cost: 0,
+    desc: "Der normale Keks ohne Spezial-Look.",
+    owned: true,
+    theme: null
+  },
+  {
+    key: "kurbee",
+    name: "Kurbee",
+    cost: 1_500_000_000,
+    desc: "Runder rosa Star-Skin mit grossen Augen und kleinen Fueessen.",
+    owned: false,
+    theme: {
+      "--cookie-top": "#ffb6d5",
+      "--cookie-bottom": "#e667a3",
+      "--cookie-spot": "rgba(255, 255, 255, 0)",
+      "--cookie-text": "#fff7ee"
+    }
+  }
+];
+
 const state = {
   cookies: 0,
   total: 0,
   clicks: 0,
+  level: 1,
+  basePerClick: 1,
+  baseCps: 0,
   perClick: 1,
   cps: 0,
   activeColor: "classic",
+  activeSkin: "none",
   activeAccessory: "none",
   bonusReady: false,
   lastBonusAt: 0,
@@ -268,11 +310,11 @@ const wheelSegments = [
 ];
 
 const gameUnlocks = {
-  tower: { price: 1_000_000, unlocked: false },
-  blackjack: { price: 5_000_000, unlocked: false },
-  slots: { price: 25_000_000, unlocked: false },
-  roulette: { price: 50_000_000, unlocked: false },
-  wheel: { price: 150_000_000, unlocked: false }
+  tower: { price: 1_000_000, requiredLevel: 1, unlocked: false },
+  blackjack: { price: 5_000_000, requiredLevel: 2, unlocked: false },
+  slots: { price: 25_000_000, requiredLevel: 3, unlocked: false },
+  roulette: { price: 50_000_000, requiredLevel: 4, unlocked: false },
+  wheel: { price: 150_000_000, requiredLevel: 5, unlocked: false }
 };
 
 let blackjackDeck = [];
@@ -302,16 +344,70 @@ const gameStats = {
 let toastTimer = null;
 
 function applyUpgradeCounts(counts) {
-  state.perClick = 1;
-  state.cps = 0;
   upgrades.forEach((upgrade, index) => {
     const count = Number(counts[index]) || 0;
     upgrade.count = count;
+  });
+  recalculateProduction();
+}
+
+function roundValue(value) {
+  return Math.round(value * 100) / 100;
+}
+
+function levelGainMultiplier() {
+  return 1 + Math.max(0, state.level - 1) * LEVEL_GAIN_STEP;
+}
+
+function currentLevelRequirement() {
+  return LEVEL_UP_BASE_COST * Math.pow(LEVEL_UP_SCALE, Math.max(0, state.level - 1));
+}
+
+function upgradeLevelCostMultiplier() {
+  return Math.pow(UPGRADE_LEVEL_COST_SCALE, Math.max(0, state.level - 1));
+}
+
+function calculateBaseProduction() {
+  let perClick = 1;
+  let cps = 0;
+  upgrades.forEach((upgrade) => {
     if (upgrade.type === "click") {
-      state.perClick += upgrade.power * count;
+      perClick += upgrade.power * upgrade.count;
     } else {
-      state.cps += upgrade.power * count;
+      cps += upgrade.power * upgrade.count;
     }
+  });
+  return { perClick, cps };
+}
+
+function recalculateProduction() {
+  const baseProduction = calculateBaseProduction();
+  const multiplier = levelGainMultiplier();
+  state.basePerClick = baseProduction.perClick;
+  state.baseCps = baseProduction.cps;
+  state.perClick = roundValue(baseProduction.perClick * multiplier);
+  state.cps = roundValue(baseProduction.cps * multiplier);
+}
+
+function scaleGain(amount) {
+  if (amount <= 0) {
+    return 0;
+  }
+  return roundValue(amount * levelGainMultiplier());
+}
+
+function scalePayout(basePayout, invested = 0) {
+  if (basePayout <= 0) {
+    return 0;
+  }
+  const profit = Math.max(0, basePayout - invested);
+  return roundValue(invested + (profit * levelGainMultiplier()));
+}
+
+function formatMultiplier(value) {
+  return value.toLocaleString("de-DE", {
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 1,
+    maximumFractionDigits: 1
   });
 }
 
@@ -323,6 +419,10 @@ function activeAccessoryCosmetic() {
   return accessoryCosmetics.find((cosmetic) => cosmetic.key === state.activeAccessory && !cosmetic.hidden) || accessoryCosmetics[0];
 }
 
+function activeSkinCosmetic() {
+  return skinCosmetics.find((cosmetic) => cosmetic.key === state.activeSkin) || skinCosmetics[0];
+}
+
 function resetCosmeticsState() {
   colorCosmetics.forEach((cosmetic) => {
     cosmetic.owned = cosmetic.key === "classic";
@@ -330,18 +430,33 @@ function resetCosmeticsState() {
   accessoryCosmetics.forEach((cosmetic) => {
     cosmetic.owned = cosmetic.key === "none";
   });
+  skinCosmetics.forEach((cosmetic) => {
+    cosmetic.owned = cosmetic.key === "none";
+  });
   state.activeColor = "classic";
+  state.activeSkin = "none";
   state.activeAccessory = "none";
 }
 
 function applyCosmeticTheme() {
   const color = activeColorCosmetic();
+  const skin = activeSkinCosmetic();
   const accessory = activeAccessoryCosmetic();
   state.activeColor = color.key;
+  state.activeSkin = skin.key;
   state.activeAccessory = accessory.key;
   Object.entries(color.theme).forEach(([key, value]) => {
     cookieButton.style.setProperty(key, value);
   });
+  if (skin.theme) {
+    Object.entries(skin.theme).forEach(([key, value]) => {
+      cookieButton.style.setProperty(key, value);
+    });
+  }
+  cookieButton.dataset.skin = skin.key || "none";
+  if (cookieSkinEl) {
+    cookieSkinEl.className = `cookie-skin skin-${skin.key || "none"}`;
+  }
   if (cookieAccessoryEl) {
     cookieAccessoryEl.className = `cookie-accessory accessory-${accessory.key || "none"}`;
   }
@@ -389,6 +504,7 @@ function loadState() {
     state.cookies = Number(saved.cookies) || 0;
     state.total = Number(saved.total) || 0;
     state.clicks = Number(saved.clicks) || 0;
+    state.level = Math.max(1, Number(saved.level) || 1);
     state.lastBonusAt = Number(saved.lastBonusAt) || 0;
     state.bonusReady = false;
     applyUpgradeCounts(saved.upgrades || []);
@@ -412,11 +528,15 @@ function loadState() {
       if (saved.cosmetics.colors || saved.cosmetics.accessories) {
         const ownedColors = Array.isArray(saved.cosmetics.colors?.owned) ? saved.cosmetics.colors.owned : [];
         const ownedAccessories = Array.isArray(saved.cosmetics.accessories?.owned) ? saved.cosmetics.accessories.owned : [];
+        const ownedSkins = Array.isArray(saved.cosmetics.skins?.owned) ? saved.cosmetics.skins.owned : [];
         colorCosmetics.forEach((cosmetic) => {
           cosmetic.owned = cosmetic.key === "classic" || ownedColors.includes(cosmetic.key);
         });
         accessoryCosmetics.forEach((cosmetic) => {
           cosmetic.owned = cosmetic.key === "none" || ownedAccessories.includes(cosmetic.key);
+        });
+        skinCosmetics.forEach((cosmetic) => {
+          cosmetic.owned = cosmetic.key === "none" || ownedSkins.includes(cosmetic.key);
         });
         if (typeof saved.cosmetics.colors?.active === "string") {
           const selectedColor = colorCosmetics.find((cosmetic) => cosmetic.key === saved.cosmetics.colors.active && cosmetic.owned);
@@ -430,6 +550,12 @@ function loadState() {
           );
           if (selectedAccessory) {
             state.activeAccessory = selectedAccessory.key;
+          }
+        }
+        if (typeof saved.cosmetics.skins?.active === "string") {
+          const selectedSkin = skinCosmetics.find((cosmetic) => cosmetic.key === saved.cosmetics.skins.active && cosmetic.owned);
+          if (selectedSkin) {
+            state.activeSkin = selectedSkin.key;
           }
         }
       } else {
@@ -448,6 +574,7 @@ function saveState() {
     cookies: state.cookies,
     total: state.total,
     clicks: state.clicks,
+    level: state.level,
     lastBonusAt: state.lastBonusAt,
     upgrades: upgrades.map((upgrade) => upgrade.count),
     cosmetics: {
@@ -458,6 +585,10 @@ function saveState() {
       accessories: {
         active: activeAccessoryCosmetic().key,
         owned: accessoryCosmetics.filter((cosmetic) => cosmetic.owned && !cosmetic.hidden).map((cosmetic) => cosmetic.key)
+      },
+      skins: {
+        active: activeSkinCosmetic().key,
+        owned: skinCosmetics.filter((cosmetic) => cosmetic.owned).map((cosmetic) => cosmetic.key)
       }
     },
     stats: gameStats,
@@ -473,15 +604,24 @@ function saveState() {
 }
 
 function format(num) {
-  const value = Math.floor(num);
+  const value = Number.isInteger(num) ? num : roundValue(num);
   const abs = Math.abs(value);
-  const trim = (text) => text.replace(/\.0$/, "");
-  if (abs >= 1e12) return `${trim((value / 1e12).toFixed(abs < 1e13 ? 1 : 0))}T`;
-  return value.toLocaleString("de-DE");
+  const trim = (text) => text.replace(/(?:\.0|,0)$/, "");
+  if (abs >= 1e12) {
+    return `${trim((value / 1e12).toLocaleString("de-DE", { maximumFractionDigits: abs < 1e13 ? 1 : 0 }))}T`;
+  }
+  return value.toLocaleString("de-DE", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: Number.isInteger(value) ? 0 : 2
+  });
 }
 
 function formatFull(num) {
-  return Math.floor(num).toLocaleString("de-DE");
+  const value = Number.isInteger(num) ? num : roundValue(num);
+  return value.toLocaleString("de-DE", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: Number.isInteger(value) ? 0 : 2
+  });
 }
 
 function formatClicks(num) {
@@ -516,7 +656,37 @@ function setDisplayValue(el, value, suffix = "", shortFormatter = format, fullFo
 }
 
 function costFor(upgrade) {
-  return Math.floor(upgrade.baseCost * Math.pow(1.15, upgrade.count));
+  return Math.floor(upgrade.baseCost * upgradeLevelCostMultiplier() * Math.pow(1.15, upgrade.count));
+}
+
+function renderLevelProgress() {
+  const requirement = currentLevelRequirement();
+  const gameBusy = state.towerActive || blackjackActive || slotsSpinning || rouletteSpinning || wheelSpinning;
+  const progress = Math.max(0, Math.min(1, requirement > 0 ? state.cookies / requirement : 0));
+  const canLevelUp = !gameBusy && state.cookies >= requirement;
+  if (levelEl) {
+    levelEl.textContent = String(state.level);
+  }
+  if (levelMultiplierEl) {
+    levelMultiplierEl.textContent = `Gewinn-Multiplikator x${formatMultiplier(levelGainMultiplier())}`;
+  }
+  if (levelRequirementEl) {
+    levelRequirementEl.textContent = `Naechstes Level: ${formatClicks(requirement)}`;
+  }
+  if (levelProgressFillEl) {
+    levelProgressFillEl.style.width = `${Math.round(progress * 100)}%`;
+  }
+  if (levelProgressTextEl) {
+    levelProgressTextEl.textContent = `${formatClicks(Math.min(state.cookies, requirement))} / ${formatClicks(requirement)}`;
+  }
+  if (levelProgressWrapEl) {
+    levelProgressWrapEl.classList.toggle("hidden", canLevelUp);
+  }
+  if (levelButton) {
+    levelButton.textContent = `Auf Level ${state.level + 1}`;
+    levelButton.disabled = !canLevelUp;
+    levelButton.classList.toggle("hidden", !canLevelUp);
+  }
 }
 
 function renderUpgradeTabs() {
@@ -611,6 +781,29 @@ function buyAccessoryCosmetic(key) {
   updateStats();
 }
 
+function selectSkinCosmetic(key) {
+  const cosmetic = skinCosmetics.find((entry) => entry.key === key && entry.owned);
+  if (!cosmetic) {
+    return;
+  }
+  state.activeSkin = cosmetic.key;
+  applyCosmeticTheme();
+  updateStats();
+}
+
+function buySkinCosmetic(key) {
+  const cosmetic = skinCosmetics.find((entry) => entry.key === key);
+  if (!cosmetic || cosmetic.owned || state.cookies < cosmetic.cost) {
+    return;
+  }
+  state.cookies -= cosmetic.cost;
+  cosmetic.owned = true;
+  state.activeSkin = cosmetic.key;
+  applyCosmeticTheme();
+  showGameToast(-cosmetic.cost, `${cosmetic.name} Skin`);
+  updateStats();
+}
+
 function renderCosmeticCards(listEl, entries, activeKey, onSelect, onBuy, previewFactory) {
   if (!listEl) {
     return;
@@ -672,6 +865,34 @@ function createColorPreview(cosmetic) {
   Object.entries(cosmetic.theme).forEach(([key, value]) => {
     preview.style.setProperty(key, value);
   });
+  if (activeSkinCosmetic().theme) {
+    Object.entries(activeSkinCosmetic().theme).forEach(([key, value]) => {
+      preview.style.setProperty(key, value);
+    });
+  }
+  const previewSkin = document.createElement("span");
+  previewSkin.className = `cookie-skin skin-${state.activeSkin || "none"}`;
+  preview.appendChild(previewSkin);
+  const previewAccessory = document.createElement("span");
+  previewAccessory.className = `cookie-accessory accessory-${state.activeAccessory || "none"}`;
+  preview.appendChild(previewAccessory);
+  return preview;
+}
+
+function createSkinPreview(cosmetic) {
+  const preview = document.createElement("div");
+  preview.className = "cosmetic-preview";
+  Object.entries(activeColorCosmetic().theme).forEach(([key, value]) => {
+    preview.style.setProperty(key, value);
+  });
+  if (cosmetic.theme) {
+    Object.entries(cosmetic.theme).forEach(([key, value]) => {
+      preview.style.setProperty(key, value);
+    });
+  }
+  const previewSkin = document.createElement("span");
+  previewSkin.className = `cookie-skin skin-${cosmetic.key || "none"}`;
+  preview.appendChild(previewSkin);
   const previewAccessory = document.createElement("span");
   previewAccessory.className = `cookie-accessory accessory-${state.activeAccessory || "none"}`;
   preview.appendChild(previewAccessory);
@@ -684,6 +905,14 @@ function createAccessoryPreview(cosmetic) {
   Object.entries(activeColorCosmetic().theme).forEach(([key, value]) => {
     preview.style.setProperty(key, value);
   });
+  if (activeSkinCosmetic().theme) {
+    Object.entries(activeSkinCosmetic().theme).forEach(([key, value]) => {
+      preview.style.setProperty(key, value);
+    });
+  }
+  const previewSkin = document.createElement("span");
+  previewSkin.className = `cookie-skin skin-${state.activeSkin || "none"}`;
+  preview.appendChild(previewSkin);
   const previewAccessory = document.createElement("span");
   previewAccessory.className = `cookie-accessory accessory-${cosmetic.key || "none"}`;
   preview.appendChild(previewAccessory);
@@ -712,22 +941,30 @@ function renderCosmeticsTabs() {
 }
 
 function renderCosmeticsStage() {
-  if (!cosmeticsPreviewCookie || !cosmeticsPreviewAccessory) {
+  if (!cosmeticsPreviewCookie || !cosmeticsPreviewAccessory || !cosmeticsPreviewSkin) {
     return;
   }
   const activeColor = activeColorCosmetic();
+  const activeSkin = activeSkinCosmetic();
   const activeAccessory = activeAccessoryCosmetic();
 
   Object.entries(activeColor.theme).forEach(([key, value]) => {
     cosmeticsPreviewCookie.style.setProperty(key, value);
   });
+  if (activeSkin.theme) {
+    Object.entries(activeSkin.theme).forEach(([key, value]) => {
+      cosmeticsPreviewCookie.style.setProperty(key, value);
+    });
+  }
+  cosmeticsPreviewCookie.dataset.skin = activeSkin.key || "none";
+  cosmeticsPreviewSkin.className = `cookie-skin skin-${activeSkin.key || "none"}`;
   cosmeticsPreviewAccessory.className = `cookie-accessory accessory-${activeAccessory.key || "none"}`;
 
   if (cosmeticsPreviewName) {
-    cosmeticsPreviewName.textContent = `${activeColor.name} + ${activeAccessory.name}`;
+    cosmeticsPreviewName.textContent = `${activeColor.name} + ${activeSkin.name} + ${activeAccessory.name}`;
   }
   if (cosmeticsPreviewMeta) {
-    cosmeticsPreviewMeta.textContent = `Farbe: ${activeColor.name} | Hut: ${activeAccessory.name}`;
+    cosmeticsPreviewMeta.textContent = `Farbe: ${activeColor.name} | Skin: ${activeSkin.name} | Hut: ${activeAccessory.name}`;
   }
 }
 
@@ -742,6 +979,18 @@ function renderCosmetics() {
       selectColorCosmetic,
       buyColorCosmetic,
       createColorPreview
+    );
+    return;
+  }
+
+  if (activeCosmeticsCategory === "skins") {
+    renderCosmeticCards(
+      cosmeticsCatalogList,
+      skinCosmetics,
+      state.activeSkin,
+      selectSkinCosmetic,
+      buySkinCosmetic,
+      createSkinPreview
     );
     return;
   }
@@ -762,6 +1011,7 @@ function updateStats() {
   setDisplayValue(totalEl, state.total);
   setDisplayValue(clickCountEl, state.clicks);
   setDisplayValue(rateEl, state.cps, " / sek");
+  renderLevelProgress();
   renderUpgrades();
   renderCosmetics();
   renderUnlocks();
@@ -785,12 +1035,15 @@ function renderUnlocks() {
   ];
   entries.forEach(({ key, open, buy }) => {
     const unlocked = gameUnlocks[key].unlocked;
+    const meetsLevelRequirement = state.level >= gameUnlocks[key].requiredLevel;
     if (open) open.disabled = !unlocked;
     if (buy) {
-      buy.disabled = unlocked || state.cookies < gameUnlocks[key].price;
+      buy.disabled = unlocked || !meetsLevelRequirement || state.cookies < gameUnlocks[key].price;
       buy.textContent = unlocked
         ? "Freigeschaltet"
-        : `Freischalten (${format(gameUnlocks[key].price)})`;
+        : (meetsLevelRequirement
+          ? `Freischalten (${format(gameUnlocks[key].price)})`
+          : `Ab Level ${gameUnlocks[key].requiredLevel}`);
     }
   });
 }
@@ -798,6 +1051,10 @@ function renderUnlocks() {
 function buyGame(key, label) {
   const entry = gameUnlocks[key];
   if (entry.unlocked) return;
+  if (state.level < entry.requiredLevel) {
+    showGameToast(0, `${label} ab Level ${entry.requiredLevel}`);
+    return;
+  }
   if (state.cookies < entry.price) {
     showGameToast(-entry.price, label);
     return;
@@ -879,6 +1136,9 @@ function showGameToast(net, label) {
 }
 
 function openResetModal() {
+  if (resetCosmeticsToggle) {
+    resetCosmeticsToggle.checked = true;
+  }
   resetModal.classList.remove("hidden");
   resetModal.setAttribute("aria-hidden", "false");
 }
@@ -889,14 +1149,22 @@ function closeResetModal() {
 }
 
 function resetAccount() {
+  const shouldResetCosmetics = resetCosmeticsToggle ? resetCosmeticsToggle.checked : true;
+
   state.cookies = 0;
   state.total = 0;
   state.clicks = 0;
+  state.level = 1;
+  state.basePerClick = 1;
+  state.baseCps = 0;
   state.perClick = 1;
   state.cps = 0;
-  state.activeColor = "classic";
-  state.activeAccessory = "none";
+  if (shouldResetCosmetics) {
+    state.activeColor = "classic";
+    state.activeAccessory = "none";
+  }
   state.bonusReady = false;
+  bonusPanel.classList.add("hidden");
   state.lastBonusAt = 0;
   state.towerActive = false;
   state.towerBet = 0;
@@ -906,7 +1174,10 @@ function resetAccount() {
   upgrades.forEach((upgrade) => {
     upgrade.count = 0;
   });
-  resetCosmeticsState();
+  recalculateProduction();
+  if (shouldResetCosmetics) {
+    resetCosmeticsState();
+  }
   applyCosmeticTheme();
 
   Object.keys(gameStats).forEach((key) => {
@@ -1047,13 +1318,7 @@ function buyUpgrade(index) {
 
   state.cookies -= cost;
   upgrade.count += 1;
-
-  if (upgrade.type === "click") {
-    state.perClick += upgrade.power;
-  } else {
-    state.cps += upgrade.power;
-  }
-
+  recalculateProduction();
   updateStats();
 }
 
@@ -1081,11 +1346,44 @@ function collectBonus() {
   if (!state.bonusReady) {
     return;
   }
-  const bonusAmount = 50 + Math.floor(state.perClick * 2);
+  const bonusAmount = scaleGain(50 + (state.basePerClick * 2));
   state.cookies += bonusAmount;
   state.total += bonusAmount;
   state.bonusReady = false;
   bonusPanel.classList.add("hidden");
+  updateStats();
+}
+
+function levelUp() {
+  const requirement = currentLevelRequirement();
+  if (state.cookies < requirement) {
+    return;
+  }
+
+  state.level += 1;
+  state.cookies = 0;
+  upgrades.forEach((upgrade) => {
+    upgrade.count = 0;
+  });
+  state.bonusReady = false;
+  bonusPanel.classList.add("hidden");
+  state.towerActive = false;
+  state.towerBet = 0;
+  state.towerStep = 0;
+  state.towerMultiplier = 0;
+  blackjackDeck = [];
+  blackjackActive = false;
+  blackjackBet = 0;
+  dealerHand = [];
+  playerHand = [];
+  if (slotSpinTimer) {
+    clearInterval(slotSpinTimer);
+    slotSpinTimer = null;
+  }
+  slotsSpinning = false;
+  rouletteSpinning = false;
+  wheelSpinning = false;
+  recalculateProduction();
   updateStats();
 }
 
@@ -1150,7 +1448,7 @@ function renderBlackjack() {
 
 function endBlackjack(result) {
   blackjackActive = false;
-  const payout = Math.floor(blackjackBet * result);
+  const payout = scalePayout(Math.floor(blackjackBet * result), blackjackBet);
   if (payout > 0) {
     state.cookies += payout;
     state.total += payout;
@@ -1292,7 +1590,7 @@ function spinSlots() {
         totalMultiplier += 1.5;
       }
     });
-    const payout = Math.floor(bet * totalMultiplier);
+    const payout = scalePayout(Math.floor(bet * totalMultiplier), bet);
     if (payout > 0) {
       state.cookies += payout;
       state.total += payout;
@@ -1482,7 +1780,7 @@ function spinRoulette() {
     rouletteSpinning = false;
     let payout = 0;
     if (isWinningRouletteBet(rouletteBetChoice, number)) {
-      payout = bet * roulettePayoutMultiplier(rouletteBetChoice);
+      payout = scalePayout(bet * roulettePayoutMultiplier(rouletteBetChoice), bet);
     }
     if (payout > 0) {
       state.cookies += payout;
@@ -1542,7 +1840,7 @@ function spinWheel() {
 
   setTimeout(() => {
     wheelSpinning = false;
-    const payout = Math.floor(bet * segment.multiplier);
+    const payout = scalePayout(Math.floor(bet * segment.multiplier), bet);
     if (payout > 0) {
       state.cookies += payout;
       state.total += payout;
@@ -1560,7 +1858,7 @@ function spinWheel() {
 }
 
 function renderTower() {
-  const payout = Math.floor(state.towerBet * state.towerMultiplier);
+  const payout = scalePayout(Math.floor(state.towerBet * state.towerMultiplier), state.towerBet);
   towerMultiplierEl.textContent = `x${state.towerMultiplier}`;
   setDisplayValue(towerPayoutEl, payout);
 
@@ -1623,7 +1921,7 @@ function cashoutTower() {
   if (!state.towerActive) {
     return;
   }
-  const payout = Math.floor(state.towerBet * state.towerMultiplier);
+  const payout = scalePayout(Math.floor(state.towerBet * state.towerMultiplier), state.towerBet);
   const bet = state.towerBet;
   state.cookies += payout;
   state.total += payout;
@@ -1688,6 +1986,7 @@ wheelOpenButton.addEventListener("click", openWheelModal);
 wheelCloseButton.addEventListener("click", closeWheelModal);
 wheelCloseOverlay.addEventListener("click", closeWheelModal);
 wheelSpinButton.addEventListener("click", spinWheel);
+if (levelButton) levelButton.addEventListener("click", levelUp);
 wheelBetInput.addEventListener("input", renderWheel);
 wheelBuyButton.addEventListener("click", () => buyGame("wheel", "Gluecksrad"));
 upgradeTabs.forEach((tab) => {
