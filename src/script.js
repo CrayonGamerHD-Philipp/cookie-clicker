@@ -241,11 +241,11 @@ const state = {
 const towerSteps = [0, 0.5, 1, 1.5, 2, 2.5, 3, 4];
 const towerChances = [0.78, 0.74, 0.7, 0.66, 0.62, 0.58, 0.55, 0.52];
 const slotSymbols = [
-  { key: "CHERRY", icon: "ðŸ’", weight: 30, multiplier: 2 },
-  { key: "LEMON", icon: "ðŸ‹", weight: 26, multiplier: 1.5 },
-  { key: "COOKIE", icon: "ðŸª", weight: 16, multiplier: 6 },
-  { key: "STAR", icon: "â­", weight: 14, multiplier: 4 },
-  { key: "BELL", icon: "ðŸ””", weight: 14, multiplier: 3 }
+  { key: "CHERRY", icon: "\u{1F352}", weight: 30, multiplier: 2 },
+  { key: "LEMON", icon: "\u{1F34B}", weight: 26, multiplier: 1.5 },
+  { key: "COOKIE", icon: "\u{1F36A}", weight: 16, multiplier: 6 },
+  { key: "STAR", icon: "\u{2B50}", weight: 14, multiplier: 4 },
+  { key: "BELL", icon: "\u{1F514}", weight: 14, multiplier: 3 }
 ];
 const rouletteOrder = [
   0, 32, 15, 19, 4, 21, 2, 25, 17, 34,
