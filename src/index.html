@@ -24,6 +24,7 @@
           </div>
 
           <button id="cookieButton" class="cookie" aria-label="Keks backen">
+            <span id="cookieAccessory" class="cookie-accessory accessory-none" aria-hidden="true"></span>
             <span class="cookie-text">KLICK!</span>
           </button>
 
@@ -104,6 +105,14 @@
             </button>
           </div>
           <div id="upgradeList" class="upgrade-list"></div>
+
+          <div class="cosmetics-entry">
+            <div class="tower-header">
+              <h2>Cosmetics</h2>
+              <p>Farben und Huete im eigenen Atelier kombinieren.</p>
+            </div>
+            <button id="cosmeticsOpen" class="cosmetics-open">Cosmetics-Atelier</button>
+          </div>
 
           <div class="tower">
             <div class="tower-header">
@@ -201,34 +210,6 @@
             <strong id="financeClicks">0</strong>
           </div>
           <div class="finance-row">
-            <span>Klicks</span>
-            <strong id="financeClicks">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Klicks</span>
-            <strong id="financeClicks">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Klicks</span>
-            <strong id="financeClicks">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Klicks</span>
-            <strong id="financeClicks">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Klicks</span>
-            <strong id="financeClicks">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Klicks</span>
-            <strong id="financeClicks">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Klicks</span>
-            <strong id="financeClicks">0</strong>
-          </div>
-          <div class="finance-row">
             <span>Tower (Netto)</span>
             <strong id="financeTowerNet">0</strong>
           </div>
@@ -247,6 +228,53 @@
           <div class="finance-row">
             <span>Gluecksrad (Netto)</span>
             <strong id="financeWheelNet">0</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="cosmeticsModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="cosmeticsCloseOverlay"></div>
+      <div class="modal-card modal-cosmetics" role="dialog" aria-modal="true" aria-labelledby="cosmeticsTitle">
+        <button id="cosmeticsClose" class="modal-close" aria-label="Schliessen">x</button>
+        <div class="modal-head">
+          <p class="eyebrow">Atelier</p>
+          <h2 id="cosmeticsTitle">Cookie Cosmetics</h2>
+          <p class="modal-sub">Waehle genau eine Farbe und genau einen Hut gleichzeitig.</p>
+        </div>
+        <div class="cosmetics-panel">
+          <div class="cosmetics-stage">
+            <div id="cosmeticsPreviewCookie" class="cosmetics-preview-cookie">
+              <span class="cookie-accessory accessory-none" id="cosmeticsPreviewAccessory" aria-hidden="true"></span>
+              <span class="cosmetics-preview-label">Preview</span>
+            </div>
+            <div class="cosmetics-stage-copy">
+              <h3 id="cosmeticsPreviewName">Classic Bake</h3>
+              <p id="cosmeticsPreviewMeta">Aktiv: Ohne</p>
+            </div>
+          </div>
+          <div class="cosmetics-tabs" role="tablist" aria-label="Cosmetics Kategorien">
+            <button
+              type="button"
+              class="cosmetics-tab active"
+              data-cosmetics-category="colors"
+              role="tab"
+              aria-selected="true"
+            >
+              Farben
+            </button>
+            <button
+              type="button"
+              class="cosmetics-tab"
+              data-cosmetics-category="accessories"
+              role="tab"
+              aria-selected="false"
+            >
+              Huete
+            </button>
+          </div>
+          <div class="cosmetics-browser">
+            <div id="cosmeticsCatalogList" class="cosmetics-catalog"></div>
           </div>
         </div>
       </div>
@@ -461,11 +489,6 @@
     <script src="script.js"></script>
   </body>
 </html>
-
-
-
-
-
 
 
 

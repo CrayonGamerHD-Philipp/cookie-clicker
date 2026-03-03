@@ -4,7 +4,18 @@ const clickCountEl = document.getElementById("clickCount");
 const totalEl = document.getElementById("total");
 const rateEl = document.getElementById("rate");
 const cookieButton = document.getElementById("cookieButton");
+const cookieAccessoryEl = document.getElementById("cookieAccessory");
 const upgradeList = document.getElementById("upgradeList");
+const cosmeticsModal = document.getElementById("cosmeticsModal");
+const cosmeticsOpenButton = document.getElementById("cosmeticsOpen");
+const cosmeticsCloseButton = document.getElementById("cosmeticsClose");
+const cosmeticsCloseOverlay = document.getElementById("cosmeticsCloseOverlay");
+const cosmeticsCatalogList = document.getElementById("cosmeticsCatalogList");
+const cosmeticsPreviewCookie = document.getElementById("cosmeticsPreviewCookie");
+const cosmeticsPreviewAccessory = document.getElementById("cosmeticsPreviewAccessory");
+const cosmeticsPreviewName = document.getElementById("cosmeticsPreviewName");
+const cosmeticsPreviewMeta = document.getElementById("cosmeticsPreviewMeta");
+const cosmeticsCategoryTabs = Array.from(document.querySelectorAll(".cosmetics-tab"));
 const upgradeTabs = Array.from(document.querySelectorAll(".upgrade-tab"));
 const bonusPanel = document.getElementById("bonus");
 const bonusButton = document.getElementById("bonusButton");
@@ -120,12 +131,105 @@ const upgrades = [
   count: 0
 }));
 
+const colorCosmetics = [
+  {
+    key: "classic",
+    name: "Classic Bake",
+    cost: 0,
+    desc: "Der originale HETHEY-Keks.",
+    owned: true,
+    theme: {
+      "--cookie-top": "#f1b07d",
+      "--cookie-bottom": "#b5531d",
+      "--cookie-spot": "rgba(60, 20, 10, 0.32)",
+      "--cookie-text": "#fff7ee"
+    }
+  },
+  {
+    key: "strawberry",
+    name: "Berry Glaze",
+    cost: 2_500,
+    desc: "Pinkes Frosting mit beerigen Kruemeln.",
+    owned: false,
+    theme: {
+      "--cookie-top": "#f7b0c8",
+      "--cookie-bottom": "#c24b72",
+      "--cookie-spot": "rgba(112, 20, 56, 0.28)",
+      "--cookie-text": "#fff7ee"
+    }
+  },
+  {
+    key: "mint",
+    name: "Mint Crunch",
+    cost: 12_000,
+    desc: "Kuehle Minze mit dunklen Choco-Chunks.",
+    owned: false,
+    theme: {
+      "--cookie-top": "#b8f1d7",
+      "--cookie-bottom": "#2f8f6b",
+      "--cookie-spot": "rgba(20, 56, 42, 0.3)",
+      "--cookie-text": "#163326"
+    }
+  },
+  {
+    key: "midnight",
+    name: "Midnight Cocoa",
+    cost: 85_000,
+    desc: "Dunkler Kakao mit goldenen Highlights.",
+    owned: false,
+    theme: {
+      "--cookie-top": "#7f5a4d",
+      "--cookie-bottom": "#2d1b16",
+      "--cookie-spot": "rgba(236, 191, 125, 0.24)",
+      "--cookie-text": "#f8e7cf"
+    }
+  },
+  {
+    key: "royal-velvet",
+    name: "Royal Velvet",
+    cost: 250_000,
+    desc: "Samtiger Keks mit violettem Schimmer.",
+    owned: false,
+    theme: {
+      "--cookie-top": "#d7b2ff",
+      "--cookie-bottom": "#6e3aa8",
+      "--cookie-spot": "rgba(48, 20, 72, 0.28)",
+      "--cookie-text": "#fff7ee"
+    }
+  },
+  {
+    key: "captain-crunch",
+    name: "Captain Blue",
+    cost: 400_000,
+    desc: "Maritime Glasur mit tiefblauem Finish.",
+    owned: false,
+    theme: {
+      "--cookie-top": "#8ec5ff",
+      "--cookie-bottom": "#2356a8",
+      "--cookie-spot": "rgba(14, 34, 74, 0.28)",
+      "--cookie-text": "#fff7ee"
+    }
+  }
+];
+
+const accessoryCosmetics = [
+  { key: "none", name: "Ohne", cost: 0, desc: "Nur der Keks, ganz clean.", owned: true },
+  { key: "party", name: "Partyhut", cost: 3_500, desc: "Bunter Partyhut fuer Feiermodus.", owned: false },
+  { key: "crown", name: "Krone", cost: 95_000, desc: "Goldene Krone fuer den Kekskoenig.", owned: false },
+  { key: "witch", name: "Hexenhut", cost: 180_000, desc: "Spitzer Hexenhut mit dunklem Band.", owned: false },
+  { key: "cowboy", name: "Cowboyhut", cost: 260_000, desc: "Breiter Westernhut mit warmem Lederlook.", owned: false },
+  { key: "chef", name: "Kochmuetze", cost: 15_000, desc: "Legacy", owned: false, hidden: true },
+  { key: "captain", name: "Kapitaenshut", cost: 400_000, desc: "Legacy", owned: false, hidden: true }
+];
+
 const state = {
   cookies: 0,
   total: 0,
   clicks: 0,
   perClick: 1,
   cps: 0,
+  activeColor: "classic",
+  activeAccessory: "none",
   bonusReady: false,
   lastBonusAt: 0,
   towerActive: false,
@@ -180,6 +284,7 @@ let rouletteRotation = 0;
 let wheelSpinning = false;
 let wheelRotation = 0;
 let activeUpgradeTab = "click";
+let activeCosmeticsCategory = "colors";
 
 const gameStats = {
   tower: { wins: 0, losses: 0, net: 0 },
@@ -203,6 +308,70 @@ function applyUpgradeCounts(counts) {
       state.cps += upgrade.power * count;
     }
   });
+}
+
+function activeColorCosmetic() {
+  return colorCosmetics.find((cosmetic) => cosmetic.key === state.activeColor) || colorCosmetics[0];
+}
+
+function activeAccessoryCosmetic() {
+  return accessoryCosmetics.find((cosmetic) => cosmetic.key === state.activeAccessory && !cosmetic.hidden) || accessoryCosmetics[0];
+}
+
+function resetCosmeticsState() {
+  colorCosmetics.forEach((cosmetic) => {
+    cosmetic.owned = cosmetic.key === "classic";
+  });
+  accessoryCosmetics.forEach((cosmetic) => {
+    cosmetic.owned = cosmetic.key === "none";
+  });
+  state.activeColor = "classic";
+  state.activeAccessory = "none";
+}
+
+function applyCosmeticTheme() {
+  const color = activeColorCosmetic();
+  const accessory = activeAccessoryCosmetic();
+  state.activeColor = color.key;
+  state.activeAccessory = accessory.key;
+  Object.entries(color.theme).forEach(([key, value]) => {
+    cookieButton.style.setProperty(key, value);
+  });
+  if (cookieAccessoryEl) {
+    cookieAccessoryEl.className = `cookie-accessory accessory-${accessory.key || "none"}`;
+  }
+}
+
+function migrateLegacyCosmetics(savedCosmetics) {
+  const legacyMap = {
+    classic: { color: "classic", accessory: "none" },
+    strawberry: { color: "strawberry", accessory: "party" },
+    mint: { color: "mint", accessory: "none" },
+    midnight: { color: "midnight", accessory: "crown" },
+    "royal-velvet": { color: "royal-velvet", accessory: "crown" },
+    "captain-crunch": { color: "captain-crunch", accessory: "cowboy" }
+  };
+
+  const ownedKeys = Array.isArray(savedCosmetics.owned) ? savedCosmetics.owned : [];
+  ownedKeys.forEach((key) => {
+    const mapped = legacyMap[key];
+    if (!mapped) return;
+    const color = colorCosmetics.find((entry) => entry.key === mapped.color);
+    const accessory = accessoryCosmetics.find((entry) => entry.key === mapped.accessory);
+    if (color) color.owned = true;
+    if (accessory) accessory.owned = true;
+  });
+
+  if (typeof savedCosmetics.active === "string") {
+    const mapped = legacyMap[savedCosmetics.active];
+    if (!mapped) return;
+    if (colorCosmetics.some((entry) => entry.key === mapped.color && entry.owned)) {
+      state.activeColor = mapped.color;
+    }
+    if (accessoryCosmetics.some((entry) => entry.key === mapped.accessory && entry.owned)) {
+      state.activeAccessory = mapped.accessory;
+    }
+  }
 }
 
 function loadState() {
@@ -233,9 +402,40 @@ function loadState() {
         }
       });
     }
+    resetCosmeticsState();
+    if (saved.cosmetics) {
+      if (saved.cosmetics.colors || saved.cosmetics.accessories) {
+        const ownedColors = Array.isArray(saved.cosmetics.colors?.owned) ? saved.cosmetics.colors.owned : [];
+        const ownedAccessories = Array.isArray(saved.cosmetics.accessories?.owned) ? saved.cosmetics.accessories.owned : [];
+        colorCosmetics.forEach((cosmetic) => {
+          cosmetic.owned = cosmetic.key === "classic" || ownedColors.includes(cosmetic.key);
+        });
+        accessoryCosmetics.forEach((cosmetic) => {
+          cosmetic.owned = cosmetic.key === "none" || ownedAccessories.includes(cosmetic.key);
+        });
+        if (typeof saved.cosmetics.colors?.active === "string") {
+          const selectedColor = colorCosmetics.find((cosmetic) => cosmetic.key === saved.cosmetics.colors.active && cosmetic.owned);
+          if (selectedColor) {
+            state.activeColor = selectedColor.key;
+          }
+        }
+        if (typeof saved.cosmetics.accessories?.active === "string") {
+          const selectedAccessory = accessoryCosmetics.find(
+            (cosmetic) => cosmetic.key === saved.cosmetics.accessories.active && cosmetic.owned && !cosmetic.hidden
+          );
+          if (selectedAccessory) {
+            state.activeAccessory = selectedAccessory.key;
+          }
+        }
+      } else {
+        migrateLegacyCosmetics(saved.cosmetics);
+      }
+    }
   } catch (error) {
     applyUpgradeCounts([]);
+    resetCosmeticsState();
   }
+  applyCosmeticTheme();
 }
 
 function saveState() {
@@ -245,6 +445,16 @@ function saveState() {
     clicks: state.clicks,
     lastBonusAt: state.lastBonusAt,
     upgrades: upgrades.map((upgrade) => upgrade.count),
+    cosmetics: {
+      colors: {
+        active: activeColorCosmetic().key,
+        owned: colorCosmetics.filter((cosmetic) => cosmetic.owned).map((cosmetic) => cosmetic.key)
+      },
+      accessories: {
+        active: activeAccessoryCosmetic().key,
+        owned: accessoryCosmetics.filter((cosmetic) => cosmetic.owned && !cosmetic.hidden).map((cosmetic) => cosmetic.key)
+      }
+    },
     stats: gameStats,
     unlocks: Object.fromEntries(
       Object.entries(gameUnlocks).map(([key, entry]) => [key, entry.unlocked])
@@ -350,6 +560,197 @@ function renderUpgrades() {
   });
 }
 
+function selectColorCosmetic(key) {
+  const cosmetic = colorCosmetics.find((entry) => entry.key === key && entry.owned);
+  if (!cosmetic) {
+    return;
+  }
+  state.activeColor = cosmetic.key;
+  applyCosmeticTheme();
+  updateStats();
+}
+
+function buyColorCosmetic(key) {
+  const cosmetic = colorCosmetics.find((entry) => entry.key === key);
+  if (!cosmetic || cosmetic.owned || state.cookies < cosmetic.cost) {
+    return;
+  }
+  state.cookies -= cosmetic.cost;
+  cosmetic.owned = true;
+  state.activeColor = cosmetic.key;
+  applyCosmeticTheme();
+  showGameToast(-cosmetic.cost, `${cosmetic.name} Farbe`);
+  updateStats();
+}
+
+function selectAccessoryCosmetic(key) {
+  const cosmetic = accessoryCosmetics.find((entry) => entry.key === key && entry.owned);
+  if (!cosmetic) {
+    return;
+  }
+  state.activeAccessory = cosmetic.key;
+  applyCosmeticTheme();
+  updateStats();
+}
+
+function buyAccessoryCosmetic(key) {
+  const cosmetic = accessoryCosmetics.find((entry) => entry.key === key);
+  if (!cosmetic || cosmetic.owned || state.cookies < cosmetic.cost) {
+    return;
+  }
+  state.cookies -= cosmetic.cost;
+  cosmetic.owned = true;
+  state.activeAccessory = cosmetic.key;
+  applyCosmeticTheme();
+  showGameToast(-cosmetic.cost, `${cosmetic.name} Accessoire`);
+  updateStats();
+}
+
+function renderCosmeticCards(listEl, entries, activeKey, onSelect, onBuy, previewFactory) {
+  if (!listEl) {
+    return;
+  }
+  listEl.innerHTML = "";
+  entries.filter((cosmetic) => !cosmetic.hidden).forEach((cosmetic) => {
+    const item = document.createElement("div");
+    const isActive = cosmetic.key === activeKey;
+    item.className = "cosmetic-card";
+    if (cosmetic.owned) {
+      item.classList.add("owned");
+    }
+    if (isActive) {
+      item.classList.add("selected");
+    }
+
+    const preview = previewFactory(cosmetic);
+
+    const info = document.createElement("div");
+    const title = document.createElement("h3");
+    title.textContent = cosmetic.name;
+
+    const desc = document.createElement("p");
+    desc.textContent = cosmetic.owned
+      ? cosmetic.desc
+      : `${cosmetic.desc} - Kosten: ${format(cosmetic.cost)}`;
+
+    info.appendChild(title);
+    info.appendChild(desc);
+
+    const button = document.createElement("button");
+    if (isActive) {
+      button.textContent = "Aktiv";
+      button.disabled = true;
+    } else if (cosmetic.owned) {
+      button.textContent = "Auswaehlen";
+      button.addEventListener("click", () => onSelect(cosmetic.key));
+    } else {
+      button.textContent = "Kaufen";
+      button.disabled = state.cookies < cosmetic.cost;
+      button.addEventListener("click", () => onBuy(cosmetic.key));
+    }
+
+    item.appendChild(preview);
+    item.appendChild(info);
+    item.appendChild(button);
+
+    if (!cosmetic.owned && !button.disabled) {
+      item.classList.add("affordable");
+    }
+
+    listEl.appendChild(item);
+  });
+}
+
+function createColorPreview(cosmetic) {
+  const preview = document.createElement("div");
+  preview.className = "cosmetic-preview";
+  Object.entries(cosmetic.theme).forEach(([key, value]) => {
+    preview.style.setProperty(key, value);
+  });
+  const previewAccessory = document.createElement("span");
+  previewAccessory.className = `cookie-accessory accessory-${state.activeAccessory || "none"}`;
+  preview.appendChild(previewAccessory);
+  return preview;
+}
+
+function createAccessoryPreview(cosmetic) {
+  const preview = document.createElement("div");
+  preview.className = "cosmetic-preview";
+  Object.entries(activeColorCosmetic().theme).forEach(([key, value]) => {
+    preview.style.setProperty(key, value);
+  });
+  const previewAccessory = document.createElement("span");
+  previewAccessory.className = `cookie-accessory accessory-${cosmetic.key || "none"}`;
+  preview.appendChild(previewAccessory);
+  return preview;
+}
+
+function openCosmeticsModal() {
+  if (!cosmeticsModal) return;
+  cosmeticsModal.classList.remove("hidden");
+  cosmeticsModal.setAttribute("aria-hidden", "false");
+  renderCosmetics();
+}
+
+function closeCosmeticsModal() {
+  if (!cosmeticsModal) return;
+  cosmeticsModal.classList.add("hidden");
+  cosmeticsModal.setAttribute("aria-hidden", "true");
+}
+
+function renderCosmeticsTabs() {
+  cosmeticsCategoryTabs.forEach((tab) => {
+    const isActive = tab.dataset.cosmeticsCategory === activeCosmeticsCategory;
+    tab.classList.toggle("active", isActive);
+    tab.setAttribute("aria-selected", String(isActive));
+  });
+}
+
+function renderCosmeticsStage() {
+  if (!cosmeticsPreviewCookie || !cosmeticsPreviewAccessory) {
+    return;
+  }
+  const activeColor = activeColorCosmetic();
+  const activeAccessory = activeAccessoryCosmetic();
+
+  Object.entries(activeColor.theme).forEach(([key, value]) => {
+    cosmeticsPreviewCookie.style.setProperty(key, value);
+  });
+  cosmeticsPreviewAccessory.className = `cookie-accessory accessory-${activeAccessory.key || "none"}`;
+
+  if (cosmeticsPreviewName) {
+    cosmeticsPreviewName.textContent = `${activeColor.name} + ${activeAccessory.name}`;
+  }
+  if (cosmeticsPreviewMeta) {
+    cosmeticsPreviewMeta.textContent = `Farbe: ${activeColor.name} | Hut: ${activeAccessory.name}`;
+  }
+}
+
+function renderCosmetics() {
+  renderCosmeticsTabs();
+  renderCosmeticsStage();
+  if (activeCosmeticsCategory === "colors") {
+    renderCosmeticCards(
+      cosmeticsCatalogList,
+      colorCosmetics,
+      state.activeColor,
+      selectColorCosmetic,
+      buyColorCosmetic,
+      createColorPreview
+    );
+    return;
+  }
+
+  renderCosmeticCards(
+    cosmeticsCatalogList,
+    accessoryCosmetics,
+    state.activeAccessory,
+    selectAccessoryCosmetic,
+    buyAccessoryCosmetic,
+    createAccessoryPreview
+  );
+}
+
 function updateStats() {
   setDisplayValue(cookieCountEl, state.cookies);
   setDisplayValue(perClickEl, state.perClick);
@@ -357,6 +758,7 @@ function updateStats() {
   setDisplayValue(clickCountEl, state.clicks);
   setDisplayValue(rateEl, state.cps, " / sek");
   renderUpgrades();
+  renderCosmetics();
   renderUnlocks();
   renderTower();
   renderBlackjack();
@@ -484,8 +886,11 @@ function closeResetModal() {
 function resetAccount() {
   state.cookies = 0;
   state.total = 0;
+  state.clicks = 0;
   state.perClick = 1;
   state.cps = 0;
+  state.activeColor = "classic";
+  state.activeAccessory = "none";
   state.bonusReady = false;
   state.lastBonusAt = 0;
   state.towerActive = false;
@@ -496,6 +901,8 @@ function resetAccount() {
   upgrades.forEach((upgrade) => {
     upgrade.count = 0;
   });
+  resetCosmeticsState();
+  applyCosmeticTheme();
 
   Object.keys(gameStats).forEach((key) => {
     gameStats[key].wins = 0;
@@ -1095,6 +1502,15 @@ function cashoutTower() {
 
 cookieButton.addEventListener("click", clickCookie);
 bonusButton.addEventListener("click", collectBonus);
+if (cosmeticsOpenButton) cosmeticsOpenButton.addEventListener("click", openCosmeticsModal);
+if (cosmeticsCloseButton) cosmeticsCloseButton.addEventListener("click", closeCosmeticsModal);
+if (cosmeticsCloseOverlay) cosmeticsCloseOverlay.addEventListener("click", closeCosmeticsModal);
+cosmeticsCategoryTabs.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    activeCosmeticsCategory = tab.dataset.cosmeticsCategory || "colors";
+    renderCosmetics();
+  });
+});
 if (financeOpenButton) financeOpenButton.addEventListener("click", openFinanceModal);
 if (financeCloseButton) financeCloseButton.addEventListener("click", closeFinanceModal);
 if (financeCloseOverlay) financeCloseOverlay.addEventListener("click", closeFinanceModal);
