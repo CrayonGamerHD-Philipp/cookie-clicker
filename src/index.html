@@ -70,6 +70,8 @@
               <span id="statsWheel">0</span>
             </div>
           </div>
+
+          <button id="financeOpen" class="finance-open">Finanz-Uebersicht</button>
         </section>
 
         <aside class="shop">
@@ -143,6 +145,56 @@
     </div>
 
     <div id="gameToast" class="game-toast hidden" role="status" aria-live="polite"></div>
+
+    <div id="financeModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="financeCloseOverlay"></div>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="financeTitle">
+        <button id="financeClose" class="modal-close" aria-label="Schliessen">x</button>
+        <div class="modal-head">
+          <p class="eyebrow">Finanzen</p>
+          <h2 id="financeTitle">Finanz-Uebersicht</h2>
+          <p class="modal-sub">Deine exakten Werte auf einen Blick.</p>
+        </div>
+        <div class="finance-grid">
+          <div class="finance-row">
+            <span>Aktuelle Kekse</span>
+            <strong id="financeCookies">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Pro Klick</span>
+            <strong id="financePerClick">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Pro Sekunde</span>
+            <strong id="financeCps">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Gesamt</span>
+            <strong id="financeTotal">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Tower (Netto)</span>
+            <strong id="financeTowerNet">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Blackjack (Netto)</span>
+            <strong id="financeBlackjackNet">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Slots (Netto)</span>
+            <strong id="financeSlotsNet">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Roulette (Netto)</span>
+            <strong id="financeRouletteNet">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Gluecksrad (Netto)</span>
+            <strong id="financeWheelNet">0</strong>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div id="resetModal" class="modal hidden" aria-hidden="true">
       <div class="modal-overlay" id="resetCloseOverlay"></div>

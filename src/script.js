@@ -51,6 +51,19 @@ const statsTowerEl = document.getElementById("statsTower");
 const statsBlackjackEl = document.getElementById("statsBlackjack");
 const statsSlotsEl = document.getElementById("statsSlots");
 const statsRouletteEl = document.getElementById("statsRoulette");
+const financeModal = document.getElementById("financeModal");
+const financeOpenButton = document.getElementById("financeOpen");
+const financeCloseButton = document.getElementById("financeClose");
+const financeCloseOverlay = document.getElementById("financeCloseOverlay");
+const financeCookiesEl = document.getElementById("financeCookies");
+const financePerClickEl = document.getElementById("financePerClick");
+const financeCpsEl = document.getElementById("financeCps");
+const financeTotalEl = document.getElementById("financeTotal");
+const financeTowerNetEl = document.getElementById("financeTowerNet");
+const financeBlackjackNetEl = document.getElementById("financeBlackjackNet");
+const financeSlotsNetEl = document.getElementById("financeSlotsNet");
+const financeRouletteNetEl = document.getElementById("financeRouletteNet");
+const financeWheelNetEl = document.getElementById("financeWheelNet");
 const rouletteModal = document.getElementById("rouletteModal");
 const rouletteOpenButton = document.getElementById("rouletteOpen");
 const rouletteBuyButton = document.getElementById("rouletteBuy");
@@ -238,7 +251,34 @@ function saveState() {
 }
 
 function format(num) {
+  const value = Math.floor(num);
+  const abs = Math.abs(value);
+  const trim = (text) => text.replace(/\.0$/, "");
+  if (abs >= 1e12) return `${trim((value / 1e12).toFixed(abs < 1e13 ? 1 : 0))}T`;
+  return value.toLocaleString("de-DE");
+}
+
+function formatFull(num) {
   return Math.floor(num).toLocaleString("de-DE");
+}
+
+function setDisplayValue(el, value, suffix = "") {
+  if (!el) return;
+  const shortValue = `${format(value)}${suffix}`;
+  const fullValue = `${formatFull(value)}${suffix}`;
+  el.dataset.short = shortValue;
+  el.dataset.full = fullValue;
+  if (!el.dataset.showFull) {
+    el.dataset.showFull = "false";
+  }
+  el.textContent = el.dataset.showFull === "true" ? fullValue : shortValue;
+  if (!el.dataset.toggleBound) {
+    el.dataset.toggleBound = "true";
+    el.addEventListener("click", () => {
+      el.dataset.showFull = el.dataset.showFull === "true" ? "false" : "true";
+      el.textContent = el.dataset.showFull === "true" ? el.dataset.full : el.dataset.short;
+    });
+  }
 }
 
 function costFor(upgrade) {
@@ -279,10 +319,10 @@ function renderUpgrades() {
 }
 
 function updateStats() {
-  cookieCountEl.textContent = format(state.cookies);
-  perClickEl.textContent = format(state.perClick);
-  totalEl.textContent = format(state.total);
-  rateEl.textContent = `${format(state.cps)} / sek`;
+  setDisplayValue(cookieCountEl, state.cookies);
+  setDisplayValue(perClickEl, state.perClick);
+  setDisplayValue(totalEl, state.total);
+  setDisplayValue(rateEl, state.cps, " / sek");
   renderUpgrades();
   renderUnlocks();
   renderTower();
@@ -291,6 +331,7 @@ function updateStats() {
   renderWheel();
   renderRoulette();
   renderGameStats();
+  updateFinanceOverview();
   saveState();
 }
 
@@ -332,6 +373,11 @@ function formatNet(value) {
   return `${sign}${format(value)}`;
 }
 
+function formatFullNet(value) {
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${formatFull(value)}`;
+}
+
 function renderGameStats() {
   const overall = {
     wins: gameStats.tower.wins + gameStats.blackjack.wins + gameStats.slots.wins + gameStats.roulette.wins + gameStats.wheel.wins,
@@ -344,6 +390,19 @@ function renderGameStats() {
   statsSlotsEl.textContent = `${gameStats.slots.wins}W / ${gameStats.slots.losses}L (${formatNet(gameStats.slots.net)})`;
   statsRouletteEl.textContent = `${gameStats.roulette.wins}W / ${gameStats.roulette.losses}L (${formatNet(gameStats.roulette.net)})`;
   statsWheelEl.textContent = `${gameStats.wheel.wins}W / ${gameStats.wheel.losses}L (${formatNet(gameStats.wheel.net)})`;
+}
+
+function updateFinanceOverview() {
+  if (!financeModal) return;
+  financeCookiesEl.textContent = formatFull(state.cookies);
+  financePerClickEl.textContent = formatFull(state.perClick);
+  financeCpsEl.textContent = formatFull(state.cps);
+  financeTotalEl.textContent = formatFull(state.total);
+  financeTowerNetEl.textContent = formatFullNet(gameStats.tower.net);
+  financeBlackjackNetEl.textContent = formatFullNet(gameStats.blackjack.net);
+  financeSlotsNetEl.textContent = formatFullNet(gameStats.slots.net);
+  financeRouletteNetEl.textContent = formatFullNet(gameStats.roulette.net);
+  financeWheelNetEl.textContent = formatFullNet(gameStats.wheel.net);
 }
 
 function recordGameResult(key, bet, payout) {
@@ -510,6 +569,19 @@ function openWheelModal() {
 function closeWheelModal() {
   wheelModal.classList.add("hidden");
   wheelModal.setAttribute("aria-hidden", "true");
+}
+
+function openFinanceModal() {
+  if (!financeModal) return;
+  financeModal.classList.remove("hidden");
+  financeModal.setAttribute("aria-hidden", "false");
+  updateFinanceOverview();
+}
+
+function closeFinanceModal() {
+  if (!financeModal) return;
+  financeModal.classList.add("hidden");
+  financeModal.setAttribute("aria-hidden", "true");
 }
 
 function clickCookie() {
@@ -911,7 +983,7 @@ function spinWheel() {
 function renderTower() {
   const payout = Math.floor(state.towerBet * state.towerMultiplier);
   towerMultiplierEl.textContent = `x${state.towerMultiplier}`;
-  towerPayoutEl.textContent = format(payout);
+  setDisplayValue(towerPayoutEl, payout);
 
   const canStart = !state.towerActive && state.cookies >= (Number(towerBetInput.value) || 0);
   towerStartButton.disabled = !canStart;
@@ -988,6 +1060,9 @@ function cashoutTower() {
 
 cookieButton.addEventListener("click", clickCookie);
 bonusButton.addEventListener("click", collectBonus);
+if (financeOpenButton) financeOpenButton.addEventListener("click", openFinanceModal);
+if (financeCloseButton) financeCloseButton.addEventListener("click", closeFinanceModal);
+if (financeCloseOverlay) financeCloseOverlay.addEventListener("click", closeFinanceModal);
 towerOpenButton.addEventListener("click", openTowerModal);
 towerCloseButton.addEventListener("click", closeTowerModal);
 towerCloseOverlay.addEventListener("click", closeTowerModal);
