@@ -416,7 +416,7 @@
         <div class="modal-head">
           <p class="eyebrow">Casino</p>
           <h2 id="rouletteTitle">Roulette</h2>
-          <p class="modal-sub">Rot/Schwarz zahlen x2, Gruen (0) zahlt x10.</p>
+          <p class="modal-sub">Setze wie am echten Tisch: Zahlen x36, Dutzende x3, Aussenwetten x2.</p>
         </div>
         <div class="roulette">
           <div class="roulette-wheel-wrap">
@@ -432,14 +432,19 @@
             <div class="roulette-bets">
               <button class="roulette-chip" data-bet="red">Rot</button>
               <button class="roulette-chip" data-bet="black">Schwarz</button>
-              <button class="roulette-chip" data-bet="green">Gruen (0)</button>
-              <button class="roulette-chip" data-bet="number">Zahl</button>
+              <button class="roulette-chip" data-bet="even">Gerade</button>
+              <button class="roulette-chip" data-bet="odd">Ungerade</button>
+              <button class="roulette-chip" data-bet="low">1-18</button>
+              <button class="roulette-chip" data-bet="high">19-36</button>
+              <button class="roulette-chip" data-bet="dozen1">1st 12</button>
+              <button class="roulette-chip" data-bet="dozen2">2nd 12</button>
+              <button class="roulette-chip" data-bet="dozen3">3rd 12</button>
             </div>
-            <div class="roulette-number">
-              <label class="tower-label" for="rouletteNumber">Zahl 0-36</label>
-              <input id="rouletteNumber" type="number" min="0" max="36" step="1" value="7" />
+            <div class="roulette-layout">
+              <div id="rouletteBoard" class="roulette-board" aria-label="Roulette Zahlenfeld"></div>
+              <p id="rouletteSelection" class="roulette-selection">Aktiver Tipp: Rot</p>
             </div>
-            <p id="rouletteStatus" class="tower-status">Waehle eine Farbe und drehe.</p>
+            <p id="rouletteStatus" class="tower-status">Waehle eine Wette und drehe.</p>
           </div>
         </div>
       </div>

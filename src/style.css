@@ -1113,55 +1113,54 @@ h1 {
 
 .roulette-wheel-wrap {
   position: relative;
-  width: 220px;
-  height: 220px;
+  width: min(340px, 82vw);
+  height: min(340px, 82vw);
 }
 
 .roulette-wheel {
+  position: relative;
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: conic-gradient(
-    #1f8f4a 0deg 9.7deg,
-    #b82b2b 9.7deg 19.4deg,
-    #111 19.4deg 29.1deg,
-    #b82b2b 29.1deg 38.8deg,
-    #111 38.8deg 48.5deg,
-    #b82b2b 48.5deg 58.2deg,
-    #111 58.2deg 67.9deg,
-    #b82b2b 67.9deg 77.6deg,
-    #111 77.6deg 87.3deg,
-    #b82b2b 87.3deg 97deg,
-    #111 97deg 106.7deg,
-    #b82b2b 106.7deg 116.4deg,
-    #111 116.4deg 126.1deg,
-    #b82b2b 126.1deg 135.8deg,
-    #111 135.8deg 145.5deg,
-    #b82b2b 145.5deg 155.2deg,
-    #111 155.2deg 164.9deg,
-    #b82b2b 164.9deg 174.6deg,
-    #111 174.6deg 184.3deg,
-    #b82b2b 184.3deg 194deg,
-    #111 194deg 203.7deg,
-    #b82b2b 203.7deg 213.4deg,
-    #111 213.4deg 223.1deg,
-    #b82b2b 223.1deg 232.8deg,
-    #111 232.8deg 242.5deg,
-    #b82b2b 242.5deg 252.2deg,
-    #111 252.2deg 261.9deg,
-    #b82b2b 261.9deg 271.6deg,
-    #111 271.6deg 281.3deg,
-    #b82b2b 281.3deg 291deg,
-    #111 291deg 300.7deg,
-    #b82b2b 300.7deg 310.4deg,
-    #111 310.4deg 320.1deg,
-    #b82b2b 320.1deg 329.8deg,
-    #111 329.8deg 339.5deg,
-    #b82b2b 339.5deg 349.2deg,
-    #111 349.2deg 360deg
-  );
+  overflow: hidden;
   box-shadow: inset 0 0 0 10px #f4e4cf, 0 18px 30px rgba(32, 18, 8, 0.25);
   transition: transform 2.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.roulette-wheel::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 64px;
+  height: 64px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff4df, #c59452 65%, #7b4b20);
+  box-shadow: inset 0 2px 6px rgba(255, 255, 255, 0.5);
+}
+
+.roulette-pocket-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.roulette-pocket-label span {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 4px rgba(0, 0, 0, 0.45);
 }
 
 .roulette-pointer {
@@ -1185,7 +1184,7 @@ h1 {
 
 .roulette-bets {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
 
@@ -1204,15 +1203,57 @@ h1 {
   color: #fff;
 }
 
-.roulette-number {
+.roulette-layout {
   display: grid;
+  gap: 10px;
+}
+
+.roulette-board {
+  display: grid;
+  grid-template-columns: 56px repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
 
-#rouletteNumber {
-  border-radius: 999px;
-  border: 2px solid #edd8c1;
-  padding: 8px 12px;
+.roulette-cell {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 12px;
+  min-height: 42px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.roulette-cell:hover {
+  transform: translateY(-1px);
+}
+
+.roulette-cell.red {
+  background: linear-gradient(180deg, #c54141, #8e1f1f);
+}
+
+.roulette-cell.black {
+  background: linear-gradient(180deg, #3d3d3d, #0f0f0f);
+}
+
+.roulette-cell.green {
+  background: linear-gradient(180deg, #229457, #116836);
+}
+
+.roulette-cell.active {
+  border-color: #ffd17f;
+  box-shadow: 0 0 0 2px rgba(255, 209, 127, 0.65);
+}
+
+.roulette-zero {
+  grid-row: 1 / span 12;
+  grid-column: 1;
+  min-height: auto;
+}
+
+.roulette-selection {
+  margin: 0;
+  color: var(--muted);
   font-size: 0.95rem;
 }
 

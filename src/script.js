@@ -88,7 +88,8 @@ const rouletteSpinButton = document.getElementById("rouletteSpin");
 const rouletteStatus = document.getElementById("rouletteStatus");
 const rouletteWheel = document.getElementById("rouletteWheel");
 const rouletteChips = Array.from(document.querySelectorAll(".roulette-chip"));
-const rouletteNumberInput = document.getElementById("rouletteNumber");
+const rouletteBoard = document.getElementById("rouletteBoard");
+const rouletteSelection = document.getElementById("rouletteSelection");
 const statsWheelEl = document.getElementById("statsWheel");
 const gameToast = document.getElementById("gameToast");
 const resetModal = document.getElementById("resetModal");
@@ -254,6 +255,10 @@ const rouletteOrder = [
   29, 7, 28, 12, 35, 3, 26
 ];
 const rouletteRedNumbers = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
+const rouletteTableRows = Array.from({ length: 12 }, (_, index) => {
+  const high = (index + 1) * 3;
+  return [high, high - 1, high - 2];
+});
 const wheelSegments = [
   { label: "x2", multiplier: 2, weight: 36 },
   { label: "x50", multiplier: 50, weight: 6 },
@@ -1307,13 +1312,150 @@ function rouletteColor(number) {
   return rouletteRedNumbers.has(number) ? "red" : "black";
 }
 
+function rouletteColorLabel(color) {
+  if (color === "green") return "Gruen";
+  if (color === "red") return "Rot";
+  return "Schwarz";
+}
+
+function roulettePayoutMultiplier(choice) {
+  if (choice === "number") return 36;
+  if (choice.startsWith("dozen")) return 3;
+  return 2;
+}
+
+function rouletteBetLabel(choice) {
+  switch (choice) {
+    case "red":
+      return "Rot";
+    case "black":
+      return "Schwarz";
+    case "even":
+      return "Gerade";
+    case "odd":
+      return "Ungerade";
+    case "low":
+      return "1-18";
+    case "high":
+      return "19-36";
+    case "dozen1":
+      return "1st 12";
+    case "dozen2":
+      return "2nd 12";
+    case "dozen3":
+      return "3rd 12";
+    case "number":
+      return `Zahl ${rouletteBetNumber}`;
+    default:
+      return "Unbekannt";
+  }
+}
+
+function isWinningRouletteBet(choice, number) {
+  switch (choice) {
+    case "number":
+      return number === rouletteBetNumber;
+    case "red":
+    case "black":
+      return rouletteColor(number) === choice;
+    case "even":
+      return number !== 0 && number % 2 === 0;
+    case "odd":
+      return number % 2 === 1;
+    case "low":
+      return number >= 1 && number <= 18;
+    case "high":
+      return number >= 19 && number <= 36;
+    case "dozen1":
+      return number >= 1 && number <= 12;
+    case "dozen2":
+      return number >= 13 && number <= 24;
+    case "dozen3":
+      return number >= 25 && number <= 36;
+    default:
+      return false;
+  }
+}
+
+function buildRouletteWheel() {
+  const anglePer = 360 / rouletteOrder.length;
+  const segments = rouletteOrder.map((number, index) => {
+    const start = index * anglePer;
+    const end = start + anglePer;
+    const fill = number === 0
+      ? "#1f8f4a"
+      : (rouletteRedNumbers.has(number) ? "#b82b2b" : "#111");
+    return `${fill} ${start}deg ${end}deg`;
+  });
+  rouletteWheel.style.background = `conic-gradient(${segments.join(", ")})`;
+
+  const labels = document.createDocumentFragment();
+  rouletteOrder.forEach((number, index) => {
+    const angle = index * anglePer + anglePer / 2;
+    const wrapper = document.createElement("div");
+    wrapper.className = "roulette-pocket-label";
+    wrapper.style.transform = `rotate(${angle}deg)`;
+
+    const label = document.createElement("span");
+    label.textContent = number;
+    label.dataset.angle = String(angle);
+    if (number === 0) label.classList.add("is-zero");
+
+    wrapper.appendChild(label);
+    labels.appendChild(wrapper);
+  });
+
+  rouletteWheel.replaceChildren(labels);
+  updateRouletteWheelLabels(rouletteRotation, false);
+}
+
+function updateRouletteWheelLabels(rotation, animate) {
+  const labels = rouletteWheel.querySelectorAll(".roulette-pocket-label span");
+  labels.forEach((label) => {
+    const angle = Number(label.dataset.angle || 0);
+    label.style.transition = animate ? "transform 2.4s cubic-bezier(0.2, 0.8, 0.2, 1)" : "none";
+    label.style.transform = `translateY(16px) rotate(${-angle - rotation}deg)`;
+  });
+}
+
+function createRouletteNumberButton(number) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `roulette-cell ${rouletteColor(number)}`;
+  button.textContent = number;
+  if (rouletteBetChoice === "number" && rouletteBetNumber === number) {
+    button.classList.add("active");
+  }
+  if (number === 0) {
+    button.classList.add("roulette-zero");
+  }
+  button.addEventListener("click", () => {
+    rouletteBetChoice = "number";
+    rouletteBetNumber = number;
+    renderRoulette();
+  });
+  return button;
+}
+
+function renderRouletteBoard() {
+  const board = document.createDocumentFragment();
+  board.appendChild(createRouletteNumberButton(0));
+  rouletteTableRows.forEach((row) => {
+    row.forEach((number) => {
+      board.appendChild(createRouletteNumberButton(number));
+    });
+  });
+  rouletteBoard.replaceChildren(board);
+}
+
 function renderRoulette() {
   const betValue = Number(rouletteBetInput.value) || 0;
   rouletteSpinButton.disabled = rouletteSpinning || betValue <= 0 || state.cookies < betValue;
   rouletteChips.forEach((chip) => {
     chip.classList.toggle("active", chip.dataset.bet === rouletteBetChoice);
   });
-  rouletteNumberInput.disabled = rouletteBetChoice !== "number";
+  renderRouletteBoard();
+  rouletteSelection.textContent = `Aktiver Tipp: ${rouletteBetLabel(rouletteBetChoice)} (x${roulettePayoutMultiplier(rouletteBetChoice)})`;
 }
 
 function spinRoulette() {
@@ -1333,26 +1475,21 @@ function spinRoulette() {
   const anglePer = 360 / rouletteOrder.length;
   const targetAngle = index * anglePer + anglePer / 2;
   rouletteRotation += 360 * 6 + (360 - targetAngle);
+  updateRouletteWheelLabels(rouletteRotation, true);
   rouletteWheel.style.transform = `rotate(${rouletteRotation}deg)`;
 
   setTimeout(() => {
     rouletteSpinning = false;
     let payout = 0;
-    if (rouletteBetChoice === "number") {
-      payout = number === rouletteBetNumber ? bet * 36 : 0;
-    } else if (rouletteBetChoice === color) {
-      payout = bet * (color === "green" ? 10 : 2);
+    if (isWinningRouletteBet(rouletteBetChoice, number)) {
+      payout = bet * roulettePayoutMultiplier(rouletteBetChoice);
     }
     if (payout > 0) {
       state.cookies += payout;
       state.total += payout;
-      const winLabel = rouletteBetChoice === "number"
-        ? `Zahl ${number}`
-        : `${number} (${color})`;
-      const multiplier = rouletteBetChoice === "number" ? 36 : (color === "green" ? 10 : 2);
-      rouletteStatus.textContent = `Gewonnen! ${winLabel}. Auszahlung x${multiplier}.`;
+      rouletteStatus.textContent = `Gewonnen! Ergebnis: ${number} (${rouletteColorLabel(color)}). ${rouletteBetLabel(rouletteBetChoice)} trifft, Auszahlung x${roulettePayoutMultiplier(rouletteBetChoice)}.`;
     } else {
-      rouletteStatus.textContent = `Verloren. Ergebnis: ${number} (${color}).`;
+      rouletteStatus.textContent = `Verloren. Ergebnis: ${number} (${rouletteColorLabel(color)}).`;
     }
     recordGameResult("roulette", bet, payout);
     showGameToast(payout - bet, "Roulette");
@@ -1540,11 +1677,6 @@ rouletteCloseButton.addEventListener("click", closeRouletteModal);
 rouletteCloseOverlay.addEventListener("click", closeRouletteModal);
 rouletteSpinButton.addEventListener("click", spinRoulette);
 rouletteBetInput.addEventListener("input", renderRoulette);
-rouletteNumberInput.addEventListener("input", () => {
-  const value = Math.floor(Number(rouletteNumberInput.value) || 0);
-  rouletteBetNumber = Math.min(36, Math.max(0, value));
-  rouletteNumberInput.value = rouletteBetNumber;
-});
 rouletteChips.forEach((chip) => {
   chip.addEventListener("click", () => {
     rouletteBetChoice = chip.dataset.bet;
@@ -1570,6 +1702,7 @@ resetCloseOverlay.addEventListener("click", closeResetModal);
 resetCancelButton.addEventListener("click", closeResetModal);
 resetConfirmButton.addEventListener("click", resetAccount);
 
+buildRouletteWheel();
 setInterval(tick, 1000);
 loadState();
 updateStats();
