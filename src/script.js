@@ -148,7 +148,7 @@ const colorCosmetics = [
   {
     key: "strawberry",
     name: "Berry Glaze",
-    cost: 2_500,
+    cost: 250_000_000,
     desc: "Pinkes Frosting mit beerigen Kruemeln.",
     owned: false,
     theme: {
@@ -161,7 +161,7 @@ const colorCosmetics = [
   {
     key: "mint",
     name: "Mint Crunch",
-    cost: 12_000,
+    cost: 750_000_000,
     desc: "Kuehle Minze mit dunklen Choco-Chunks.",
     owned: false,
     theme: {
@@ -174,7 +174,7 @@ const colorCosmetics = [
   {
     key: "midnight",
     name: "Midnight Cocoa",
-    cost: 85_000,
+    cost: 2_500_000_000,
     desc: "Dunkler Kakao mit goldenen Highlights.",
     owned: false,
     theme: {
@@ -187,7 +187,7 @@ const colorCosmetics = [
   {
     key: "royal-velvet",
     name: "Royal Velvet",
-    cost: 250_000,
+    cost: 7_500_000_000,
     desc: "Samtiger Keks mit violettem Schimmer.",
     owned: false,
     theme: {
@@ -200,7 +200,7 @@ const colorCosmetics = [
   {
     key: "captain-crunch",
     name: "Captain Blue",
-    cost: 400_000,
+    cost: 12_500_000_000,
     desc: "Maritime Glasur mit tiefblauem Finish.",
     owned: false,
     theme: {
@@ -214,12 +214,12 @@ const colorCosmetics = [
 
 const accessoryCosmetics = [
   { key: "none", name: "Ohne", cost: 0, desc: "Nur der Keks, ganz clean.", owned: true },
-  { key: "party", name: "Partyhut", cost: 3_500, desc: "Bunter Partyhut fuer Feiermodus.", owned: false },
-  { key: "crown", name: "Krone", cost: 95_000, desc: "Goldene Krone fuer den Kekskoenig.", owned: false },
-  { key: "witch", name: "Hexenhut", cost: 180_000, desc: "Spitzer Hexenhut mit dunklem Band.", owned: false },
-  { key: "cowboy", name: "Cowboyhut", cost: 260_000, desc: "Breiter Westernhut mit warmem Lederlook.", owned: false },
-  { key: "chef", name: "Kochmuetze", cost: 15_000, desc: "Legacy", owned: false, hidden: true },
-  { key: "captain", name: "Kapitaenshut", cost: 400_000, desc: "Legacy", owned: false, hidden: true }
+  { key: "party", name: "Partyhut", cost: 300_000_000, desc: "Bunter Partyhut fuer Feiermodus.", owned: false },
+  { key: "crown", name: "Krone", cost: 5_000_000_000, desc: "Goldene Krone fuer den Kekskoenig.", owned: false },
+  { key: "witch", name: "Hexenhut", cost: 3_500_000_000, desc: "Spitzer Hexenhut mit dunklem Band.", owned: false },
+  { key: "cowboy", name: "Cowboyhut", cost: 4_500_000_000, desc: "Breiter Westernhut mit warmem Lederlook.", owned: false },
+  { key: "chef", name: "Kochmuetze", cost: 375_000, desc: "Legacy", owned: false, hidden: true },
+  { key: "captain", name: "Kapitaenshut", cost: 10_000_000, desc: "Legacy", owned: false, hidden: true }
 ];
 
 const state = {
