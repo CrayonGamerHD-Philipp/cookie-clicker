@@ -378,6 +378,55 @@ function showGameToast(net, label) {
   }, 2200);
 }
 
+function openResetModal() {
+  resetModal.classList.remove("hidden");
+  resetModal.setAttribute("aria-hidden", "false");
+}
+
+function closeResetModal() {
+  resetModal.classList.add("hidden");
+  resetModal.setAttribute("aria-hidden", "true");
+}
+
+function resetAccount() {
+  state.cookies = 0;
+  state.total = 0;
+  state.perClick = 1;
+  state.cps = 0;
+  state.bonusReady = false;
+  state.lastBonusAt = 0;
+  state.towerActive = false;
+  state.towerBet = 0;
+  state.towerStep = 0;
+  state.towerMultiplier = 0;
+
+  upgrades.forEach((upgrade) => {
+    upgrade.count = 0;
+  });
+
+  Object.keys(gameStats).forEach((key) => {
+    gameStats[key].wins = 0;
+    gameStats[key].losses = 0;
+    gameStats[key].net = 0;
+  });
+
+  Object.keys(gameUnlocks).forEach((key) => {
+    gameUnlocks[key].unlocked = false;
+  });
+
+  blackjackDeck = [];
+  blackjackActive = false;
+  blackjackBet = 0;
+  dealerHand = [];
+  playerHand = [];
+  slotsSpinning = false;
+  rouletteSpinning = false;
+  wheelSpinning = false;
+
+  closeResetModal();
+  updateStats();
+}
+
 function currentTowerChance() {
   return towerChances[Math.min(state.towerStep, towerChances.length - 1)];
 }
@@ -815,6 +864,10 @@ function pickWheelIndex() {
   return 0;
 }
 
+function normalizeRotation(angle) {
+  return ((angle % 360) + 360) % 360;
+}
+
 function spinWheel() {
   if (wheelSpinning) return;
   const bet = Math.floor(Number(wheelBetInput.value) || 0);
@@ -830,7 +883,10 @@ function spinWheel() {
   const segment = wheelSegments[index];
   const anglePer = 360 / wheelSegments.length;
   const targetAngle = index * anglePer + anglePer / 2;
-  wheelRotation += 360 * 6 + (360 - targetAngle);
+  const currentRotation = normalizeRotation(wheelRotation);
+  const desiredRotation = (360 - targetAngle) % 360;
+  const extraRotation = (desiredRotation - currentRotation + 360) % 360;
+  wheelRotation += 360 * 6 + extraRotation;
   fortuneWheel.style.transform = `rotate(${wheelRotation}deg)`;
 
   setTimeout(() => {
@@ -976,6 +1032,11 @@ wheelCloseOverlay.addEventListener("click", closeWheelModal);
 wheelSpinButton.addEventListener("click", spinWheel);
 wheelBetInput.addEventListener("input", renderWheel);
 wheelBuyButton.addEventListener("click", () => buyGame("wheel", "Gluecksrad"));
+resetOpenButton.addEventListener("click", openResetModal);
+resetCloseButton.addEventListener("click", closeResetModal);
+resetCloseOverlay.addEventListener("click", closeResetModal);
+resetCancelButton.addEventListener("click", closeResetModal);
+resetConfirmButton.addEventListener("click", resetAccount);
 
 setInterval(tick, 1000);
 loadState();
