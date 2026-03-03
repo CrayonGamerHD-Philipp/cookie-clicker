@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cookie Klicker - HETHEY</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="grain"></div>
+    <div class="scene">
+      <header class="hero">
+        <p class="eyebrow">HETHEY Backstube</p>
+        <h1>Cookie Klicker</h1>
+        <p class="tagline">Klick dich zur groessten Keksmanufaktur der Stadt.</p>
+      </header>
+
+      <main class="grid">
+        <section class="cookie-panel">
+          <div class="meter">
+            <span class="label">Kekse</span>
+            <span id="cookieCount" class="value">0</span>
+            <span id="rate" class="rate">0 / sek</span>
+          </div>
+
+          <button id="cookieButton" class="cookie" aria-label="Keks backen">
+            <span class="cookie-text">KLICK!</span>
+          </button>
+
+          <div class="stats">
+            <div class="stat">
+              <span class="label">Pro Klick</span>
+              <span id="perClick" class="value">1</span>
+            </div>
+            <div class="stat">
+              <span class="label">Gesamt</span>
+              <span id="total" class="value">0</span>
+            </div>
+          </div>
+
+          <div id="bonus" class="bonus hidden">
+            <span>Goldene Kruemel!</span>
+            <button id="bonusButton">Einsammeln</button>
+          </div>
+
+          <div class="game-stats">
+            <h3>Spielstatistik</h3>
+            <div class="game-stat-row">
+              <span>Gesamt</span>
+              <span id="statsOverall">0</span>
+            </div>
+            <div class="game-stat-row">
+              <span>Cookie Tower</span>
+              <span id="statsTower">0</span>
+            </div>
+            <div class="game-stat-row">
+              <span>Blackjack</span>
+              <span id="statsBlackjack">0</span>
+            </div>
+            <div class="game-stat-row">
+              <span>Slots</span>
+              <span id="statsSlots">0</span>
+            </div>
+            <div class="game-stat-row">
+              <span>Roulette</span>
+              <span id="statsRoulette">0</span>
+            </div>
+          </div>
+        </section>
+
+        <aside class="shop">
+          <div class="shop-header">
+            <h2>Upgrades</h2>
+            <p>Investiere in die Backstube fuer mehr Kekse pro Sekunde.</p>
+          </div>
+          <div id="upgradeList" class="upgrade-list"></div>
+
+          <div class="tower">
+            <div class="tower-header">
+              <h2>Cookie Tower</h2>
+              <p>Eine Runde Tower? Dein Einsatz wartet.</p>
+            </div>
+            <button id="towerOpen" class="tower-open">Tower spielen</button>
+          </div>
+
+          <div class="casino">
+            <div class="tower-header">
+              <h2>Blackjack</h2>
+              <p>Schlage den Dealer und sichere dir Cookies.</p>
+            </div>
+            <button id="blackjackOpen" class="tower-open">Blackjack spielen</button>
+          </div>
+
+          <div class="casino">
+            <div class="tower-header">
+              <h2>Slots</h2>
+              <p>Dreh die Walzen und jage die grossen Multiplikatoren.</p>
+            </div>
+            <button id="slotsOpen" class="tower-open">Slots spielen</button>
+          </div>
+
+          <div class="casino">
+            <div class="tower-header">
+              <h2>Roulette</h2>
+              <p>Setz auf Rot, Schwarz oder die gruene Null.</p>
+            </div>
+            <button id="rouletteOpen" class="tower-open">Roulette spielen</button>
+          </div>
+        </aside>
+      </main>
+
+      <footer class="footer">
+        <p>Tipp: Halte den Klick-Rhythmus, dann erscheinen goldene Kruemel.</p>
+      </footer>
+    </div>
+
+    <div id="towerModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="towerCloseOverlay"></div>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="towerTitle">
+        <button id="towerClose" class="modal-close" aria-label="Schliessen">×</button>
+        <div class="modal-head">
+          <p class="eyebrow">Cookie Tower</p>
+          <h2 id="towerTitle">Double or Crumble</h2>
+          <p class="modal-sub">Mehr Gewinnchance pro Stufe. Je weiter du gehst, desto groesser die Spannung.</p>
+        </div>
+        <div class="tower-controls">
+          <div class="tower-visual" id="towerVisual" aria-hidden="true">
+            <div class="tower-stack" id="towerStack"></div>
+            <div class="tower-base"></div>
+          </div>
+          <label class="tower-label" for="towerBet">Einsatz</label>
+          <div class="tower-row">
+            <input id="towerBet" type="number" min="1" step="1" value="100" />
+            <button id="towerStart">Start</button>
+          </div>
+          <div class="tower-row">
+            <button id="towerClimb" disabled>Naechste Stufe</button>
+            <button id="towerCashout" disabled>Auszahlen</button>
+          </div>
+          <div class="tower-stats">
+            <span>Multiplikator</span>
+            <strong id="towerMultiplier">x0</strong>
+            <span>Auszahlung</span>
+            <strong id="towerPayout">0</strong>
+          </div>
+          <p id="towerStatus" class="tower-status">Setze einen Einsatz und starte.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="blackjackModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="blackjackCloseOverlay"></div>
+      <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="blackjackTitle">
+        <button id="blackjackClose" class="modal-close" aria-label="Schliessen">×</button>
+        <div class="modal-head">
+          <p class="eyebrow">Casino</p>
+          <h2 id="blackjackTitle">Blackjack</h2>
+          <p class="modal-sub">Ziel: 21 erreichen. Ass zaehlt 1 oder 11.</p>
+        </div>
+        <div class="blackjack">
+          <div class="blackjack-controls">
+            <label class="tower-label" for="blackjackBet">Einsatz</label>
+            <div class="tower-row">
+              <input id="blackjackBet" type="number" min="1" step="1" value="200" />
+              <button id="blackjackDeal">Deal</button>
+            </div>
+            <div class="tower-row">
+              <button id="blackjackHit" disabled>Hit</button>
+              <button id="blackjackStand" disabled>Stand</button>
+            </div>
+            <p id="blackjackStatus" class="tower-status">Setze einen Einsatz und starte.</p>
+          </div>
+          <div class="blackjack-table">
+            <div>
+              <p class="hand-label">Dealer</p>
+              <div id="dealerHand" class="card-row"></div>
+              <p id="dealerTotal" class="hand-total"></p>
+            </div>
+            <div>
+              <p class="hand-label">Du</p>
+              <div id="playerHand" class="card-row"></div>
+              <p id="playerTotal" class="hand-total"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="slotsModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="slotsCloseOverlay"></div>
+      <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="slotsTitle">
+        <button id="slotsClose" class="modal-close" aria-label="Schliessen">Į-</button>
+        <div class="modal-head">
+          <p class="eyebrow">Casino</p>
+          <h2 id="slotsTitle">Slot Maschine</h2>
+          <p class="modal-sub">Drei gleiche Symbole bringen den grossen Gewinn.</p>
+        </div>
+        <div class="slots">
+          <div class="slots-controls">
+            <label class="tower-label" for="slotsBet">Einsatz</label>
+            <div class="tower-row">
+              <input id="slotsBet" type="number" min="1" step="1" value="150" />
+              <button id="slotsSpin">Spin</button>
+            </div>
+            <p id="slotsStatus" class="tower-status">Setze einen Einsatz und drehe.</p>
+          </div>
+          <div class="slots-machine" id="slotsMachine">
+            <div class="slot-reel" id="slot0">🍒</div>
+            <div class="slot-reel" id="slot1">🍋</div>
+            <div class="slot-reel" id="slot2">🍪</div>
+            <div class="slot-reel" id="slot3">⭐</div>
+            <div class="slot-reel" id="slot4">🔔</div>
+            <div class="slot-reel" id="slot5">🍒</div>
+            <div class="slot-reel" id="slot6">🍋</div>
+            <div class="slot-reel" id="slot7">🍪</div>
+            <div class="slot-reel" id="slot8">⭐</div>
+          </div>
+          <div class="slots-payouts">
+            <p>3x 🍪 = x6</p>
+            <p>3x ⭐ = x4</p>
+            <p>3x 🔔 = x3</p>
+            <p>3x 🍒 = x2</p>
+            <p>3x 🍋 = x1.5</p>
+            <p>2x 🍪 (in einer Linie) = x1.5</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="rouletteModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="rouletteCloseOverlay"></div>
+      <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="rouletteTitle">
+        <button id="rouletteClose" class="modal-close" aria-label="Schliessen">Į-</button>
+        <div class="modal-head">
+          <p class="eyebrow">Casino</p>
+          <h2 id="rouletteTitle">Roulette</h2>
+          <p class="modal-sub">Rot/Schwarz zahlen x2, Gruen (0) zahlt x10.</p>
+        </div>
+        <div class="roulette">
+          <div class="roulette-wheel-wrap">
+            <div class="roulette-pointer"></div>
+            <div id="rouletteWheel" class="roulette-wheel"></div>
+          </div>
+          <div class="roulette-controls">
+            <label class="tower-label" for="rouletteBet">Einsatz</label>
+            <div class="tower-row">
+              <input id="rouletteBet" type="number" min="1" step="1" value="200" />
+              <button id="rouletteSpin">Spin</button>
+            </div>
+            <div class="roulette-bets">
+              <button class="roulette-chip" data-bet="red">Rot</button>
+              <button class="roulette-chip" data-bet="black">Schwarz</button>
+              <button class="roulette-chip" data-bet="green">Gruen (0)</button>
+              <button class="roulette-chip" data-bet="number">Zahl</button>
+            </div>
+            <div class="roulette-number">
+              <label class="tower-label" for="rouletteNumber">Zahl 0-36</label>
+              <input id="rouletteNumber" type="number" min="0" max="36" step="1" value="7" />
+            </div>
+            <p id="rouletteStatus" class="tower-status">Waehle eine Farbe und drehe.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
