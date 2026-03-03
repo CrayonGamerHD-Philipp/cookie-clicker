@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@600;800&family=Space+Grotesk:wght@400;600&display=swap");
+﻿@import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@600;800&family=Space+Grotesk:wght@400;600&display=swap");
 
 :root {
   --bg: #f7efe3;
@@ -151,6 +151,10 @@ h1 {
   gap: 12px;
 }
 
+.stats .stat-wide {
+  grid-column: 1 / -1;
+}
+
 .stat {
   background: #fbe8d2;
   border-radius: 16px;
@@ -267,6 +271,30 @@ h1 {
   margin: 0 0 16px;
   font-size: 0.95rem;
   opacity: 0.8;
+}
+
+.upgrade-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.upgrade-tab {
+  border: 2px solid #edd8c1;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #fffaf5;
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out;
+}
+
+.upgrade-tab.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
 }
 
 .upgrade-list {
@@ -934,3 +962,4 @@ h1 {
     width: 90%;
   }
 }
+

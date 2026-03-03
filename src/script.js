@@ -1,9 +1,11 @@
-const cookieCountEl = document.getElementById("cookieCount");
+﻿const cookieCountEl = document.getElementById("cookieCount");
 const perClickEl = document.getElementById("perClick");
+const clickCountEl = document.getElementById("clickCount");
 const totalEl = document.getElementById("total");
 const rateEl = document.getElementById("rate");
 const cookieButton = document.getElementById("cookieButton");
 const upgradeList = document.getElementById("upgradeList");
+const upgradeTabs = Array.from(document.querySelectorAll(".upgrade-tab"));
 const bonusPanel = document.getElementById("bonus");
 const bonusButton = document.getElementById("bonusButton");
 const towerModal = document.getElementById("towerModal");
@@ -59,6 +61,7 @@ const financeCookiesEl = document.getElementById("financeCookies");
 const financePerClickEl = document.getElementById("financePerClick");
 const financeCpsEl = document.getElementById("financeCps");
 const financeTotalEl = document.getElementById("financeTotal");
+const financeClicksEl = document.getElementById("financeClicks");
 const financeTowerNetEl = document.getElementById("financeTowerNet");
 const financeBlackjackNetEl = document.getElementById("financeBlackjackNet");
 const financeSlotsNetEl = document.getElementById("financeSlotsNet");
@@ -120,6 +123,7 @@ const upgrades = [
 const state = {
   cookies: 0,
   total: 0,
+  clicks: 0,
   perClick: 1,
   cps: 0,
   bonusReady: false,
@@ -133,11 +137,11 @@ const state = {
 const towerSteps = [0, 0.5, 1, 1.5, 2, 2.5, 3, 4];
 const towerChances = [0.78, 0.74, 0.7, 0.66, 0.62, 0.58, 0.55, 0.52];
 const slotSymbols = [
-  { key: "CHERRY", icon: "🍒", weight: 30, multiplier: 2 },
-  { key: "LEMON", icon: "🍋", weight: 26, multiplier: 1.5 },
-  { key: "COOKIE", icon: "🍪", weight: 16, multiplier: 6 },
-  { key: "STAR", icon: "⭐", weight: 14, multiplier: 4 },
-  { key: "BELL", icon: "🔔", weight: 14, multiplier: 3 }
+  { key: "CHERRY", icon: "ðŸ’", weight: 30, multiplier: 2 },
+  { key: "LEMON", icon: "ðŸ‹", weight: 26, multiplier: 1.5 },
+  { key: "COOKIE", icon: "ðŸª", weight: 16, multiplier: 6 },
+  { key: "STAR", icon: "â­", weight: 14, multiplier: 4 },
+  { key: "BELL", icon: "ðŸ””", weight: 14, multiplier: 3 }
 ];
 const rouletteOrder = [
   0, 32, 15, 19, 4, 21, 2, 25, 17, 34,
@@ -175,6 +179,7 @@ let rouletteBetNumber = 7;
 let rouletteRotation = 0;
 let wheelSpinning = false;
 let wheelRotation = 0;
+let activeUpgradeTab = "click";
 
 const gameStats = {
   tower: { wins: 0, losses: 0, net: 0 },
@@ -209,6 +214,7 @@ function loadState() {
     const saved = JSON.parse(raw);
     state.cookies = Number(saved.cookies) || 0;
     state.total = Number(saved.total) || 0;
+    state.clicks = Number(saved.clicks) || 0;
     state.lastBonusAt = Number(saved.lastBonusAt) || 0;
     state.bonusReady = false;
     applyUpgradeCounts(saved.upgrades || []);
@@ -236,6 +242,7 @@ function saveState() {
   const payload = {
     cookies: state.cookies,
     total: state.total,
+    clicks: state.clicks,
     lastBonusAt: state.lastBonusAt,
     upgrades: upgrades.map((upgrade) => upgrade.count),
     stats: gameStats,
@@ -262,10 +269,22 @@ function formatFull(num) {
   return Math.floor(num).toLocaleString("de-DE");
 }
 
-function setDisplayValue(el, value, suffix = "") {
+function formatClicks(num) {
+  const value = Math.floor(num);
+  const abs = Math.abs(value);
+  const trim = (text) => text.replace(/,0$/, "");
+  const formatUnit = (divider, label) =>
+    `${trim((value / divider).toLocaleString("de-DE", { maximumFractionDigits: 1 }))} ${label}`;
+  if (abs >= 1e12) return formatUnit(1e12, "Bio");
+  if (abs >= 1e9) return formatUnit(1e9, "Mrd");
+  if (abs >= 1e6) return formatUnit(1e6, "Mio");
+  return value.toLocaleString("de-DE");
+}
+
+function setDisplayValue(el, value, suffix = "", shortFormatter = format, fullFormatter = formatFull) {
   if (!el) return;
-  const shortValue = `${format(value)}${suffix}`;
-  const fullValue = `${formatFull(value)}${suffix}`;
+  const shortValue = `${shortFormatter(value)}${suffix}`;
+  const fullValue = `${fullFormatter(value)}${suffix}`;
   el.dataset.short = shortValue;
   el.dataset.full = fullValue;
   if (!el.dataset.showFull) {
@@ -285,9 +304,22 @@ function costFor(upgrade) {
   return Math.floor(upgrade.baseCost * Math.pow(1.15, upgrade.count));
 }
 
+function renderUpgradeTabs() {
+  upgradeTabs.forEach((tab) => {
+    const isActive = tab.dataset.upgradeTab === activeUpgradeTab;
+    tab.classList.toggle("active", isActive);
+    tab.setAttribute("aria-selected", String(isActive));
+  });
+}
+
 function renderUpgrades() {
   upgradeList.innerHTML = "";
+  renderUpgradeTabs();
   upgrades.forEach((upgrade, index) => {
+    if (upgrade.type !== activeUpgradeTab) {
+      return;
+    }
+
     const item = document.createElement("div");
     item.className = "upgrade";
 
@@ -322,6 +354,7 @@ function updateStats() {
   setDisplayValue(cookieCountEl, state.cookies);
   setDisplayValue(perClickEl, state.perClick);
   setDisplayValue(totalEl, state.total);
+  setDisplayValue(clickCountEl, state.clicks);
   setDisplayValue(rateEl, state.cps, " / sek");
   renderUpgrades();
   renderUnlocks();
@@ -398,6 +431,7 @@ function updateFinanceOverview() {
   financePerClickEl.textContent = formatFull(state.perClick);
   financeCpsEl.textContent = formatFull(state.cps);
   financeTotalEl.textContent = formatFull(state.total);
+  financeClicksEl.textContent = formatFull(state.clicks);
   financeTowerNetEl.textContent = formatFullNet(gameStats.tower.net);
   financeBlackjackNetEl.textContent = formatFullNet(gameStats.blackjack.net);
   financeSlotsNetEl.textContent = formatFullNet(gameStats.slots.net);
@@ -587,6 +621,7 @@ function closeFinanceModal() {
 function clickCookie() {
   state.cookies += state.perClick;
   state.total += state.perClick;
+  state.clicks += 1;
   maybeTriggerBonus();
   updateStats();
 }
@@ -1107,6 +1142,12 @@ wheelCloseOverlay.addEventListener("click", closeWheelModal);
 wheelSpinButton.addEventListener("click", spinWheel);
 wheelBetInput.addEventListener("input", renderWheel);
 wheelBuyButton.addEventListener("click", () => buyGame("wheel", "Gluecksrad"));
+upgradeTabs.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    activeUpgradeTab = tab.dataset.upgradeTab || "click";
+    renderUpgrades();
+  });
+});
 resetOpenButton.addEventListener("click", openResetModal);
 resetCloseButton.addEventListener("click", closeResetModal);
 resetCloseOverlay.addEventListener("click", closeResetModal);
@@ -1116,3 +1157,5 @@ resetConfirmButton.addEventListener("click", resetAccount);
 setInterval(tick, 1000);
 loadState();
 updateStats();
+
+

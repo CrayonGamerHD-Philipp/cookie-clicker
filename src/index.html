@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="de">
   <head>
     <meta charset="utf-8" />
@@ -33,6 +33,10 @@
               <span id="perClick" class="value">1</span>
             </div>
             <div class="stat">
+              <span class="label">Klicks</span>
+              <span id="clickCount" class="value">0</span>
+            </div>
+            <div class="stat stat-wide">
               <span class="label">Gesamt</span>
               <span id="total" class="value">0</span>
             </div>
@@ -78,6 +82,26 @@
           <div class="shop-header">
             <h2>Upgrades</h2>
             <p>Investiere in die Backstube fuer mehr Kekse pro Sekunde.</p>
+          </div>
+          <div class="upgrade-tabs" role="tablist" aria-label="Upgrade Kategorien">
+            <button
+              type="button"
+              class="upgrade-tab active"
+              data-upgrade-tab="click"
+              role="tab"
+              aria-selected="true"
+            >
+              Klick
+            </button>
+            <button
+              type="button"
+              class="upgrade-tab"
+              data-upgrade-tab="cps"
+              role="tab"
+              aria-selected="false"
+            >
+              Pro Sekunde
+            </button>
           </div>
           <div id="upgradeList" class="upgrade-list"></div>
 
@@ -171,6 +195,38 @@
           <div class="finance-row">
             <span>Gesamt</span>
             <strong id="financeTotal">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Klicks</span>
+            <strong id="financeClicks">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Klicks</span>
+            <strong id="financeClicks">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Klicks</span>
+            <strong id="financeClicks">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Klicks</span>
+            <strong id="financeClicks">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Klicks</span>
+            <strong id="financeClicks">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Klicks</span>
+            <strong id="financeClicks">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Klicks</span>
+            <strong id="financeClicks">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Klicks</span>
+            <strong id="financeClicks">0</strong>
           </div>
           <div class="finance-row">
             <span>Tower (Netto)</span>
@@ -303,23 +359,23 @@
             <p id="slotsStatus" class="tower-status">Setze einen Einsatz und drehe.</p>
           </div>
           <div class="slots-machine" id="slotsMachine">
-            <div class="slot-reel" id="slot0">🍒</div>
-            <div class="slot-reel" id="slot1">🍋</div>
-            <div class="slot-reel" id="slot2">🍪</div>
-            <div class="slot-reel" id="slot3">⭐</div>
-            <div class="slot-reel" id="slot4">🔔</div>
-            <div class="slot-reel" id="slot5">🍒</div>
-            <div class="slot-reel" id="slot6">🍋</div>
-            <div class="slot-reel" id="slot7">🍪</div>
-            <div class="slot-reel" id="slot8">⭐</div>
+            <div class="slot-reel" id="slot0">ðŸ’</div>
+            <div class="slot-reel" id="slot1">ðŸ‹</div>
+            <div class="slot-reel" id="slot2">ðŸª</div>
+            <div class="slot-reel" id="slot3">â­</div>
+            <div class="slot-reel" id="slot4">ðŸ””</div>
+            <div class="slot-reel" id="slot5">ðŸ’</div>
+            <div class="slot-reel" id="slot6">ðŸ‹</div>
+            <div class="slot-reel" id="slot7">ðŸª</div>
+            <div class="slot-reel" id="slot8">â­</div>
           </div>
           <div class="slots-payouts">
-            <p>3x 🍪 = x6</p>
-            <p>3x ⭐ = x4</p>
-            <p>3x 🔔 = x3</p>
-            <p>3x 🍒 = x2</p>
-            <p>3x 🍋 = x1.5</p>
-            <p>2x 🍪 (in einer Linie) = x1.5</p>
+            <p>3x ðŸª = x6</p>
+            <p>3x â­ = x4</p>
+            <p>3x ðŸ”” = x3</p>
+            <p>3x ðŸ’ = x2</p>
+            <p>3x ðŸ‹ = x1.5</p>
+            <p>2x ðŸª (in einer Linie) = x1.5</p>
           </div>
         </div>
       </div>
@@ -405,3 +461,12 @@
     <script src="script.js"></script>
   </body>
 </html>
+
+
+
+
+
+
+
+
+
