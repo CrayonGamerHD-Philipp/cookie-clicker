@@ -8,12 +8,14 @@ const bonusPanel = document.getElementById("bonus");
 const bonusButton = document.getElementById("bonusButton");
 const towerModal = document.getElementById("towerModal");
 const towerOpenButton = document.getElementById("towerOpen");
+const towerBuyButton = document.getElementById("towerBuy");
 const towerCloseButton = document.getElementById("towerClose");
 const towerCloseOverlay = document.getElementById("towerCloseOverlay");
 const towerVisual = document.getElementById("towerVisual");
 const towerStack = document.getElementById("towerStack");
 const blackjackModal = document.getElementById("blackjackModal");
 const blackjackOpenButton = document.getElementById("blackjackOpen");
+const blackjackBuyButton = document.getElementById("blackjackBuy");
 const blackjackCloseButton = document.getElementById("blackjackClose");
 const blackjackCloseOverlay = document.getElementById("blackjackCloseOverlay");
 const blackjackBetInput = document.getElementById("blackjackBet");
@@ -27,6 +29,7 @@ const dealerTotalEl = document.getElementById("dealerTotal");
 const playerTotalEl = document.getElementById("playerTotal");
 const slotsModal = document.getElementById("slotsModal");
 const slotsOpenButton = document.getElementById("slotsOpen");
+const slotsBuyButton = document.getElementById("slotsBuy");
 const slotsCloseButton = document.getElementById("slotsClose");
 const slotsCloseOverlay = document.getElementById("slotsCloseOverlay");
 const slotsBetInput = document.getElementById("slotsBet");
@@ -50,6 +53,7 @@ const statsSlotsEl = document.getElementById("statsSlots");
 const statsRouletteEl = document.getElementById("statsRoulette");
 const rouletteModal = document.getElementById("rouletteModal");
 const rouletteOpenButton = document.getElementById("rouletteOpen");
+const rouletteBuyButton = document.getElementById("rouletteBuy");
 const rouletteCloseButton = document.getElementById("rouletteClose");
 const rouletteCloseOverlay = document.getElementById("rouletteCloseOverlay");
 const rouletteBetInput = document.getElementById("rouletteBet");
@@ -60,8 +64,15 @@ const rouletteChips = Array.from(document.querySelectorAll(".roulette-chip"));
 const rouletteNumberInput = document.getElementById("rouletteNumber");
 const statsWheelEl = document.getElementById("statsWheel");
 const gameToast = document.getElementById("gameToast");
+const resetModal = document.getElementById("resetModal");
+const resetOpenButton = document.getElementById("resetOpen");
+const resetCloseButton = document.getElementById("resetClose");
+const resetCloseOverlay = document.getElementById("resetCloseOverlay");
+const resetConfirmButton = document.getElementById("resetConfirm");
+const resetCancelButton = document.getElementById("resetCancel");
 const wheelModal = document.getElementById("wheelModal");
 const wheelOpenButton = document.getElementById("wheelOpen");
+const wheelBuyButton = document.getElementById("wheelBuy");
 const wheelCloseButton = document.getElementById("wheelClose");
 const wheelCloseOverlay = document.getElementById("wheelCloseOverlay");
 const wheelBetInput = document.getElementById("wheelBet");
@@ -130,6 +141,14 @@ const wheelSegments = [
   { label: "Niete", multiplier: 0, weight: 27 }
 ];
 
+const gameUnlocks = {
+  tower: { price: 1_000_000, unlocked: false },
+  blackjack: { price: 5_000_000, unlocked: false },
+  slots: { price: 25_000_000, unlocked: false },
+  roulette: { price: 50_000_000, unlocked: false },
+  wheel: { price: 150_000_000, unlocked: false }
+};
+
 let blackjackDeck = [];
 let blackjackActive = false;
 let blackjackBet = 0;
@@ -188,6 +207,13 @@ function loadState() {
         gameStats[key].net = Number(entry.net) || 0;
       });
     }
+    if (saved.unlocks) {
+      Object.keys(gameUnlocks).forEach((key) => {
+        if (typeof saved.unlocks[key] === "boolean") {
+          gameUnlocks[key].unlocked = saved.unlocks[key];
+        }
+      });
+    }
   } catch (error) {
     applyUpgradeCounts([]);
   }
@@ -199,7 +225,10 @@ function saveState() {
     total: state.total,
     lastBonusAt: state.lastBonusAt,
     upgrades: upgrades.map((upgrade) => upgrade.count),
-    stats: gameStats
+    stats: gameStats,
+    unlocks: Object.fromEntries(
+      Object.entries(gameUnlocks).map(([key, entry]) => [key, entry.unlocked])
+    )
   };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -255,6 +284,7 @@ function updateStats() {
   totalEl.textContent = format(state.total);
   rateEl.textContent = `${format(state.cps)} / sek`;
   renderUpgrades();
+  renderUnlocks();
   renderTower();
   renderBlackjack();
   renderSlots();
@@ -262,6 +292,39 @@ function updateStats() {
   renderRoulette();
   renderGameStats();
   saveState();
+}
+
+function renderUnlocks() {
+  const entries = [
+    { key: "tower", open: towerOpenButton, buy: towerBuyButton },
+    { key: "blackjack", open: blackjackOpenButton, buy: blackjackBuyButton },
+    { key: "slots", open: slotsOpenButton, buy: slotsBuyButton },
+    { key: "roulette", open: rouletteOpenButton, buy: rouletteBuyButton },
+    { key: "wheel", open: wheelOpenButton, buy: wheelBuyButton }
+  ];
+  entries.forEach(({ key, open, buy }) => {
+    const unlocked = gameUnlocks[key].unlocked;
+    if (open) open.disabled = !unlocked;
+    if (buy) {
+      buy.disabled = unlocked || state.cookies < gameUnlocks[key].price;
+      buy.textContent = unlocked
+        ? "Freigeschaltet"
+        : `Freischalten (${format(gameUnlocks[key].price)})`;
+    }
+  });
+}
+
+function buyGame(key, label) {
+  const entry = gameUnlocks[key];
+  if (entry.unlocked) return;
+  if (state.cookies < entry.price) {
+    showGameToast(-entry.price, label);
+    return;
+  }
+  state.cookies -= entry.price;
+  entry.unlocked = true;
+  showGameToast(-entry.price, `${label} freigeschaltet`);
+  updateStats();
 }
 
 function formatNet(value) {
@@ -331,6 +394,9 @@ function renderTowerVisual() {
 }
 
 function openTowerModal() {
+  if (!gameUnlocks.tower.unlocked) {
+    return;
+  }
   towerModal.classList.remove("hidden");
   towerModal.setAttribute("aria-hidden", "false");
   renderTower();
@@ -342,6 +408,9 @@ function closeTowerModal() {
 }
 
 function openBlackjackModal() {
+  if (!gameUnlocks.blackjack.unlocked) {
+    return;
+  }
   blackjackModal.classList.remove("hidden");
   blackjackModal.setAttribute("aria-hidden", "false");
   renderBlackjack();
@@ -353,6 +422,9 @@ function closeBlackjackModal() {
 }
 
 function openSlotsModal() {
+  if (!gameUnlocks.slots.unlocked) {
+    return;
+  }
   slotsModal.classList.remove("hidden");
   slotsModal.setAttribute("aria-hidden", "false");
   renderSlots();
@@ -364,6 +436,9 @@ function closeSlotsModal() {
 }
 
 function openRouletteModal() {
+  if (!gameUnlocks.roulette.unlocked) {
+    return;
+  }
   rouletteModal.classList.remove("hidden");
   rouletteModal.setAttribute("aria-hidden", "false");
   renderRoulette();
@@ -375,6 +450,9 @@ function closeRouletteModal() {
 }
 
 function openWheelModal() {
+  if (!gameUnlocks.wheel.unlocked) {
+    return;
+  }
   wheelModal.classList.remove("hidden");
   wheelModal.setAttribute("aria-hidden", "false");
   renderWheel();
@@ -861,17 +939,20 @@ towerBetInput.addEventListener("input", renderTower);
 towerStartButton.addEventListener("click", startTower);
 towerClimbButton.addEventListener("click", climbTower);
 towerCashoutButton.addEventListener("click", cashoutTower);
+towerBuyButton.addEventListener("click", () => buyGame("tower", "Tower"));
 blackjackOpenButton.addEventListener("click", openBlackjackModal);
 blackjackCloseButton.addEventListener("click", closeBlackjackModal);
 blackjackCloseOverlay.addEventListener("click", closeBlackjackModal);
 blackjackDealButton.addEventListener("click", dealBlackjack);
 blackjackHitButton.addEventListener("click", hitBlackjack);
 blackjackStandButton.addEventListener("click", standBlackjack);
+blackjackBuyButton.addEventListener("click", () => buyGame("blackjack", "Blackjack"));
 slotsOpenButton.addEventListener("click", openSlotsModal);
 slotsCloseButton.addEventListener("click", closeSlotsModal);
 slotsCloseOverlay.addEventListener("click", closeSlotsModal);
 slotsSpinButton.addEventListener("click", spinSlots);
 slotsBetInput.addEventListener("input", renderSlots);
+slotsBuyButton.addEventListener("click", () => buyGame("slots", "Slots"));
 rouletteOpenButton.addEventListener("click", openRouletteModal);
 rouletteCloseButton.addEventListener("click", closeRouletteModal);
 rouletteCloseOverlay.addEventListener("click", closeRouletteModal);
@@ -888,11 +969,13 @@ rouletteChips.forEach((chip) => {
     renderRoulette();
   });
 });
+rouletteBuyButton.addEventListener("click", () => buyGame("roulette", "Roulette"));
 wheelOpenButton.addEventListener("click", openWheelModal);
 wheelCloseButton.addEventListener("click", closeWheelModal);
 wheelCloseOverlay.addEventListener("click", closeWheelModal);
 wheelSpinButton.addEventListener("click", spinWheel);
 wheelBetInput.addEventListener("input", renderWheel);
+wheelBuyButton.addEventListener("click", () => buyGame("wheel", "Gluecksrad"));
 
 setInterval(tick, 1000);
 loadState();

@@ -291,6 +291,29 @@ h1 {
   cursor: pointer;
 }
 
+.casino-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.tower-buy {
+  border: 2px solid #edd8c1;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #fffaf5;
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tower-buy:disabled,
+.tower-open:disabled {
+  background: #c9b5a2;
+  border-color: #c9b5a2;
+  color: #fff;
+  cursor: not-allowed;
+}
+
 .casino {
   margin-top: 20px;
 }
@@ -790,6 +813,42 @@ h1 {
   margin-top: 28px;
   font-size: 0.85rem;
   opacity: 0.7;
+}
+
+.reset-open {
+  margin-top: 12px;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: #f0d2b2;
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reset-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.reset-confirm {
+  border: none;
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: #c2411c;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reset-cancel {
+  border: 2px solid #edd8c1;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #fffaf5;
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
 }
 
 @keyframes float {
