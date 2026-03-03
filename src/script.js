@@ -58,6 +58,16 @@ const rouletteStatus = document.getElementById("rouletteStatus");
 const rouletteWheel = document.getElementById("rouletteWheel");
 const rouletteChips = Array.from(document.querySelectorAll(".roulette-chip"));
 const rouletteNumberInput = document.getElementById("rouletteNumber");
+const statsWheelEl = document.getElementById("statsWheel");
+const gameToast = document.getElementById("gameToast");
+const wheelModal = document.getElementById("wheelModal");
+const wheelOpenButton = document.getElementById("wheelOpen");
+const wheelCloseButton = document.getElementById("wheelClose");
+const wheelCloseOverlay = document.getElementById("wheelCloseOverlay");
+const wheelBetInput = document.getElementById("wheelBet");
+const wheelSpinButton = document.getElementById("wheelSpin");
+const wheelStatus = document.getElementById("wheelStatus");
+const fortuneWheel = document.getElementById("fortuneWheel");
 const towerBetInput = document.getElementById("towerBet");
 const towerStartButton = document.getElementById("towerStart");
 const towerClimbButton = document.getElementById("towerClimb");
@@ -112,6 +122,13 @@ const rouletteOrder = [
   29, 7, 28, 12, 35, 3, 26
 ];
 const rouletteRedNumbers = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
+const wheelSegments = [
+  { label: "x2", multiplier: 2, weight: 36 },
+  { label: "x50", multiplier: 50, weight: 6 },
+  { label: "x100", multiplier: 100, weight: 3 },
+  { label: "x0.5", multiplier: 0.5, weight: 28 },
+  { label: "Niete", multiplier: 0, weight: 27 }
+];
 
 let blackjackDeck = [];
 let blackjackActive = false;
@@ -124,13 +141,18 @@ let rouletteSpinning = false;
 let rouletteBetChoice = "red";
 let rouletteBetNumber = 7;
 let rouletteRotation = 0;
+let wheelSpinning = false;
+let wheelRotation = 0;
 
 const gameStats = {
   tower: { wins: 0, losses: 0, net: 0 },
   blackjack: { wins: 0, losses: 0, net: 0 },
   slots: { wins: 0, losses: 0, net: 0 },
-  roulette: { wins: 0, losses: 0, net: 0 }
+  roulette: { wins: 0, losses: 0, net: 0 },
+  wheel: { wins: 0, losses: 0, net: 0 }
 };
+
+let toastTimer = null;
 
 function applyUpgradeCounts(counts) {
   state.perClick = 1;
@@ -159,7 +181,7 @@ function loadState() {
     state.bonusReady = false;
     applyUpgradeCounts(saved.upgrades || []);
     if (saved.stats) {
-      ["tower", "blackjack", "slots", "roulette"].forEach((key) => {
+      ["tower", "blackjack", "slots", "roulette", "wheel"].forEach((key) => {
         const entry = saved.stats[key] || {};
         gameStats[key].wins = Number(entry.wins) || 0;
         gameStats[key].losses = Number(entry.losses) || 0;
@@ -236,6 +258,7 @@ function updateStats() {
   renderTower();
   renderBlackjack();
   renderSlots();
+  renderWheel();
   renderRoulette();
   renderGameStats();
   saveState();
@@ -248,15 +271,16 @@ function formatNet(value) {
 
 function renderGameStats() {
   const overall = {
-    wins: gameStats.tower.wins + gameStats.blackjack.wins + gameStats.slots.wins + gameStats.roulette.wins,
-    losses: gameStats.tower.losses + gameStats.blackjack.losses + gameStats.slots.losses + gameStats.roulette.losses,
-    net: gameStats.tower.net + gameStats.blackjack.net + gameStats.slots.net + gameStats.roulette.net
+    wins: gameStats.tower.wins + gameStats.blackjack.wins + gameStats.slots.wins + gameStats.roulette.wins + gameStats.wheel.wins,
+    losses: gameStats.tower.losses + gameStats.blackjack.losses + gameStats.slots.losses + gameStats.roulette.losses + gameStats.wheel.losses,
+    net: gameStats.tower.net + gameStats.blackjack.net + gameStats.slots.net + gameStats.roulette.net + gameStats.wheel.net
   };
   statsOverallEl.textContent = `${overall.wins}W / ${overall.losses}L (${formatNet(overall.net)})`;
   statsTowerEl.textContent = `${gameStats.tower.wins}W / ${gameStats.tower.losses}L (${formatNet(gameStats.tower.net)})`;
   statsBlackjackEl.textContent = `${gameStats.blackjack.wins}W / ${gameStats.blackjack.losses}L (${formatNet(gameStats.blackjack.net)})`;
   statsSlotsEl.textContent = `${gameStats.slots.wins}W / ${gameStats.slots.losses}L (${formatNet(gameStats.slots.net)})`;
   statsRouletteEl.textContent = `${gameStats.roulette.wins}W / ${gameStats.roulette.losses}L (${formatNet(gameStats.roulette.net)})`;
+  statsWheelEl.textContent = `${gameStats.wheel.wins}W / ${gameStats.wheel.losses}L (${formatNet(gameStats.wheel.net)})`;
 }
 
 function recordGameResult(key, bet, payout) {
@@ -267,6 +291,28 @@ function recordGameResult(key, bet, payout) {
     gameStats[key].losses += 1;
   }
   gameStats[key].net += net;
+}
+
+function showGameToast(net, label) {
+  if (!gameToast) return;
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+    toastTimer = null;
+  }
+  gameToast.classList.remove("hidden", "win", "loss", "neutral");
+  if (net > 0) {
+    gameToast.classList.add("win");
+    gameToast.textContent = `${label} Gewinn: +${format(net)}`;
+  } else if (net < 0) {
+    gameToast.classList.add("loss");
+    gameToast.textContent = `${label} Verlust: ${format(net)}`;
+  } else {
+    gameToast.classList.add("neutral");
+    gameToast.textContent = `${label} Unentschieden.`;
+  }
+  toastTimer = setTimeout(() => {
+    gameToast.classList.add("hidden");
+  }, 2200);
 }
 
 function currentTowerChance() {
@@ -326,6 +372,17 @@ function openRouletteModal() {
 function closeRouletteModal() {
   rouletteModal.classList.add("hidden");
   rouletteModal.setAttribute("aria-hidden", "true");
+}
+
+function openWheelModal() {
+  wheelModal.classList.remove("hidden");
+  wheelModal.setAttribute("aria-hidden", "false");
+  renderWheel();
+}
+
+function closeWheelModal() {
+  wheelModal.classList.add("hidden");
+  wheelModal.setAttribute("aria-hidden", "true");
 }
 
 function clickCookie() {
@@ -453,6 +510,7 @@ function endBlackjack(result) {
     state.total += payout;
   }
   recordGameResult("blackjack", blackjackBet, payout);
+  showGameToast(payout - blackjackBet, "Blackjack");
   blackjackBet = 0;
   updateStats();
 }
@@ -576,27 +634,28 @@ function spinSlots() {
       [0, 4, 8],
       [2, 4, 6]
     ];
-    let multiplier = 0;
+    let totalMultiplier = 0;
     lines.forEach((line) => {
       const [a, b, c] = line.map((index) => finalSymbols[index]);
       if (a.key === b.key && b.key === c.key) {
-        multiplier = Math.max(multiplier, a.multiplier);
+        totalMultiplier += a.multiplier;
         return;
       }
       const cookieCount = [a, b, c].filter((symbol) => symbol.key === "COOKIE").length;
       if (cookieCount === 2) {
-        multiplier = Math.max(multiplier, 1.5);
+        totalMultiplier += 1.5;
       }
     });
-    const payout = Math.floor(bet * multiplier);
+    const payout = Math.floor(bet * totalMultiplier);
     if (payout > 0) {
       state.cookies += payout;
       state.total += payout;
-      slotsStatus.textContent = `Gewonnen! Auszahlung x${multiplier}.`;
+      slotsStatus.textContent = `Gewonnen! Gesamt x${totalMultiplier}.`;
     } else {
       slotsStatus.textContent = "Leider leer ausgegangen.";
     }
     recordGameResult("slots", bet, payout);
+    showGameToast(payout - bet, "Slots");
     updateStats();
   }, spinTime);
   updateStats();
@@ -655,8 +714,63 @@ function spinRoulette() {
       rouletteStatus.textContent = `Verloren. Ergebnis: ${number} (${color}).`;
     }
     recordGameResult("roulette", bet, payout);
+    showGameToast(payout - bet, "Roulette");
     updateStats();
   }, 2400);
+  updateStats();
+}
+
+function renderWheel() {
+  const betValue = Number(wheelBetInput.value) || 0;
+  wheelSpinButton.disabled = wheelSpinning || betValue <= 0 || state.cookies < betValue;
+}
+
+function pickWheelIndex() {
+  const total = wheelSegments.reduce((sum, segment) => sum + segment.weight, 0);
+  let roll = Math.random() * total;
+  for (let i = 0; i < wheelSegments.length; i += 1) {
+    roll -= wheelSegments[i].weight;
+    if (roll <= 0) {
+      return i;
+    }
+  }
+  return 0;
+}
+
+function spinWheel() {
+  if (wheelSpinning) return;
+  const bet = Math.floor(Number(wheelBetInput.value) || 0);
+  if (bet <= 0 || bet > state.cookies) {
+    wheelStatus.textContent = "Nicht genug Kekse fuer diesen Einsatz.";
+    return;
+  }
+  state.cookies -= bet;
+  wheelSpinning = true;
+  wheelStatus.textContent = "Rad dreht...";
+
+  const index = pickWheelIndex();
+  const segment = wheelSegments[index];
+  const anglePer = 360 / wheelSegments.length;
+  const targetAngle = index * anglePer + anglePer / 2;
+  wheelRotation += 360 * 6 + (360 - targetAngle);
+  fortuneWheel.style.transform = `rotate(${wheelRotation}deg)`;
+
+  setTimeout(() => {
+    wheelSpinning = false;
+    const payout = Math.floor(bet * segment.multiplier);
+    if (payout > 0) {
+      state.cookies += payout;
+      state.total += payout;
+      wheelStatus.textContent = `Gewonnen: ${segment.label}. Auszahlung x${segment.multiplier}.`;
+    } else if (segment.multiplier === 0) {
+      wheelStatus.textContent = "Niete. Kein Gewinn.";
+    } else {
+      wheelStatus.textContent = `Ergebnis: ${segment.label}.`;
+    }
+    recordGameResult("wheel", bet, payout);
+    showGameToast(payout - bet, "Gluecksrad");
+    updateStats();
+  }, 2600);
   updateStats();
 }
 
@@ -710,6 +824,7 @@ function climbTower() {
       renderTowerVisual();
     }, 420);
     recordGameResult("tower", lostBet, 0);
+    showGameToast(-lostBet, "Tower");
     updateStats();
     return;
   }
@@ -733,6 +848,7 @@ function cashoutTower() {
   state.towerMultiplier = 0;
   towerStatus.textContent = "Ausgezahlt. Tower zuruecksetzen oder erneut riskieren?";
   recordGameResult("tower", bet, payout);
+  showGameToast(payout - bet, "Tower");
   updateStats();
 }
 
@@ -772,6 +888,11 @@ rouletteChips.forEach((chip) => {
     renderRoulette();
   });
 });
+wheelOpenButton.addEventListener("click", openWheelModal);
+wheelCloseButton.addEventListener("click", closeWheelModal);
+wheelCloseOverlay.addEventListener("click", closeWheelModal);
+wheelSpinButton.addEventListener("click", spinWheel);
+wheelBetInput.addEventListener("input", renderWheel);
 
 setInterval(tick, 1000);
 loadState();

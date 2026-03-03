@@ -65,6 +65,10 @@
               <span>Roulette</span>
               <span id="statsRoulette">0</span>
             </div>
+            <div class="game-stat-row">
+              <span>Gluecksrad</span>
+              <span id="statsWheel">0</span>
+            </div>
           </div>
         </section>
 
@@ -106,6 +110,14 @@
             </div>
             <button id="rouletteOpen" class="tower-open">Roulette spielen</button>
           </div>
+
+          <div class="casino">
+            <div class="tower-header">
+              <h2>Gluecksrad</h2>
+              <p>Dreh das Rad: x2, x50, x100, x0.5 oder Niete.</p>
+            </div>
+            <button id="wheelOpen" class="tower-open">Gluecksrad spielen</button>
+          </div>
         </aside>
       </main>
 
@@ -114,10 +126,12 @@
       </footer>
     </div>
 
+    <div id="gameToast" class="game-toast hidden" role="status" aria-live="polite"></div>
+
     <div id="towerModal" class="modal hidden" aria-hidden="true">
       <div class="modal-overlay" id="towerCloseOverlay"></div>
       <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="towerTitle">
-        <button id="towerClose" class="modal-close" aria-label="Schliessen">×</button>
+        <button id="towerClose" class="modal-close" aria-label="Schliessen">x</button>
         <div class="modal-head">
           <p class="eyebrow">Cookie Tower</p>
           <h2 id="towerTitle">Double or Crumble</h2>
@@ -151,7 +165,7 @@
     <div id="blackjackModal" class="modal hidden" aria-hidden="true">
       <div class="modal-overlay" id="blackjackCloseOverlay"></div>
       <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="blackjackTitle">
-        <button id="blackjackClose" class="modal-close" aria-label="Schliessen">×</button>
+        <button id="blackjackClose" class="modal-close" aria-label="Schliessen">x</button>
         <div class="modal-head">
           <p class="eyebrow">Casino</p>
           <h2 id="blackjackTitle">Blackjack</h2>
@@ -189,7 +203,7 @@
     <div id="slotsModal" class="modal hidden" aria-hidden="true">
       <div class="modal-overlay" id="slotsCloseOverlay"></div>
       <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="slotsTitle">
-        <button id="slotsClose" class="modal-close" aria-label="Schliessen">Į-</button>
+        <button id="slotsClose" class="modal-close" aria-label="Schliessen">x</button>
         <div class="modal-head">
           <p class="eyebrow">Casino</p>
           <h2 id="slotsTitle">Slot Maschine</h2>
@@ -230,7 +244,7 @@
     <div id="rouletteModal" class="modal hidden" aria-hidden="true">
       <div class="modal-overlay" id="rouletteCloseOverlay"></div>
       <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="rouletteTitle">
-        <button id="rouletteClose" class="modal-close" aria-label="Schliessen">Į-</button>
+        <button id="rouletteClose" class="modal-close" aria-label="Schliessen">x</button>
         <div class="modal-head">
           <p class="eyebrow">Casino</p>
           <h2 id="rouletteTitle">Roulette</h2>
@@ -258,6 +272,47 @@
               <input id="rouletteNumber" type="number" min="0" max="36" step="1" value="7" />
             </div>
             <p id="rouletteStatus" class="tower-status">Waehle eine Farbe und drehe.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="wheelModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="wheelCloseOverlay"></div>
+      <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="wheelTitle">
+        <button id="wheelClose" class="modal-close" aria-label="Schliessen">x</button>
+        <div class="modal-head">
+          <p class="eyebrow">Casino</p>
+          <h2 id="wheelTitle">Gluecksrad</h2>
+          <p class="modal-sub">Dreh das Rad und nimm deinen Multiplikator mit.</p>
+        </div>
+        <div class="wheel">
+          <div class="wheel-wrap">
+            <div class="roulette-pointer"></div>
+            <div id="fortuneWheel" class="fortune-wheel">
+              <div class="wheel-labels" aria-hidden="true">
+                <span class="wheel-label" style="--angle: 36deg">x2</span>
+                <span class="wheel-label" style="--angle: 108deg">x50</span>
+                <span class="wheel-label" style="--angle: 180deg">x100</span>
+                <span class="wheel-label" style="--angle: 252deg">x0.5</span>
+                <span class="wheel-label" style="--angle: 324deg">Niete</span>
+              </div>
+            </div>
+          </div>
+          <div class="wheel-controls">
+            <label class="tower-label" for="wheelBet">Einsatz</label>
+            <div class="tower-row">
+              <input id="wheelBet" type="number" min="1" step="1" value="150" />
+              <button id="wheelSpin">Spin</button>
+            </div>
+            <p id="wheelStatus" class="tower-status">Bereit zum Drehen.</p>
+            <div class="wheel-payouts">
+              <p>x2</p>
+              <p>x50</p>
+              <p>x100</p>
+              <p>x0.5</p>
+              <p>Niete</p>
+            </div>
           </div>
         </div>
       </div>
