@@ -2,6 +2,32 @@
 
 Eine Cookie-Klicker Website mit Casino-Modi (Tower, Blackjack, Slots, Roulette).
 
+## Projektstruktur
+
+- `src/index.html`: Einstieg fuer den Client.
+- `src/script.js`: schlanker Bootstrap fuer den Browser.
+- `src/app/`: modulare Client-Struktur mit Config, Services und Spiel-App.
+- `src/app/legacy/gameApp.js`: bestehende Spiellogik, jetzt als eingebundene App-Schicht statt globalem Monolith-Einstieg.
+- `backend/server.js`: separates Backend-Scaffold fuer spaetere API-Endpunkte.
+
+## Backend-Scaffold
+
+Lokalen API-Stub starten:
+
+```bash
+npm run start:backend
+```
+
+Aktuell vorhanden:
+
+- `GET /api/health`
+- `GET /api/config`
+- `GET /api/global-stats`
+- `POST /api/global-stats/register`
+- `POST /api/global-stats/events`
+
+Die Client-Architektur ist damit bereits auf eine kuenftige HTTP-API vorbereitet, bleibt im Moment aber lokal funktionsfaehig.
+
 ## Docker Compose
 
 ```yaml

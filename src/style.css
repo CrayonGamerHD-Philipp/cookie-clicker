@@ -1626,6 +1626,22 @@ h1 {
   font-family: "Fraunces", "Georgia", serif;
 }
 
+.finance-global {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.finance-global-head h3,
+.finance-global-head p {
+  margin: 0;
+}
+
+.finance-global-head p {
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
 .blackjack {
   display: grid;
   gap: 18px;
