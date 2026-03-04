@@ -104,9 +104,12 @@ const rouletteSelection = document.getElementById("rouletteSelection");
 const statsWheelEl = document.getElementById("statsWheel");
 const gameToast = document.getElementById("gameToast");
 const resetModal = document.getElementById("resetModal");
+const devModeExitButton = document.getElementById("devModeExit");
 const resetOpenButton = document.getElementById("resetOpen");
 const devModeToggleButton = document.getElementById("devModeToggle");
 const devModeStateEl = document.getElementById("devModeState");
+const appVersionEl = document.getElementById("appVersion");
+const appVersionLinkEl = document.getElementById("appVersionLink");
 const resetCloseButton = document.getElementById("resetClose");
 const resetCloseOverlay = document.getElementById("resetCloseOverlay");
 const resetConfirmButton = document.getElementById("resetConfirm");
@@ -135,6 +138,7 @@ const LEVEL_UP_BASE_COST = 250_000_000;
 const LEVEL_UP_SCALE = 2;
 const LEVEL_GAIN_STEP = 0.5;
 const UPGRADE_LEVEL_COST_SCALE = 1.35;
+const RELEASES_BASE_URL = "https://github.com/CrayonGamerHD-Philipp/cookie-clicker/releases";
 
 const upgrades = [
   { name: "Sprinkles", type: "click", power: 1, baseCost: 20, desc: "+1 pro Klick" },
@@ -767,12 +771,29 @@ function renderDevMode() {
     devModeToggleButton.textContent = `Dev-Modus: ${state.devMode ? "An" : "Aus"}`;
     devModeToggleButton.classList.toggle("active", state.devMode);
   }
+  if (devModeExitButton) {
+    devModeExitButton.classList.toggle("hidden", !state.devMode);
+  }
   if (devModeStateEl) {
     devModeStateEl.classList.toggle("hidden", !state.devMode);
     devModeStateEl.textContent = state.devMode
       ? "Dev-Modus aktiv: eigener Local-Storage-Spielstand, Gratis-Kaeufe und keine Level-Sperren."
       : "Dev-Modus inaktiv.";
   }
+}
+
+function updateVersionLink() {
+  if (!appVersionEl || !appVersionLinkEl) {
+    return;
+  }
+  const version = appVersionEl.textContent?.trim() || "";
+  if (version.startsWith("v")) {
+    appVersionLinkEl.href = `${RELEASES_BASE_URL}/tag/${version}`;
+    appVersionLinkEl.removeAttribute("aria-disabled");
+    return;
+  }
+  appVersionLinkEl.href = RELEASES_BASE_URL;
+  appVersionLinkEl.setAttribute("aria-disabled", "true");
 }
 
 function toggleDevMode() {
@@ -1246,6 +1267,7 @@ function renderCosmetics() {
 
 function updateStats() {
   renderDevMode();
+  updateVersionLink();
   setDisplayValue(cookieCountEl, state.cookies);
   setDisplayValue(perClickEl, state.perClick);
   setDisplayValue(totalEl, state.total);
@@ -2245,6 +2267,7 @@ upgradeTabs.forEach((tab) => {
   });
 });
 resetOpenButton.addEventListener("click", openResetModal);
+if (devModeExitButton) devModeExitButton.addEventListener("click", toggleDevMode);
 if (devModeToggleButton) devModeToggleButton.addEventListener("click", toggleDevMode);
 resetCloseButton.addEventListener("click", closeResetModal);
 resetCloseOverlay.addEventListener("click", closeResetModal);
