@@ -25,6 +25,7 @@
 
           <button id="cookieButton" class="cookie" aria-label="Keks backen">
             <span id="cookieSkin" class="cookie-skin skin-none" aria-hidden="true"></span>
+            <span id="cookieMisc" class="cookie-misc misc-none" aria-hidden="true"></span>
             <span id="cookieAccessory" class="cookie-accessory accessory-none" aria-hidden="true"></span>
             <span class="cookie-text">KLICK!</span>
           </button>
@@ -268,12 +269,13 @@
         <div class="modal-head">
           <p class="eyebrow">Atelier</p>
           <h2 id="cosmeticsTitle">Cookie Cosmetics</h2>
-          <p class="modal-sub">Kombiniere Farbe, Hut und optional einen Skin.</p>
+          <p class="modal-sub">Kombiniere Farbe, Hut, optionale Skins und Sonstiges.</p>
         </div>
         <div class="cosmetics-panel">
           <div class="cosmetics-stage">
             <div id="cosmeticsPreviewCookie" class="cosmetics-preview-cookie">
               <span class="cookie-skin skin-none" id="cosmeticsPreviewSkin" aria-hidden="true"></span>
+              <span class="cookie-misc misc-none" id="cosmeticsPreviewMisc" aria-hidden="true"></span>
               <span class="cookie-accessory accessory-none" id="cosmeticsPreviewAccessory" aria-hidden="true"></span>
               <span class="cosmetics-preview-label">Preview</span>
             </div>
@@ -309,6 +311,15 @@
               aria-selected="false"
             >
               Skins
+            </button>
+            <button
+              type="button"
+              class="cosmetics-tab"
+              data-cosmetics-category="misc"
+              role="tab"
+              aria-selected="false"
+            >
+              Sonstiges
             </button>
           </div>
           <div class="cosmetics-browser">

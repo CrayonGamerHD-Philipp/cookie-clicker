@@ -12,6 +12,7 @@ const levelProgressFillEl = document.getElementById("levelProgressFill");
 const levelProgressTextEl = document.getElementById("levelProgressText");
 const levelButton = document.getElementById("levelButton");
 const cookieSkinEl = document.getElementById("cookieSkin");
+const cookieMiscEl = document.getElementById("cookieMisc");
 const cookieAccessoryEl = document.getElementById("cookieAccessory");
 const upgradeList = document.getElementById("upgradeList");
 const cosmeticsModal = document.getElementById("cosmeticsModal");
@@ -21,6 +22,7 @@ const cosmeticsCloseOverlay = document.getElementById("cosmeticsCloseOverlay");
 const cosmeticsCatalogList = document.getElementById("cosmeticsCatalogList");
 const cosmeticsPreviewCookie = document.getElementById("cosmeticsPreviewCookie");
 const cosmeticsPreviewSkin = document.getElementById("cosmeticsPreviewSkin");
+const cosmeticsPreviewMisc = document.getElementById("cosmeticsPreviewMisc");
 const cosmeticsPreviewAccessory = document.getElementById("cosmeticsPreviewAccessory");
 const cosmeticsPreviewName = document.getElementById("cosmeticsPreviewName");
 const cosmeticsPreviewMeta = document.getElementById("cosmeticsPreviewMeta");
@@ -132,19 +134,19 @@ const DEV_MODE_KEY = "hethey-cookie-clicker-dev-mode";
 const LEVEL_UP_BASE_COST = 250_000_000;
 const LEVEL_UP_SCALE = 2;
 const LEVEL_GAIN_STEP = 0.5;
-const UPGRADE_LEVEL_COST_SCALE = 5;
+const UPGRADE_LEVEL_COST_SCALE = 1.35;
 
 const upgrades = [
   { name: "Sprinkles", type: "click", power: 1, baseCost: 20, desc: "+1 pro Klick" },
-  { name: "Ofen", type: "cps", power: 1, baseCost: 15, desc: "+1 pro Sek" },
-  { name: "Double Scoop", type: "click", power: 5, baseCost: 150, desc: "+5 pro Klick" },
-  { name: "Mixer", type: "cps", power: 5, baseCost: 90, desc: "+5 pro Sek" },
-  { name: "Rolling Pin", type: "click", power: 10, baseCost: 450, desc: "+10 pro Klick" },
-  { name: "Cafe", type: "cps", power: 15, baseCost: 300, desc: "+15 pro Sek" },
-  { name: "Factory", type: "cps", power: 50, baseCost: 1200, desc: "+50 pro Sek" },
-  { name: "Festival Dance", type: "click", power: 200, baseCost: 5000, desc: "+200 pro Klick" },
-  { name: "Festival", type: "cps", power: 200, baseCost: 5000, desc: "+200 pro Sek" },
-  { name: "Chease Cake", type: "cps", power: 500, baseCost: 50000, desc: "+500 pro Sek" }
+  { name: "Ofen", type: "cps", power: 1, baseCost: 12, desc: "+1 pro Sek" },
+  { name: "Double Scoop", type: "click", power: 5, baseCost: 90, desc: "+5 pro Klick" },
+  { name: "Mixer", type: "cps", power: 5, baseCost: 60, desc: "+5 pro Sek" },
+  { name: "Rolling Pin", type: "click", power: 10, baseCost: 220, desc: "+10 pro Klick" },
+  { name: "Cafe", type: "cps", power: 15, baseCost: 160, desc: "+15 pro Sek" },
+  { name: "Factory", type: "cps", power: 50, baseCost: 650, desc: "+50 pro Sek" },
+  { name: "Festival Dance", type: "click", power: 200, baseCost: 1800, desc: "+200 pro Klick" },
+  { name: "Festival", type: "cps", power: 200, baseCost: 1800, desc: "+200 pro Sek" },
+  { name: "Chease Cake", type: "cps", power: 500, baseCost: 9000, desc: "+500 pro Sek" }
 ].map((upgrade) => ({
   ...upgrade,
   count: 0
@@ -265,6 +267,25 @@ const skinCosmetics = [
   }
 ];
 
+const miscCosmetics = [
+  {
+    key: "none",
+    name: "Ohne",
+    cost: 0,
+    desc: "Keine zusaetzliche Sonderfigur.",
+    owned: true,
+    svg: ""
+  },
+  {
+    key: "kirby",
+    name: "Kirby",
+    cost: 2_000_000_000,
+    desc: "Rosa Kirby als eigenes Sonstiges-Cosmetic.",
+    owned: false,
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500" version="1.1"><path d="M 304.343 28.548 C 301.276 36.540, 313.435 56.434, 320.997 55.796 C 324.279 55.519, 324.520 55.257, 324.817 51.646 C 325.639 41.637, 307.272 20.915, 304.343 28.548 M 251.063 41.424 C 247.469 45.754, 261.419 72, 267.315 72 C 276.073 72, 274.557 58.377, 264.664 48.173 C 257.386 40.666, 253.353 38.664, 251.063 41.424" stroke="none" fill="#ffffff" fill-rule="evenodd"/><path d="M 391 77.703 C 370.433 81.243, 364.475 98.607, 382.299 103.063 C 387.796 104.437, 406.830 101.050, 410.352 98.071 C 422.111 88.127, 409.226 74.565, 391 77.703 M 228.346 113.520 C 201.949 119.442, 187.564 133.198, 196.573 143.904 C 202.958 151.492, 222.077 148.689, 239.364 137.630 C 256.774 126.493, 248.754 108.942, 228.346 113.520" stroke="none" fill="#eb6796" fill-rule="evenodd"/><path d="M 115.773 76.250 C 32.335 167.897, 39.305 318.220, 130.429 392.339 C 138.939 399.260, 138.713 399.550, 135.079 386.377 C 124.601 348.400, 121.677 300.001, 129.271 290.250 C 129.885 289.462, 129.890 289, 129.286 289 C 124.644 289, 113.089 253.025, 107.285 220.500 C 100.142 180.478, 107.418 102.466, 120.848 75.066 C 123.023 70.630, 124.665 67, 124.498 67 C 124.331 67, 120.405 71.162, 115.773 76.250 M 344 217.688 C 332.005 234.181, 311.268 251.828, 292.114 261.840 C 279.237 268.572, 265.942 274.192, 264.344 273.579 C 263.630 273.305, 264.285 274.791, 265.800 276.882 C 267.314 278.973, 269.398 282.555, 270.429 284.842 C 272.642 289.751, 271.822 289.622, 280.978 286.507 C 315.742 274.684, 347.249 242.691, 349.658 216.770 C 350.425 208.514, 350.705 208.468, 344 217.688" stroke="none" fill="#eb6b8e" fill-rule="evenodd"/><path d="M 184 230.428 C 175.635 232.749, 166.549 238.361, 158.159 246.389 C 90.403 311.217, 166.311 517.016, 244.250 479.799 C 253.659 475.307, 253.839 476.488, 242.626 469.185 C 175.200 425.274, 143.713 281.820, 190.511 231.750 L 193.081 229 190.790 229.089 C 189.531 229.139, 186.475 229.741, 184 230.428" stroke="none" fill="#8b0039" fill-rule="evenodd"/><path d="M 206 241 C 201.955 245.045, 204.491 252.679, 210.981 255.990 C 222.155 261.691, 225.934 251.594, 215.990 242.610 C 211.465 238.522, 208.893 238.107, 206 241" stroke="none" fill="#f386af" fill-rule="evenodd"/><path d="M 190.602 231.651 C 144.129 281.387, 174.946 424.642, 241.553 468.506 C 252.764 475.889, 251.811 475.855, 258.476 469.108 C 273.047 454.357, 282.975 426.558, 283.514 399 C 284.880 329.105, 269.782 281.965, 235.386 248.734 C 218.695 232.609, 197.324 224.457, 190.602 231.651 M 207.375 239.049 C 204.842 239.996, 203.017 244.636, 203.723 248.334 C 204.938 254.686, 214.983 260.551, 219.538 257.567 C 226.861 252.769, 215.786 235.907, 207.375 239.049" stroke="none" fill="#e0005b" fill-rule="evenodd"/><path d="M 343.723 66.611 C 343.325 67.008, 343 68.547, 343 70.030 C 343 73.210, 338.696 77.936, 335.614 78.140 C 334.451 78.217, 331.700 78.200, 329.500 78.103 L 325.500 77.926 331.870 84.051 C 348.212 99.763, 356.023 96.588, 349.466 76.898 C 346.765 68.788, 344.895 65.438, 343.723 66.611 M 287.153 83.454 C 284.692 90.260, 277.162 92.870, 269.634 89.526 C 266.543 88.153, 269.383 92.560, 276.384 99.999 C 294.008 118.727, 301.279 116.149, 293.980 93.762 C 289.583 80.272, 288.755 79.023, 287.153 83.454" stroke="none" fill="#0077c0" fill-rule="evenodd"/><path d="M 237.203 8.063 C 150.938 17.837, 76.940 84.871, 56.958 171.345 C 35.539 264.034, 63.963 348.079, 136.449 406.389 C 140.309 409.495, 143.325 412.986, 145.041 416.337 C 171.257 467.537, 189.933 485.546, 221.345 489.915 C 278.563 497.873, 307.889 406.255, 279.542 308.103 C 277.572 301.284, 276.082 295.607, 276.231 295.488 C 276.379 295.368, 278.966 294.463, 281.980 293.478 C 357.934 268.646, 380.962 200.020, 324.500 166.766 C 320.650 164.498, 315.348 161.288, 312.717 159.632 L 307.934 156.620 314.217 150.229 C 339.506 124.505, 383.748 106.785, 428.750 104.356 C 435.488 103.993, 440.990 103.426, 440.978 103.098 C 440.695 95.271, 396.918 52.724, 373.222 37.245 C 338.580 14.616, 283.558 2.811, 237.203 8.063 M 240.948 14.042 C 63.018 29.915, -9.633 273.704, 128.402 391.709 C 141.214 402.661, 140.654 402.669, 137.439 391.580 C 114.145 311.229, 128.293 249.809, 175.107 228.059 C 206.088 213.664, 242.481 234.896, 267.998 282.250 C 270.295 286.512, 272.506 290, 272.912 290 C 290.061 290, 335.343 255.973, 345.920 235.138 C 365.511 196.549, 319.916 154.382, 257 152.906 C 249.549 152.731, 246.566 151.534, 251.500 150.699 C 261.400 149.024, 279.334 150.272, 293.279 153.608 L 300.058 155.230 308.779 146.846 C 330.179 126.274, 348.856 115.914, 381.512 106.500 C 394.668 102.707, 400.951 101.458, 423.273 98.197 L 428.046 97.500 421.191 89 C 376.404 33.467, 314.021 7.523, 240.948 14.042 M 302.330 22.136 C 291.389 35.654, 329.589 99, 348.681 99 C 371.599 99, 332.618 24.229, 308.192 21.336 C 304.820 20.937, 303.112 21.170, 302.330 22.136 M 304.605 27.537 C 298.852 33.291, 312.583 57.643, 321.117 56.822 C 329.010 56.063, 326.687 44.084, 316.597 33.508 C 309.879 26.467, 307.073 25.070, 304.605 27.537 M 247.615 37.465 C 240.717 47.993, 257.260 87.691, 276.250 106.182 C 298.953 128.286, 307.706 110.737, 291.056 76.500 C 277.116 47.836, 254.270 27.307, 247.615 37.465 M 251.250 39.663 C 245.259 42.079, 260.695 73, 267.893 73 C 270.019 73, 274 68.165, 274 65.583 C 274 58.235, 261.202 40, 256.045 40 C 255.560 40, 254.564 39.811, 253.832 39.579 C 253.099 39.348, 251.938 39.385, 251.250 39.663 M 343.723 66.611 C 343.325 67.008, 343 68.547, 343 70.030 C 343 73.210, 338.696 77.936, 335.614 78.140 C 334.451 78.217, 331.700 78.200, 329.500 78.103 L 325.500 77.926 331.870 84.051 C 348.212 99.763, 356.023 96.588, 349.466 76.898 C 346.765 68.788, 344.895 65.438, 343.723 66.611 M 287.153 83.454 C 284.692 90.260, 277.162 92.870, 269.634 89.526 C 266.543 88.153, 269.383 92.560, 276.384 99.999 C 294.008 118.727, 301.279 116.149, 293.980 93.762 C 289.583 80.272, 288.755 79.023, 287.153 83.454 M 184 230.428 C 128.894 245.721, 114.504 340.873, 155.146 421.228 C 220.669 550.776, 315.455 465.445, 274.810 313.500 C 260.768 261.003, 217.256 221.198, 184 230.428" stroke="none" fill="#0a0e13" fill-rule="evenodd"/><path d="M 238 14.642 C 203.444 18.865, 163.367 35.984, 133.440 59.304 C 99.555 85.710, 94.518 220.744, 125.127 282.177 C 128.917 289.785, 129.485 289.886, 130.968 283.215 C 138.403 249.767, 166.343 223.510, 194.500 223.510 C 220.473 223.509, 235.923 234.399, 262.520 271.451 L 264.541 274.266 276.563 269.106 C 304.634 257.058, 329.897 237.417, 345.565 215.461 C 362.233 192.103, 313.199 157.406, 257.881 153.415 C 236.684 151.885, 246.966 149.422, 270.906 150.295 C 281.926 150.697, 288.407 151.425, 293 152.777 L 299.500 154.690 309.223 145.525 C 329.547 126.368, 346.874 116.472, 376 107.388 C 381.775 105.586, 385.497 104.087, 384.270 104.056 C 370.743 103.715, 366.463 89.703, 377.563 82.098 C 395.970 69.484, 426.531 82.097, 412.849 96.661 L 410.533 99.126 418.517 98.428 C 422.907 98.045, 426.626 97.628, 426.780 97.502 C 430.115 94.779, 388.366 54.959, 369.127 42.514 C 336.606 21.476, 280.195 9.486, 238 14.642 M 302 21.499 C 290.674 35.147, 328.532 99, 347.949 99 C 358.975 99, 359.519 86.695, 349.411 65.926 C 335.223 36.775, 309.403 12.580, 302 21.499 M 249.895 34.673 C 235.551 38.408, 258.181 93.946, 281.047 111.127 C 301.664 126.619, 307.075 106.993, 291.012 74.987 C 281.962 56.953, 265.227 37.018, 257.895 35.537 C 256.028 35.159, 253.825 34.717, 253 34.553 C 252.175 34.389, 250.778 34.443, 249.895 34.673 M 222.217 114.555 C 197.115 121.977, 186.305 135.253, 197.011 145.511 C 206.931 155.015, 244.932 141.770, 248.892 127.428 C 252.429 114.618, 240.871 109.040, 222.217 114.555" stroke="none" fill="#f095a3" fill-rule="evenodd"/></svg>`
+  }
+];
+
 const state = {
   cookies: 0,
   total: 0,
@@ -276,6 +297,7 @@ const state = {
   cps: 0,
   activeColor: "classic",
   activeSkin: "none",
+  activeMisc: "none",
   activeAccessory: "none",
   bonusReady: false,
   lastBonusAt: 0,
@@ -443,6 +465,10 @@ function activeSkinCosmetic() {
   return skinCosmetics.find((cosmetic) => cosmetic.key === state.activeSkin) || skinCosmetics[0];
 }
 
+function activeMiscCosmetic() {
+  return miscCosmetics.find((cosmetic) => cosmetic.key === state.activeMisc) || miscCosmetics[0];
+}
+
 function resetCosmeticsState() {
   colorCosmetics.forEach((cosmetic) => {
     cosmetic.owned = cosmetic.key === "classic";
@@ -453,17 +479,23 @@ function resetCosmeticsState() {
   skinCosmetics.forEach((cosmetic) => {
     cosmetic.owned = cosmetic.key === "none";
   });
+  miscCosmetics.forEach((cosmetic) => {
+    cosmetic.owned = cosmetic.key === "none";
+  });
   state.activeColor = "classic";
   state.activeSkin = "none";
+  state.activeMisc = "none";
   state.activeAccessory = "none";
 }
 
 function applyCosmeticTheme() {
   const color = activeColorCosmetic();
   const skin = activeSkinCosmetic();
+  const misc = activeMiscCosmetic();
   const accessory = activeAccessoryCosmetic();
   state.activeColor = color.key;
   state.activeSkin = skin.key;
+  state.activeMisc = misc.key;
   state.activeAccessory = accessory.key;
   Object.entries(color.theme).forEach(([key, value]) => {
     cookieButton.style.setProperty(key, value);
@@ -474,8 +506,13 @@ function applyCosmeticTheme() {
     });
   }
   cookieButton.dataset.skin = skin.key || "none";
+  cookieButton.dataset.misc = misc.key || "none";
   if (cookieSkinEl) {
     cookieSkinEl.className = `cookie-skin skin-${skin.key || "none"}`;
+  }
+  if (cookieMiscEl) {
+    cookieMiscEl.className = `cookie-misc misc-${misc.key || "none"}`;
+    cookieMiscEl.innerHTML = misc.svg || "";
   }
   if (cookieAccessoryEl) {
     cookieAccessoryEl.className = `cookie-accessory accessory-${accessory.key || "none"}`;
@@ -604,6 +641,7 @@ function loadState(forceDevMode = null) {
         const ownedColors = Array.isArray(saved.cosmetics.colors?.owned) ? saved.cosmetics.colors.owned : [];
         const ownedAccessories = Array.isArray(saved.cosmetics.accessories?.owned) ? saved.cosmetics.accessories.owned : [];
         const ownedSkins = Array.isArray(saved.cosmetics.skins?.owned) ? saved.cosmetics.skins.owned : [];
+        const ownedMiscs = Array.isArray(saved.cosmetics.miscs?.owned) ? saved.cosmetics.miscs.owned : [];
         colorCosmetics.forEach((cosmetic) => {
           cosmetic.owned = cosmetic.key === "classic" || ownedColors.includes(cosmetic.key);
         });
@@ -612,6 +650,9 @@ function loadState(forceDevMode = null) {
         });
         skinCosmetics.forEach((cosmetic) => {
           cosmetic.owned = cosmetic.key === "none" || ownedSkins.includes(cosmetic.key);
+        });
+        miscCosmetics.forEach((cosmetic) => {
+          cosmetic.owned = cosmetic.key === "none" || ownedMiscs.includes(cosmetic.key);
         });
         if (typeof saved.cosmetics.colors?.active === "string") {
           const selectedColor = colorCosmetics.find((cosmetic) => cosmetic.key === saved.cosmetics.colors.active && cosmetic.owned);
@@ -631,6 +672,12 @@ function loadState(forceDevMode = null) {
           const selectedSkin = skinCosmetics.find((cosmetic) => cosmetic.key === saved.cosmetics.skins.active && cosmetic.owned);
           if (selectedSkin) {
             state.activeSkin = selectedSkin.key;
+          }
+        }
+        if (typeof saved.cosmetics.miscs?.active === "string") {
+          const selectedMisc = miscCosmetics.find((cosmetic) => cosmetic.key === saved.cosmetics.miscs.active && cosmetic.owned);
+          if (selectedMisc) {
+            state.activeMisc = selectedMisc.key;
           }
         }
       } else {
@@ -663,6 +710,10 @@ function saveState() {
       skins: {
         active: activeSkinCosmetic().key,
         owned: skinCosmetics.filter((cosmetic) => cosmetic.owned).map((cosmetic) => cosmetic.key)
+      },
+      miscs: {
+        active: activeMiscCosmetic().key,
+        owned: miscCosmetics.filter((cosmetic) => cosmetic.owned).map((cosmetic) => cosmetic.key)
       }
     },
     stats: gameStats,
@@ -899,6 +950,16 @@ function selectSkinCosmetic(key) {
   updateStats();
 }
 
+function selectMiscCosmetic(key) {
+  const cosmetic = miscCosmetics.find((entry) => entry.key === key && entry.owned);
+  if (!cosmetic) {
+    return;
+  }
+  state.activeMisc = cosmetic.key;
+  applyCosmeticTheme();
+  updateStats();
+}
+
 function buySkinCosmetic(key) {
   const cosmetic = skinCosmetics.find((entry) => entry.key === key);
   if (!cosmetic || cosmetic.owned || !canAfford(cosmetic.cost)) {
@@ -909,6 +970,19 @@ function buySkinCosmetic(key) {
   state.activeSkin = cosmetic.key;
   applyCosmeticTheme();
   showGameToast(state.devMode ? 0 : -cosmetic.cost, `${cosmetic.name} Skin`);
+  updateStats();
+}
+
+function buyMiscCosmetic(key) {
+  const cosmetic = miscCosmetics.find((entry) => entry.key === key);
+  if (!cosmetic || cosmetic.owned || !canAfford(cosmetic.cost)) {
+    return;
+  }
+  spendCookies(cosmetic.cost);
+  cosmetic.owned = true;
+  state.activeMisc = cosmetic.key;
+  applyCosmeticTheme();
+  showGameToast(state.devMode ? 0 : -cosmetic.cost, `${cosmetic.name} Sonstiges`);
   updateStats();
 }
 
@@ -980,9 +1054,12 @@ function createColorPreview(cosmetic) {
       preview.style.setProperty(key, value);
     });
   }
+  preview.dataset.skin = activeSkinCosmetic().key || "none";
+  preview.dataset.misc = activeMiscCosmetic().key || "none";
   const previewSkin = document.createElement("span");
   previewSkin.className = `cookie-skin skin-${state.activeSkin || "none"}`;
   preview.appendChild(previewSkin);
+  preview.appendChild(createMiscLayer(activeMiscCosmetic()));
   const previewAccessory = document.createElement("span");
   previewAccessory.className = `cookie-accessory accessory-${state.activeAccessory || "none"}`;
   preview.appendChild(previewAccessory);
@@ -1000,9 +1077,42 @@ function createSkinPreview(cosmetic) {
       preview.style.setProperty(key, value);
     });
   }
+  preview.dataset.skin = cosmetic.key || "none";
+  preview.dataset.misc = activeMiscCosmetic().key || "none";
   const previewSkin = document.createElement("span");
   previewSkin.className = `cookie-skin skin-${cosmetic.key || "none"}`;
   preview.appendChild(previewSkin);
+  preview.appendChild(createMiscLayer(activeMiscCosmetic()));
+  const previewAccessory = document.createElement("span");
+  previewAccessory.className = `cookie-accessory accessory-${state.activeAccessory || "none"}`;
+  preview.appendChild(previewAccessory);
+  return preview;
+}
+
+function createMiscLayer(cosmetic) {
+  const layer = document.createElement("span");
+  layer.className = `cookie-misc misc-${cosmetic.key || "none"}`;
+  layer.innerHTML = cosmetic.svg || "";
+  return layer;
+}
+
+function createMiscPreview(cosmetic) {
+  const preview = document.createElement("div");
+  preview.className = "cosmetic-preview";
+  Object.entries(activeColorCosmetic().theme).forEach(([key, value]) => {
+    preview.style.setProperty(key, value);
+  });
+  if (activeSkinCosmetic().theme) {
+    Object.entries(activeSkinCosmetic().theme).forEach(([key, value]) => {
+      preview.style.setProperty(key, value);
+    });
+  }
+  preview.dataset.skin = activeSkinCosmetic().key || "none";
+  preview.dataset.misc = cosmetic.key || "none";
+  const previewSkin = document.createElement("span");
+  previewSkin.className = `cookie-skin skin-${state.activeSkin || "none"}`;
+  preview.appendChild(previewSkin);
+  preview.appendChild(createMiscLayer(cosmetic));
   const previewAccessory = document.createElement("span");
   previewAccessory.className = `cookie-accessory accessory-${state.activeAccessory || "none"}`;
   preview.appendChild(previewAccessory);
@@ -1020,9 +1130,12 @@ function createAccessoryPreview(cosmetic) {
       preview.style.setProperty(key, value);
     });
   }
+  preview.dataset.skin = activeSkinCosmetic().key || "none";
+  preview.dataset.misc = activeMiscCosmetic().key || "none";
   const previewSkin = document.createElement("span");
   previewSkin.className = `cookie-skin skin-${state.activeSkin || "none"}`;
   preview.appendChild(previewSkin);
+  preview.appendChild(createMiscLayer(activeMiscCosmetic()));
   const previewAccessory = document.createElement("span");
   previewAccessory.className = `cookie-accessory accessory-${cosmetic.key || "none"}`;
   preview.appendChild(previewAccessory);
@@ -1051,11 +1164,12 @@ function renderCosmeticsTabs() {
 }
 
 function renderCosmeticsStage() {
-  if (!cosmeticsPreviewCookie || !cosmeticsPreviewAccessory || !cosmeticsPreviewSkin) {
+  if (!cosmeticsPreviewCookie || !cosmeticsPreviewAccessory || !cosmeticsPreviewSkin || !cosmeticsPreviewMisc) {
     return;
   }
   const activeColor = activeColorCosmetic();
   const activeSkin = activeSkinCosmetic();
+  const activeMisc = activeMiscCosmetic();
   const activeAccessory = activeAccessoryCosmetic();
 
   Object.entries(activeColor.theme).forEach(([key, value]) => {
@@ -1067,14 +1181,17 @@ function renderCosmeticsStage() {
     });
   }
   cosmeticsPreviewCookie.dataset.skin = activeSkin.key || "none";
+  cosmeticsPreviewCookie.dataset.misc = activeMisc.key || "none";
   cosmeticsPreviewSkin.className = `cookie-skin skin-${activeSkin.key || "none"}`;
+  cosmeticsPreviewMisc.className = `cookie-misc misc-${activeMisc.key || "none"}`;
+  cosmeticsPreviewMisc.innerHTML = activeMisc.svg || "";
   cosmeticsPreviewAccessory.className = `cookie-accessory accessory-${activeAccessory.key || "none"}`;
 
   if (cosmeticsPreviewName) {
-    cosmeticsPreviewName.textContent = `${activeColor.name} + ${activeSkin.name} + ${activeAccessory.name}`;
+    cosmeticsPreviewName.textContent = `${activeColor.name} + ${activeSkin.name} + ${activeMisc.name} + ${activeAccessory.name}`;
   }
   if (cosmeticsPreviewMeta) {
-    cosmeticsPreviewMeta.textContent = `Farbe: ${activeColor.name} | Skin: ${activeSkin.name} | Hut: ${activeAccessory.name}`;
+    cosmeticsPreviewMeta.textContent = `Farbe: ${activeColor.name} | Skin: ${activeSkin.name} | Sonstiges: ${activeMisc.name} | Hut: ${activeAccessory.name}`;
   }
 }
 
@@ -1101,6 +1218,18 @@ function renderCosmetics() {
       selectSkinCosmetic,
       buySkinCosmetic,
       createSkinPreview
+    );
+    return;
+  }
+
+  if (activeCosmeticsCategory === "misc") {
+    renderCosmeticCards(
+      cosmeticsCatalogList,
+      miscCosmetics,
+      state.activeMisc,
+      selectMiscCosmetic,
+      buyMiscCosmetic,
+      createMiscPreview
     );
     return;
   }
@@ -1274,6 +1403,8 @@ function resetAccount() {
   state.cps = 0;
   if (shouldResetCosmetics) {
     state.activeColor = "classic";
+    state.activeSkin = "none";
+    state.activeMisc = "none";
     state.activeAccessory = "none";
   }
   state.bonusReady = false;
