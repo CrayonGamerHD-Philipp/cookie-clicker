@@ -1701,6 +1701,375 @@ h1 {
   opacity: 0.75;
 }
 
+.lootbox {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.lootbox-showcase,
+.lootbox-controls {
+  display: grid;
+  gap: 14px;
+}
+
+.lootbox-showcase {
+  position: relative;
+  padding: 18px;
+  border-radius: 20px;
+  background: radial-gradient(circle at top, #fff3d9, #f1d0a6 60%, #df9a58 100%);
+  border: 2px solid #efcf9a;
+  justify-items: center;
+  text-align: center;
+}
+
+.lootbox-crate {
+  position: relative;
+  z-index: 1;
+  width: min(180px, 100%);
+  aspect-ratio: 1.05;
+  border-radius: 26px;
+  background:
+    linear-gradient(135deg, #8d3f18, #c66323 52%, #f0a260 100%);
+  box-shadow:
+    inset 0 6px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -10px 0 rgba(74, 32, 12, 0.24),
+    0 16px 28px rgba(74, 32, 12, 0.22);
+  transform-origin: center 70%;
+}
+
+.lootbox-crate.is-opening {
+  animation: lootboxShake 720ms ease-in-out infinite;
+}
+
+.lootbox-crate.is-revealing {
+  animation: lootboxReveal 520ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.lootbox-crate::before,
+.lootbox-crate::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  background: rgba(255, 241, 209, 0.55);
+}
+
+.lootbox-crate::before {
+  inset: 16% 42% 16%;
+}
+
+.lootbox-crate::after {
+  inset: 42% 16% 42%;
+}
+
+.lootbox-ribbon {
+  position: absolute;
+  inset: 18px;
+  border: 3px dashed rgba(98, 36, 8, 0.24);
+  border-radius: 20px;
+}
+
+.lootbox-gem {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 34px;
+  height: 34px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fff8d8, #ffd166 52%, #ff9f43);
+  box-shadow: 0 0 0 4px rgba(255, 248, 216, 0.3);
+}
+
+.lootbox-particles {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.lootbox-particle {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: var(--size, 10px);
+  height: var(--size, 10px);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 30%, #fffaf0, #ffd166 48%, #f38b3a 100%);
+  box-shadow: 0 0 10px rgba(255, 209, 102, 0.45);
+  opacity: 0;
+  animation: lootboxParticle 820ms ease-out forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+.lootbox-particle:nth-child(3n) {
+  border-radius: 4px;
+  background: linear-gradient(135deg, #fff7e6, #ffc857, #ff8c42);
+}
+
+.lootbox-particle:nth-child(4n) {
+  background: radial-gradient(circle at 30% 30%, #fff, #f7d7a9 40%, #d55a2a 100%);
+}
+
+.lootbox-note {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: rgba(43, 29, 18, 0.74);
+}
+
+.lootbox-controls {
+  align-content: start;
+}
+
+.lootbox-preview {
+  display: grid;
+  gap: 8px;
+}
+
+.lootbox-preview-track {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fffaf4, #f8ead8);
+  border: 2px solid #edd8c1;
+  min-height: 218px;
+  position: relative;
+  overflow: hidden;
+}
+
+.lootbox-preview-track::before,
+.lootbox-preview-track::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 28px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.lootbox-preview-track::before {
+  top: 0;
+  background: linear-gradient(180deg, rgba(255, 250, 244, 0.96), rgba(255, 250, 244, 0));
+}
+
+.lootbox-preview-track::after {
+  bottom: 0;
+  background: linear-gradient(0deg, rgba(248, 234, 216, 0.96), rgba(248, 234, 216, 0));
+}
+
+.lootbox-preview-item {
+  position: relative;
+  z-index: 0;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid #ecd8c4;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgba(43, 29, 18, 0.6);
+  opacity: 0.68;
+  transform: scale(0.94);
+  transition:
+    transform 120ms ease-out,
+    opacity 120ms ease-out,
+    border-color 120ms ease-out,
+    box-shadow 120ms ease-out,
+    background 120ms ease-out;
+}
+
+.lootbox-preview-item.type-cookies {
+  color: #9a4b16;
+}
+
+.lootbox-preview-item.type-boost {
+  color: #225e9d;
+}
+
+.lootbox-preview-item.type-cosmetic,
+.lootbox-preview-item.type-reward {
+  color: #8f2f5e;
+}
+
+.lootbox-preview-item.is-focus {
+  z-index: 2;
+  min-height: 42px;
+  padding: 0 14px;
+  opacity: 1;
+  transform: scale(1.1);
+  background: linear-gradient(180deg, #fffdf8, #fff4df);
+  border: 2px solid #f0c48b;
+  color: #2b1d12;
+  font-size: 0.94rem;
+  box-shadow:
+    0 12px 18px rgba(213, 90, 42, 0.12),
+    0 0 0 4px rgba(240, 196, 139, 0.18);
+}
+
+.lootbox-preview-track.is-spinning .lootbox-preview-item {
+  animation: lootboxTicker 180ms ease-out;
+}
+
+.lootbox-buy-button {
+  border: none;
+  padding: 14px 18px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #d55a2a, #b6471b);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 18px rgba(181, 71, 27, 0.18);
+}
+
+.lootbox-buy-button:disabled {
+  background: #c9b5a2;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.lootbox-result {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 18px;
+  background: #fff8ef;
+  border: 2px solid #edd8c1;
+}
+
+.lootbox-result.pending {
+  background: #fff4df;
+  animation: lootboxPulse 760ms ease-in-out infinite;
+}
+
+.lootbox-result.reward {
+  border-color: #f0c48b;
+  box-shadow: 0 12px 20px rgba(213, 90, 42, 0.08);
+  animation: lootboxFlash 420ms ease-out;
+}
+
+.lootbox-result strong {
+  font-family: "Fraunces", "Georgia", serif;
+  font-size: 1.15rem;
+}
+
+.lootbox-result span:last-child {
+  font-size: 0.85rem;
+  color: rgba(43, 29, 18, 0.72);
+}
+
+.lootbox-tag {
+  justify-self: start;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #f7e3cc;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 700px) {
+  .lootbox {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lootbox-crate {
+    width: min(150px, 100%);
+  }
+}
+
+@keyframes lootboxShake {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  20% {
+    transform: rotate(-4deg) scale(1.02);
+  }
+  40% {
+    transform: rotate(4deg) scale(1.03);
+  }
+  60% {
+    transform: rotate(-3deg) scale(1.02);
+  }
+  80% {
+    transform: rotate(3deg) scale(1.01);
+  }
+}
+
+@keyframes lootboxReveal {
+  0% {
+    transform: scale(0.92) rotate(-4deg);
+    filter: brightness(0.95);
+  }
+  55% {
+    transform: scale(1.08) rotate(3deg);
+    filter: brightness(1.16);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    filter: brightness(1);
+  }
+}
+
+@keyframes lootboxParticle {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1);
+  }
+}
+
+@keyframes lootboxTicker {
+  0% {
+    transform: translateY(10px);
+    opacity: 0.35;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes lootboxPulse {
+  0%,
+  100% {
+    box-shadow: none;
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(240, 196, 139, 0.18);
+  }
+}
+
+@keyframes lootboxFlash {
+  0% {
+    transform: scale(0.98);
+    box-shadow: 0 0 0 rgba(213, 90, 42, 0);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 14px 28px rgba(213, 90, 42, 0.12);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 12px 20px rgba(213, 90, 42, 0.08);
+  }
+}
+
 .roulette {
   display: grid;
   gap: 18px;

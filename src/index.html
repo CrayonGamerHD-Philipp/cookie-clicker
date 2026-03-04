@@ -192,7 +192,18 @@
             </div>
             <div class="casino-actions">
               <button id="slotsOpen" class="tower-open">Slots spielen</button>
-              <button id="slotsBuy" class="tower-buy">Freischalten (10.000.000)</button>
+              <button id="slotsBuy" class="tower-buy">Freischalten (25.000.000)</button>
+            </div>
+          </div>
+
+          <div class="casino">
+            <div class="tower-header">
+              <h2>Lootboxes</h2>
+              <p>Zieh Cosmetics, Boosts oder einen Haufen extra Kekse.</p>
+            </div>
+            <div class="casino-actions">
+              <button id="lootboxOpen" class="tower-open">Lootboxes oeffnen</button>
+              <button id="lootboxBuy" class="tower-buy">Freischalten (40.000.000)</button>
             </div>
           </div>
 
@@ -203,7 +214,7 @@
             </div>
             <div class="casino-actions">
               <button id="rouletteOpen" class="tower-open">Roulette spielen</button>
-              <button id="rouletteBuy" class="tower-buy">Freischalten (25.000.000)</button>
+              <button id="rouletteBuy" class="tower-buy">Freischalten (50.000.000)</button>
             </div>
           </div>
 
@@ -214,7 +225,7 @@
             </div>
             <div class="casino-actions">
               <button id="wheelOpen" class="tower-open">Gluecksrad spielen</button>
-              <button id="wheelBuy" class="tower-buy">Freischalten (50.000.000)</button>
+              <button id="wheelBuy" class="tower-buy">Freischalten (150.000.000)</button>
             </div>
           </div>
         </aside>
@@ -482,6 +493,41 @@
             <p>3x &#x1F352; = x2</p>
             <p>3x &#x1F34B; = x1.5</p>
             <p>2x &#x1F36A; (in einer Linie) = x1.5</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="lootboxModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="lootboxCloseOverlay"></div>
+      <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="lootboxTitle">
+        <button id="lootboxClose" class="modal-close" aria-label="Schliessen">x</button>
+        <div class="modal-head">
+          <p class="eyebrow">Casino</p>
+          <h2 id="lootboxTitle">Lootboxes</h2>
+          <p class="modal-sub">Kaufe eine Box und zieh Cosmetics, Boosts oder fette Cookie-Pakete.</p>
+        </div>
+        <div class="lootbox">
+          <div class="lootbox-showcase">
+            <div id="lootboxCrate" class="lootbox-crate" aria-hidden="true">
+              <span class="lootbox-ribbon"></span>
+              <span class="lootbox-gem"></span>
+            </div>
+            <div id="lootboxParticles" class="lootbox-particles" aria-hidden="true"></div>
+            <p class="lootbox-note">Jede Box kostet Kekse, aber kann dir direkt Fortschritt bringen.</p>
+          </div>
+          <div class="lootbox-controls">
+            <button id="lootboxRoll" class="lootbox-buy-button">Lootbox kaufen</button>
+            <p id="lootboxStatus" class="tower-status">Bereit fuer deinen naechsten Pull.</p>
+            <div class="lootbox-preview">
+              <span class="lootbox-tag">Moegliche Gewinne</span>
+              <div id="lootboxPreviewTrack" class="lootbox-preview-track"></div>
+            </div>
+            <div id="lootboxResult" class="lootbox-result">
+              <span class="lootbox-tag">Moegliche Rewards</span>
+              <strong>Cosmetics, Boosts und Cookie-Gewinne</strong>
+              <span>Cosmetics schalten sich sofort frei.</span>
+            </div>
           </div>
         </div>
       </div>

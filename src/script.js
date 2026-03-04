@@ -62,6 +62,17 @@ const slotsCloseOverlay = document.getElementById("slotsCloseOverlay");
 const slotsBetInput = document.getElementById("slotsBet");
 const slotsSpinButton = document.getElementById("slotsSpin");
 const slotsStatus = document.getElementById("slotsStatus");
+const lootboxModal = document.getElementById("lootboxModal");
+const lootboxOpenButton = document.getElementById("lootboxOpen");
+const lootboxBuyButton = document.getElementById("lootboxBuy");
+const lootboxCloseButton = document.getElementById("lootboxClose");
+const lootboxCloseOverlay = document.getElementById("lootboxCloseOverlay");
+const lootboxRollButton = document.getElementById("lootboxRoll");
+const lootboxStatus = document.getElementById("lootboxStatus");
+const lootboxResult = document.getElementById("lootboxResult");
+const lootboxCrate = document.getElementById("lootboxCrate");
+const lootboxParticles = document.getElementById("lootboxParticles");
+const lootboxPreviewTrack = document.getElementById("lootboxPreviewTrack");
 const slotReels = [
   document.getElementById("slot0"),
   document.getElementById("slot1"),
@@ -142,6 +153,7 @@ const LEVEL_UP_SCALE = 2;
 const LEVEL_GAIN_STEP = 0.5;
 const UPGRADE_LEVEL_COST_SCALE = 1.35;
 const RELEASES_BASE_URL = "https://github.com/CrayonGamerHD-Philipp/cookie-clicker/releases";
+const LOOTBOX_COST = 10_000_000;
 
 const upgrades = [
   { name: "Sprinkles", type: "click", power: 1, baseCost: 20, desc: "+1 pro Klick" },
@@ -355,8 +367,9 @@ const gameUnlocks = {
   tower: { price: 1_000_000, requiredLevel: 1, unlocked: false },
   blackjack: { price: 5_000_000, requiredLevel: 2, unlocked: false },
   slots: { price: 25_000_000, requiredLevel: 3, unlocked: false },
-  roulette: { price: 50_000_000, requiredLevel: 4, unlocked: false },
-  wheel: { price: 150_000_000, requiredLevel: 5, unlocked: false }
+  lootbox: { price: 40_000_000, requiredLevel: 4, unlocked: false },
+  roulette: { price: 50_000_000, requiredLevel: 5, unlocked: false },
+  wheel: { price: 150_000_000, requiredLevel: 6, unlocked: false }
 };
 
 let blackjackDeck = [];
@@ -366,6 +379,9 @@ let dealerHand = [];
 let playerHand = [];
 let slotsSpinning = false;
 let slotSpinTimer = null;
+let lootboxOpening = false;
+let lootboxTimer = null;
+let lootboxPreviewTimer = null;
 let rouletteSpinning = false;
 let rouletteBetChoice = "red";
 let rouletteBetNumber = 7;
@@ -564,6 +580,317 @@ function activateBoost(rarityKey) {
   recalculateProduction();
   showInfoToast(`${rarity.label}-Boost aktiviert: +${formatMultiplier(rarity.multiplier - 1)}x fuer ${rarity.durationLabel}`);
   updateStats();
+}
+
+function randomFrom(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function availableLootboxCosmetics() {
+  return [
+    ...colorCosmetics.filter((entry) => !entry.owned).map((entry) => ({ type: "color", entry })),
+    ...accessoryCosmetics.filter((entry) => !entry.owned && !entry.hidden).map((entry) => ({ type: "accessory", entry })),
+    ...skinCosmetics.filter((entry) => !entry.owned).map((entry) => ({ type: "skin", entry })),
+    ...miscCosmetics.filter((entry) => !entry.owned).map((entry) => ({ type: "misc", entry }))
+  ];
+}
+
+function unlockLootboxCosmetic(reward) {
+  reward.entry.owned = true;
+  if (reward.type === "color") {
+    state.activeColor = reward.entry.key;
+  } else if (reward.type === "accessory") {
+    state.activeAccessory = reward.entry.key;
+  } else if (reward.type === "skin") {
+    state.activeSkin = reward.entry.key;
+  } else if (reward.type === "misc") {
+    state.activeMisc = reward.entry.key;
+  }
+  applyCosmeticTheme();
+}
+
+function pickLootboxBoostReward() {
+  const roll = Math.random();
+  let rarity = boostRarities[0];
+  if (roll > 0.985) {
+    rarity = boostRarities[3];
+  } else if (roll > 0.93) {
+    rarity = boostRarities[2];
+  } else if (roll > 0.7) {
+    rarity = boostRarities[1];
+  }
+  const quantity = rarity.key === "common"
+    ? (Math.random() < 0.35 ? 2 : 1)
+    : (rarity.key === "rare" && Math.random() < 0.18 ? 2 : 1);
+  state.boostInventory[rarity.key] = (Number(state.boostInventory[rarity.key]) || 0) + quantity;
+  return { rarity, quantity };
+}
+
+function pickLootboxCookieReward(isProfit) {
+  if (isProfit) {
+    return randomFrom([
+      10_500_000,
+      11_000_000,
+      12_000_000,
+      13_500_000,
+      15_000_000,
+      18_000_000,
+      22_000_000
+    ]);
+  }
+  return randomFrom([
+    100,
+    100,
+    100,
+    200,
+    200,
+    200,
+    500,
+    500,
+    500,
+    1_000,
+    1_000,
+    2_500,
+    5_000,
+    10_000,
+    25_000,
+    50_000,
+    100_000,
+    250_000,
+    500_000,
+    1_000_000,
+    2_000_000,
+    3_500_000,
+    5_000_000,
+    7_500_000
+  ]);
+}
+
+function rollLootboxReward() {
+  const cosmeticPool = availableLootboxCosmetics();
+  const roll = Math.random();
+
+  if (cosmeticPool.length && roll < 0.01) {
+    const reward = randomFrom(cosmeticPool);
+    unlockLootboxCosmetic(reward);
+    return {
+      status: `Jackpot! ${reward.entry.name} wurde freigeschaltet.`,
+      title: reward.entry.name,
+      meta: "Neues Cosmetic",
+      detail: "Direkt freigeschaltet und sofort ausgeruestet."
+    };
+  }
+
+  if (roll < 0.06) {
+    const reward = pickLootboxBoostReward();
+    return {
+      status: `${reward.quantity}x ${reward.rarity.label}-Boost erhalten.`,
+      title: `${reward.quantity}x ${reward.rarity.label}`,
+      meta: "Boost-Drop",
+      detail: `+${formatMultiplier(reward.rarity.multiplier - 1)}x fuer ${reward.rarity.durationLabel}`
+    };
+  }
+
+  const amount = pickLootboxCookieReward(roll < 0.21);
+  state.cookies += amount;
+  state.total += amount;
+  return {
+    status: `${format(amount)} Kekse aus der Box gezogen.`,
+    title: `+${format(amount)} Kekse`,
+    meta: "Cookie-Gewinn",
+    detail: "Direkt deinem Konto gutgeschrieben."
+  };
+}
+
+function resetLootboxVisual() {
+  clearLootboxPreviewTimer();
+  if (lootboxCrate) {
+    lootboxCrate.classList.remove("is-opening", "is-revealing");
+  }
+  if (lootboxParticles) {
+    lootboxParticles.innerHTML = "";
+  }
+  if (lootboxPreviewTrack) {
+    lootboxPreviewTrack.classList.remove("is-spinning");
+  }
+}
+
+function clearLootboxPreviewTimer() {
+  if (lootboxPreviewTimer) {
+    clearInterval(lootboxPreviewTimer);
+    lootboxPreviewTimer = null;
+  }
+}
+
+function lootboxPreviewPool() {
+  const cosmeticPool = availableLootboxCosmetics()
+    .slice(0, 6)
+    .map((reward) => ({ label: reward.entry.name, type: "cosmetic" }));
+  return [
+    { label: "+100 Kekse", type: "cookies" },
+    { label: "+200 Kekse", type: "cookies" },
+    { label: "+500 Kekse", type: "cookies" },
+    { label: "+1.000 Kekse", type: "cookies" },
+    { label: "+25.000 Kekse", type: "cookies" },
+    { label: "+500.000 Kekse", type: "cookies" },
+    { label: "+7,5 Mio Kekse", type: "cookies" },
+    { label: "+12 Mio Kekse", type: "cookies" },
+    { label: "+15 Mio Kekse", type: "cookies" },
+    { label: "1x Gewoehnlich", type: "boost" },
+    { label: "1x Selten", type: "boost" },
+    { label: "2x Gewoehnlich", type: "boost" },
+    ...cosmeticPool
+  ];
+}
+
+function renderLootboxPreview(centerLabel = null) {
+  if (!lootboxPreviewTrack) {
+    return;
+  }
+  const pool = lootboxPreviewPool();
+  lootboxPreviewTrack.innerHTML = "";
+  const visibleEntries = [];
+  for (let index = 0; index < 5; index += 1) {
+    if (index === 2 && centerLabel) {
+      visibleEntries.push(centerLabel);
+      continue;
+    }
+    visibleEntries.push(randomFrom(pool));
+  }
+
+  visibleEntries.forEach((entry, index) => {
+    const item = document.createElement("div");
+    const normalized = typeof entry === "string" ? { label: entry, type: "reward" } : entry;
+    item.className = `lootbox-preview-item type-${normalized.type}`;
+    if (index === 2) {
+      item.classList.add("is-focus");
+    }
+    item.textContent = normalized.label;
+    lootboxPreviewTrack.appendChild(item);
+  });
+}
+
+function startLootboxPreviewSpin() {
+  if (!lootboxPreviewTrack) {
+    return;
+  }
+  clearLootboxPreviewTimer();
+  lootboxPreviewTrack.classList.add("is-spinning");
+  renderLootboxPreview();
+  lootboxPreviewTimer = window.setInterval(() => {
+    renderLootboxPreview();
+  }, 115);
+}
+
+function stopLootboxPreviewSpin(reward) {
+  if (!lootboxPreviewTrack) {
+    return;
+  }
+  clearLootboxPreviewTimer();
+  lootboxPreviewTrack.classList.remove("is-spinning");
+  renderLootboxPreview({ label: reward.title, type: "reward" });
+}
+
+function burstLootboxParticles() {
+  if (!lootboxParticles) {
+    return;
+  }
+  lootboxParticles.innerHTML = "";
+  for (let index = 0; index < 14; index += 1) {
+    const particle = document.createElement("span");
+    particle.className = "lootbox-particle";
+    particle.style.setProperty("--x", `${Math.random() * 180 - 90}px`);
+    particle.style.setProperty("--y", `${-40 - Math.random() * 90}px`);
+    particle.style.setProperty("--delay", `${Math.random() * 120}ms`);
+    particle.style.setProperty("--size", `${8 + Math.random() * 8}px`);
+    lootboxParticles.appendChild(particle);
+  }
+}
+
+function renderLootboxes() {
+  if (!lootboxRollButton) {
+    return;
+  }
+  const canBuyBox = state.devMode || canAfford(LOOTBOX_COST);
+  lootboxRollButton.disabled = lootboxOpening || !canBuyBox;
+  lootboxRollButton.textContent = lootboxOpening
+    ? "Box oeffnet..."
+    : (state.devMode
+      ? `Lootbox kaufen (Dev gratis, normal ${format(LOOTBOX_COST)})`
+      : `Lootbox kaufen (${format(LOOTBOX_COST)})`);
+}
+
+function openLootbox() {
+  if (lootboxOpening) {
+    return;
+  }
+  if (!gameUnlocks.lootbox.unlocked && !state.devMode) {
+    return;
+  }
+  if (!canAfford(LOOTBOX_COST)) {
+    if (lootboxStatus) {
+      lootboxStatus.textContent = "Nicht genug Kekse fuer eine Lootbox.";
+    }
+    renderLootboxes();
+    return;
+  }
+
+  spendCookies(LOOTBOX_COST);
+  lootboxOpening = true;
+  if (lootboxCrate) {
+    lootboxCrate.classList.remove("is-revealing");
+    lootboxCrate.classList.add("is-opening");
+  }
+  if (lootboxParticles) {
+    lootboxParticles.innerHTML = "";
+  }
+  startLootboxPreviewSpin();
+  if (lootboxStatus) {
+    lootboxStatus.textContent = "Box wird geoeffnet...";
+  }
+  if (lootboxResult) {
+    lootboxResult.className = "lootbox-result pending";
+    lootboxResult.innerHTML = `
+      <span class="lootbox-tag">Oeffnet...</span>
+      <strong>Die Box knackt gleich auf</strong>
+      <span>Mal sehen, was drin ist.</span>
+    `;
+  }
+  updateStats();
+
+  if (lootboxTimer) {
+    clearTimeout(lootboxTimer);
+    lootboxTimer = null;
+  }
+  lootboxTimer = window.setTimeout(() => {
+    const reward = rollLootboxReward();
+    lootboxTimer = null;
+    lootboxOpening = false;
+    if (lootboxCrate) {
+      lootboxCrate.classList.remove("is-opening");
+      lootboxCrate.classList.add("is-revealing");
+    }
+    stopLootboxPreviewSpin(reward);
+    burstLootboxParticles();
+    if (lootboxStatus) {
+      lootboxStatus.textContent = reward.status;
+    }
+    if (lootboxResult) {
+      lootboxResult.className = "lootbox-result reward";
+      lootboxResult.innerHTML = `
+        <span class="lootbox-tag">${reward.meta}</span>
+        <strong>${reward.title}</strong>
+        <span>${reward.detail}</span>
+      `;
+    }
+    showInfoToast(`Lootbox: ${reward.title}`);
+    updateStats();
+    window.setTimeout(() => {
+      if (!lootboxOpening) {
+        resetLootboxVisual();
+      }
+    }, 850);
+  }, 950);
 }
 
 function currentLevelRequirement() {
@@ -769,7 +1096,13 @@ function resetProgressState() {
     clearInterval(slotSpinTimer);
     slotSpinTimer = null;
   }
+  if (lootboxTimer) {
+    clearTimeout(lootboxTimer);
+    lootboxTimer = null;
+  }
+  clearLootboxPreviewTimer();
   slotsSpinning = false;
+  lootboxOpening = false;
   rouletteSpinning = false;
   wheelSpinning = false;
   rouletteRotation = 0;
@@ -1030,7 +1363,7 @@ function costFor(upgrade) {
 
 function renderLevelProgress() {
   const requirement = currentLevelRequirement();
-  const gameBusy = state.towerActive || blackjackActive || slotsSpinning || rouletteSpinning || wheelSpinning;
+  const gameBusy = state.towerActive || blackjackActive || slotsSpinning || lootboxOpening || rouletteSpinning || wheelSpinning;
   const progress = state.devMode
     ? 1
     : Math.max(0, Math.min(1, requirement > 0 ? state.cookies / requirement : 0));
@@ -1478,6 +1811,7 @@ function updateStats() {
   setDisplayValue(rateEl, state.cps, " / sek");
   renderLevelProgress();
   renderBoosts();
+  renderLootboxes();
   renderUpgrades();
   renderCosmetics();
   renderUnlocks();
@@ -1496,6 +1830,7 @@ function renderUnlocks() {
     { key: "tower", open: towerOpenButton, buy: towerBuyButton },
     { key: "blackjack", open: blackjackOpenButton, buy: blackjackBuyButton },
     { key: "slots", open: slotsOpenButton, buy: slotsBuyButton },
+    { key: "lootbox", open: lootboxOpenButton, buy: lootboxBuyButton },
     { key: "roulette", open: rouletteOpenButton, buy: rouletteBuyButton },
     { key: "wheel", open: wheelOpenButton, buy: wheelBuyButton }
   ];
@@ -1681,7 +2016,17 @@ function resetAccount() {
   blackjackBet = 0;
   dealerHand = [];
   playerHand = [];
+  if (slotSpinTimer) {
+    clearInterval(slotSpinTimer);
+    slotSpinTimer = null;
+  }
+  if (lootboxTimer) {
+    clearTimeout(lootboxTimer);
+    lootboxTimer = null;
+  }
+  clearLootboxPreviewTimer();
   slotsSpinning = false;
+  lootboxOpening = false;
   rouletteSpinning = false;
   wheelSpinning = false;
 
@@ -1744,6 +2089,35 @@ function openSlotsModal() {
 function closeSlotsModal() {
   slotsModal.classList.add("hidden");
   slotsModal.setAttribute("aria-hidden", "true");
+}
+
+function openLootboxModal() {
+  if (!gameUnlocks.lootbox.unlocked && !state.devMode) {
+    return;
+  }
+  if (lootboxStatus) {
+    lootboxStatus.textContent = "Bereit fuer deinen naechsten Pull.";
+  }
+  renderLootboxPreview();
+  resetLootboxVisual();
+  if (lootboxResult) {
+    lootboxResult.className = "lootbox-result";
+    lootboxResult.innerHTML = `
+      <span class="lootbox-tag">Moegliche Rewards</span>
+      <strong>Viele kleine Cookie-Gewinne, seltene Boosts und Cosmetics</strong>
+      <span>Cosmetics schalten sich sofort frei.</span>
+    `;
+  }
+  lootboxModal.classList.remove("hidden");
+  lootboxModal.setAttribute("aria-hidden", "false");
+  renderLootboxes();
+}
+
+function closeLootboxModal() {
+  clearLootboxPreviewTimer();
+  resetLootboxVisual();
+  lootboxModal.classList.add("hidden");
+  lootboxModal.setAttribute("aria-hidden", "true");
 }
 
 function openRouletteModal() {
@@ -1885,7 +2259,12 @@ function levelUp() {
     clearInterval(slotSpinTimer);
     slotSpinTimer = null;
   }
+  if (lootboxTimer) {
+    clearTimeout(lootboxTimer);
+    lootboxTimer = null;
+  }
   slotsSpinning = false;
+  lootboxOpening = false;
   rouletteSpinning = false;
   wheelSpinning = false;
   const boost = grantRandomBoost();
@@ -2478,6 +2857,11 @@ slotsCloseOverlay.addEventListener("click", closeSlotsModal);
 slotsSpinButton.addEventListener("click", spinSlots);
 slotsBetInput.addEventListener("input", renderSlots);
 slotsBuyButton.addEventListener("click", () => buyGame("slots", "Slots"));
+lootboxOpenButton.addEventListener("click", openLootboxModal);
+lootboxCloseButton.addEventListener("click", closeLootboxModal);
+lootboxCloseOverlay.addEventListener("click", closeLootboxModal);
+lootboxRollButton.addEventListener("click", openLootbox);
+lootboxBuyButton.addEventListener("click", () => buyGame("lootbox", "Lootboxes"));
 rouletteOpenButton.addEventListener("click", openRouletteModal);
 rouletteCloseButton.addEventListener("click", closeRouletteModal);
 rouletteCloseOverlay.addEventListener("click", closeRouletteModal);
