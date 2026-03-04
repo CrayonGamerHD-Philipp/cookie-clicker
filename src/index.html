@@ -408,8 +408,9 @@
             <div class="tower-base"></div>
           </div>
           <label class="tower-label" for="towerBet">Einsatz</label>
-          <div class="tower-row">
+          <div class="tower-row bet-row">
             <input id="towerBet" type="number" min="1" step="1" value="100" />
+            <button id="towerAllIn" class="all-in-button" type="button">All In</button>
             <button id="towerStart">Start</button>
           </div>
           <div class="tower-row">
@@ -439,8 +440,9 @@
         <div class="blackjack">
           <div class="blackjack-controls">
             <label class="tower-label" for="blackjackBet">Einsatz</label>
-            <div class="tower-row">
+            <div class="tower-row bet-row">
               <input id="blackjackBet" type="number" min="1" step="1" value="200" />
+              <button id="blackjackAllIn" class="all-in-button" type="button">All In</button>
               <button id="blackjackDeal">Deal</button>
             </div>
             <div class="tower-row">
@@ -477,8 +479,9 @@
         <div class="slots">
           <div class="slots-controls">
             <label class="tower-label" for="slotsBet">Einsatz</label>
-            <div class="tower-row">
+            <div class="tower-row bet-row">
               <input id="slotsBet" type="number" min="1" step="1" value="150" />
+              <button id="slotsAllIn" class="all-in-button" type="button">All In</button>
               <button id="slotsSpin">Spin</button>
             </div>
             <p id="slotsStatus" class="tower-status">Setze einen Einsatz und drehe.</p>
@@ -557,8 +560,9 @@
           </div>
           <div class="roulette-controls">
             <label class="tower-label" for="rouletteBet">Einsatz</label>
-            <div class="tower-row">
+            <div class="tower-row bet-row">
               <input id="rouletteBet" type="number" min="1" step="1" value="200" />
+              <button id="rouletteAllIn" class="all-in-button" type="button">All In</button>
               <button id="rouletteSpin">Spin</button>
             </div>
             <div class="roulette-bets">
@@ -606,8 +610,9 @@
           </div>
           <div class="wheel-controls">
             <label class="tower-label" for="wheelBet">Einsatz</label>
-            <div class="tower-row">
+            <div class="tower-row bet-row">
               <input id="wheelBet" type="number" min="1" step="1" value="150" />
+              <button id="wheelAllIn" class="all-in-button" type="button">All In</button>
               <button id="wheelSpin">Spin</button>
             </div>
             <p id="wheelStatus" class="tower-status">Bereit zum Drehen.</p>

@@ -1482,6 +1482,10 @@ h1 {
   gap: 10px;
 }
 
+.tower-row.bet-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
 .tower-row button {
   border: none;
   padding: 10px 16px;
@@ -1497,11 +1501,16 @@ h1 {
   cursor: not-allowed;
 }
 
-#towerBet {
+.all-in-button {
+  background: #8b5e34;
+}
+
+.bet-row input {
   border-radius: 999px;
   border: 2px solid #edd8c1;
   padding: 10px 14px;
   font-size: 0.95rem;
+  min-width: 0;
 }
 
 .tower-stats {

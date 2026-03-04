@@ -46,6 +46,7 @@ const blackjackBuyButton = document.getElementById("blackjackBuy");
 const blackjackCloseButton = document.getElementById("blackjackClose");
 const blackjackCloseOverlay = document.getElementById("blackjackCloseOverlay");
 const blackjackBetInput = document.getElementById("blackjackBet");
+const blackjackAllInButton = document.getElementById("blackjackAllIn");
 const blackjackDealButton = document.getElementById("blackjackDeal");
 const blackjackHitButton = document.getElementById("blackjackHit");
 const blackjackStandButton = document.getElementById("blackjackStand");
@@ -60,6 +61,7 @@ const slotsBuyButton = document.getElementById("slotsBuy");
 const slotsCloseButton = document.getElementById("slotsClose");
 const slotsCloseOverlay = document.getElementById("slotsCloseOverlay");
 const slotsBetInput = document.getElementById("slotsBet");
+const slotsAllInButton = document.getElementById("slotsAllIn");
 const slotsSpinButton = document.getElementById("slotsSpin");
 const slotsStatus = document.getElementById("slotsStatus");
 const lootboxModal = document.getElementById("lootboxModal");
@@ -111,6 +113,7 @@ const rouletteBuyButton = document.getElementById("rouletteBuy");
 const rouletteCloseButton = document.getElementById("rouletteClose");
 const rouletteCloseOverlay = document.getElementById("rouletteCloseOverlay");
 const rouletteBetInput = document.getElementById("rouletteBet");
+const rouletteAllInButton = document.getElementById("rouletteAllIn");
 const rouletteSpinButton = document.getElementById("rouletteSpin");
 const rouletteStatus = document.getElementById("rouletteStatus");
 const rouletteWheel = document.getElementById("rouletteWheel");
@@ -137,10 +140,12 @@ const wheelBuyButton = document.getElementById("wheelBuy");
 const wheelCloseButton = document.getElementById("wheelClose");
 const wheelCloseOverlay = document.getElementById("wheelCloseOverlay");
 const wheelBetInput = document.getElementById("wheelBet");
+const wheelAllInButton = document.getElementById("wheelAllIn");
 const wheelSpinButton = document.getElementById("wheelSpin");
 const wheelStatus = document.getElementById("wheelStatus");
 const fortuneWheel = document.getElementById("fortuneWheel");
 const towerBetInput = document.getElementById("towerBet");
+const towerAllInButton = document.getElementById("towerAllIn");
 const towerStartButton = document.getElementById("towerStart");
 const towerClimbButton = document.getElementById("towerClimb");
 const towerCashoutButton = document.getElementById("towerCashout");
@@ -2000,6 +2005,14 @@ function showInfoToast(message) {
   }, 2600);
 }
 
+function setAllInBet(input, renderFn) {
+  if (!input) return;
+  input.value = String(Math.max(0, Math.floor(state.cookies)));
+  if (typeof renderFn === "function") {
+    renderFn();
+  }
+}
+
 function openResetModal() {
   if (resetCosmeticsToggle) {
     resetCosmeticsToggle.checked = true;
@@ -2708,7 +2721,10 @@ function spinRoulette() {
   const color = rouletteColor(number);
   const anglePer = 360 / rouletteOrder.length;
   const targetAngle = index * anglePer + anglePer / 2;
-  rouletteRotation += 360 * 6 + (360 - targetAngle);
+  const normalizedRotation = ((rouletteRotation % 360) + 360) % 360;
+  const targetRotation = (360 - targetAngle + 360) % 360;
+  const rotationDelta = (targetRotation - normalizedRotation + 360) % 360;
+  rouletteRotation += 360 * 6 + rotationDelta;
   updateRouletteWheelLabels(rouletteRotation, true);
   rouletteWheel.style.transform = `rotate(${rouletteRotation}deg)`;
 
@@ -2890,6 +2906,7 @@ towerOpenButton.addEventListener("click", openTowerModal);
 towerCloseButton.addEventListener("click", closeTowerModal);
 towerCloseOverlay.addEventListener("click", closeTowerModal);
 towerBetInput.addEventListener("input", renderTower);
+towerAllInButton.addEventListener("click", () => setAllInBet(towerBetInput, renderTower));
 towerStartButton.addEventListener("click", startTower);
 towerClimbButton.addEventListener("click", climbTower);
 towerCashoutButton.addEventListener("click", cashoutTower);
@@ -2897,6 +2914,8 @@ towerBuyButton.addEventListener("click", () => buyGame("tower", "Tower"));
 blackjackOpenButton.addEventListener("click", openBlackjackModal);
 blackjackCloseButton.addEventListener("click", closeBlackjackModal);
 blackjackCloseOverlay.addEventListener("click", closeBlackjackModal);
+blackjackBetInput.addEventListener("input", renderBlackjack);
+blackjackAllInButton.addEventListener("click", () => setAllInBet(blackjackBetInput, renderBlackjack));
 blackjackDealButton.addEventListener("click", dealBlackjack);
 blackjackHitButton.addEventListener("click", hitBlackjack);
 blackjackStandButton.addEventListener("click", standBlackjack);
@@ -2904,6 +2923,7 @@ blackjackBuyButton.addEventListener("click", () => buyGame("blackjack", "Blackja
 slotsOpenButton.addEventListener("click", openSlotsModal);
 slotsCloseButton.addEventListener("click", closeSlotsModal);
 slotsCloseOverlay.addEventListener("click", closeSlotsModal);
+slotsAllInButton.addEventListener("click", () => setAllInBet(slotsBetInput, renderSlots));
 slotsSpinButton.addEventListener("click", spinSlots);
 slotsBetInput.addEventListener("input", renderSlots);
 slotsBuyButton.addEventListener("click", () => buyGame("slots", "Slots"));
@@ -2915,6 +2935,7 @@ lootboxBuyButton.addEventListener("click", () => buyGame("lootbox", "Lootboxes")
 rouletteOpenButton.addEventListener("click", openRouletteModal);
 rouletteCloseButton.addEventListener("click", closeRouletteModal);
 rouletteCloseOverlay.addEventListener("click", closeRouletteModal);
+rouletteAllInButton.addEventListener("click", () => setAllInBet(rouletteBetInput, renderRoulette));
 rouletteSpinButton.addEventListener("click", spinRoulette);
 rouletteBetInput.addEventListener("input", renderRoulette);
 rouletteChips.forEach((chip) => {
@@ -2927,6 +2948,7 @@ rouletteBuyButton.addEventListener("click", () => buyGame("roulette", "Roulette"
 wheelOpenButton.addEventListener("click", openWheelModal);
 wheelCloseButton.addEventListener("click", closeWheelModal);
 wheelCloseOverlay.addEventListener("click", closeWheelModal);
+wheelAllInButton.addEventListener("click", () => setAllInBet(wheelBetInput, renderWheel));
 wheelSpinButton.addEventListener("click", spinWheel);
 if (levelButton) levelButton.addEventListener("click", levelUp);
 wheelBetInput.addEventListener("input", renderWheel);
