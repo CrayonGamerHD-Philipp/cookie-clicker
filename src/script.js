@@ -103,6 +103,8 @@ const statsWheelEl = document.getElementById("statsWheel");
 const gameToast = document.getElementById("gameToast");
 const resetModal = document.getElementById("resetModal");
 const resetOpenButton = document.getElementById("resetOpen");
+const devModeToggleButton = document.getElementById("devModeToggle");
+const devModeStateEl = document.getElementById("devModeState");
 const resetCloseButton = document.getElementById("resetClose");
 const resetCloseOverlay = document.getElementById("resetCloseOverlay");
 const resetConfirmButton = document.getElementById("resetConfirm");
@@ -125,8 +127,10 @@ const towerStatus = document.getElementById("towerStatus");
 const towerMultiplierEl = document.getElementById("towerMultiplier");
 const towerPayoutEl = document.getElementById("towerPayout");
 const STORAGE_KEY = "hethey-cookie-clicker-v1";
-const LEVEL_UP_BASE_COST = 1_000_000_000;
-const LEVEL_UP_SCALE = 5;
+const DEV_STORAGE_KEY = "hethey-cookie-clicker-dev-v1";
+const DEV_MODE_KEY = "hethey-cookie-clicker-dev-mode";
+const LEVEL_UP_BASE_COST = 250_000_000;
+const LEVEL_UP_SCALE = 2;
 const LEVEL_GAIN_STEP = 0.5;
 const UPGRADE_LEVEL_COST_SCALE = 5;
 
@@ -275,6 +279,7 @@ const state = {
   activeAccessory: "none",
   bonusReady: false,
   lastBonusAt: 0,
+  devMode: false,
   towerActive: false,
   towerBet: 0,
   towerStep: 0,
@@ -404,6 +409,21 @@ function scalePayout(basePayout, invested = 0) {
   return roundValue(invested + (profit * levelGainMultiplier()));
 }
 
+function currentSaveKey() {
+  return state.devMode ? DEV_STORAGE_KEY : STORAGE_KEY;
+}
+
+function canAfford(amount) {
+  return state.devMode || state.cookies >= amount;
+}
+
+function spendCookies(amount) {
+  if (state.devMode) {
+    return;
+  }
+  state.cookies -= amount;
+}
+
 function formatMultiplier(value) {
   return value.toLocaleString("de-DE", {
     minimumFractionDigits: Number.isInteger(value) ? 0 : 1,
@@ -494,10 +514,66 @@ function migrateLegacyCosmetics(savedCosmetics) {
   }
 }
 
-function loadState() {
+function resetProgressState() {
+  state.cookies = 0;
+  state.total = 0;
+  state.clicks = 0;
+  state.level = 1;
+  state.basePerClick = 1;
+  state.baseCps = 0;
+  state.perClick = 1;
+  state.cps = 0;
+  state.bonusReady = false;
+  state.lastBonusAt = 0;
+  state.towerActive = false;
+  state.towerBet = 0;
+  state.towerStep = 0;
+  state.towerMultiplier = 0;
+  upgrades.forEach((upgrade) => {
+    upgrade.count = 0;
+  });
+  resetCosmeticsState();
+  Object.keys(gameStats).forEach((key) => {
+    gameStats[key].wins = 0;
+    gameStats[key].losses = 0;
+    gameStats[key].net = 0;
+  });
+  Object.keys(gameUnlocks).forEach((key) => {
+    gameUnlocks[key].unlocked = false;
+  });
+  blackjackDeck = [];
+  blackjackActive = false;
+  blackjackBet = 0;
+  dealerHand = [];
+  playerHand = [];
+  if (slotSpinTimer) {
+    clearInterval(slotSpinTimer);
+    slotSpinTimer = null;
+  }
+  slotsSpinning = false;
+  rouletteSpinning = false;
+  wheelSpinning = false;
+  rouletteRotation = 0;
+  wheelRotation = 0;
+  rouletteBetChoice = "red";
+  rouletteBetNumber = 7;
+  recalculateProduction();
+  applyCosmeticTheme();
+}
+
+function loadState(forceDevMode = null) {
+  let savedMode = false;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    savedMode = localStorage.getItem(DEV_MODE_KEY) === "true";
+  } catch (error) {
+    savedMode = false;
+  }
+  state.devMode = typeof forceDevMode === "boolean" ? forceDevMode : savedMode;
+  resetProgressState();
+  try {
+    const raw = localStorage.getItem(currentSaveKey());
     if (!raw) {
+      applyCosmeticTheme();
       return;
     }
     const saved = JSON.parse(raw);
@@ -523,7 +599,6 @@ function loadState() {
         }
       });
     }
-    resetCosmeticsState();
     if (saved.cosmetics) {
       if (saved.cosmetics.colors || saved.cosmetics.accessories) {
         const ownedColors = Array.isArray(saved.cosmetics.colors?.owned) ? saved.cosmetics.colors.owned : [];
@@ -563,8 +638,7 @@ function loadState() {
       }
     }
   } catch (error) {
-    applyUpgradeCounts([]);
-    resetCosmeticsState();
+    resetProgressState();
   }
   applyCosmeticTheme();
 }
@@ -597,7 +671,8 @@ function saveState() {
     )
   };
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem(currentSaveKey(), JSON.stringify(payload));
+    localStorage.setItem(DEV_MODE_KEY, String(state.devMode));
   } catch (error) {
     // Ignore storage failures (private mode, quota).
   }
@@ -636,6 +711,32 @@ function formatClicks(num) {
   return value.toLocaleString("de-DE");
 }
 
+function renderDevMode() {
+  if (devModeToggleButton) {
+    devModeToggleButton.textContent = `Dev-Modus: ${state.devMode ? "An" : "Aus"}`;
+    devModeToggleButton.classList.toggle("active", state.devMode);
+  }
+  if (devModeStateEl) {
+    devModeStateEl.classList.toggle("hidden", !state.devMode);
+    devModeStateEl.textContent = state.devMode
+      ? "Dev-Modus aktiv: eigener Local-Storage-Spielstand, Gratis-Kaeufe und keine Level-Sperren."
+      : "Dev-Modus inaktiv.";
+  }
+}
+
+function toggleDevMode() {
+  const nextMode = !state.devMode;
+  saveState();
+  state.devMode = nextMode;
+  try {
+    localStorage.setItem(DEV_MODE_KEY, String(state.devMode));
+  } catch (error) {
+    // Ignore storage failures (private mode, quota).
+  }
+  loadState(nextMode);
+  updateStats();
+}
+
 function setDisplayValue(el, value, suffix = "", shortFormatter = format, fullFormatter = formatFull) {
   if (!el) return;
   const shortValue = `${shortFormatter(value)}${suffix}`;
@@ -662,8 +763,10 @@ function costFor(upgrade) {
 function renderLevelProgress() {
   const requirement = currentLevelRequirement();
   const gameBusy = state.towerActive || blackjackActive || slotsSpinning || rouletteSpinning || wheelSpinning;
-  const progress = Math.max(0, Math.min(1, requirement > 0 ? state.cookies / requirement : 0));
-  const canLevelUp = !gameBusy && state.cookies >= requirement;
+  const progress = state.devMode
+    ? 1
+    : Math.max(0, Math.min(1, requirement > 0 ? state.cookies / requirement : 0));
+  const canLevelUp = !gameBusy && canAfford(requirement);
   if (levelEl) {
     levelEl.textContent = String(state.level);
   }
@@ -677,7 +780,9 @@ function renderLevelProgress() {
     levelProgressFillEl.style.width = `${Math.round(progress * 100)}%`;
   }
   if (levelProgressTextEl) {
-    levelProgressTextEl.textContent = `${formatClicks(Math.min(state.cookies, requirement))} / ${formatClicks(requirement)}`;
+    levelProgressTextEl.textContent = state.devMode
+      ? `Dev frei / ${formatClicks(requirement)}`
+      : `${formatClicks(Math.min(state.cookies, requirement))} / ${formatClicks(requirement)}`;
   }
   if (levelProgressWrapEl) {
     levelProgressWrapEl.classList.toggle("hidden", canLevelUp);
@@ -712,15 +817,18 @@ function renderUpgrades() {
     const title = document.createElement("h3");
     title.textContent = `${upgrade.name} (${upgrade.count})`;
 
+    const currentCost = costFor(upgrade);
     const desc = document.createElement("p");
-    desc.textContent = `${upgrade.desc} - Kosten: ${format(costFor(upgrade))}`;
+    desc.textContent = state.devMode
+      ? `${upgrade.desc} - Kosten: Dev gratis (${format(currentCost)})`
+      : `${upgrade.desc} - Kosten: ${format(currentCost)}`;
 
     info.appendChild(title);
     info.appendChild(desc);
 
     const button = document.createElement("button");
     button.textContent = "Kaufen";
-    button.disabled = state.cookies < costFor(upgrade);
+    button.disabled = !canAfford(currentCost);
 
     button.addEventListener("click", () => buyUpgrade(index));
 
@@ -747,14 +855,14 @@ function selectColorCosmetic(key) {
 
 function buyColorCosmetic(key) {
   const cosmetic = colorCosmetics.find((entry) => entry.key === key);
-  if (!cosmetic || cosmetic.owned || state.cookies < cosmetic.cost) {
+  if (!cosmetic || cosmetic.owned || !canAfford(cosmetic.cost)) {
     return;
   }
-  state.cookies -= cosmetic.cost;
+  spendCookies(cosmetic.cost);
   cosmetic.owned = true;
   state.activeColor = cosmetic.key;
   applyCosmeticTheme();
-  showGameToast(-cosmetic.cost, `${cosmetic.name} Farbe`);
+  showGameToast(state.devMode ? 0 : -cosmetic.cost, `${cosmetic.name} Farbe`);
   updateStats();
 }
 
@@ -770,14 +878,14 @@ function selectAccessoryCosmetic(key) {
 
 function buyAccessoryCosmetic(key) {
   const cosmetic = accessoryCosmetics.find((entry) => entry.key === key);
-  if (!cosmetic || cosmetic.owned || state.cookies < cosmetic.cost) {
+  if (!cosmetic || cosmetic.owned || !canAfford(cosmetic.cost)) {
     return;
   }
-  state.cookies -= cosmetic.cost;
+  spendCookies(cosmetic.cost);
   cosmetic.owned = true;
   state.activeAccessory = cosmetic.key;
   applyCosmeticTheme();
-  showGameToast(-cosmetic.cost, `${cosmetic.name} Accessoire`);
+  showGameToast(state.devMode ? 0 : -cosmetic.cost, `${cosmetic.name} Accessoire`);
   updateStats();
 }
 
@@ -793,14 +901,14 @@ function selectSkinCosmetic(key) {
 
 function buySkinCosmetic(key) {
   const cosmetic = skinCosmetics.find((entry) => entry.key === key);
-  if (!cosmetic || cosmetic.owned || state.cookies < cosmetic.cost) {
+  if (!cosmetic || cosmetic.owned || !canAfford(cosmetic.cost)) {
     return;
   }
-  state.cookies -= cosmetic.cost;
+  spendCookies(cosmetic.cost);
   cosmetic.owned = true;
   state.activeSkin = cosmetic.key;
   applyCosmeticTheme();
-  showGameToast(-cosmetic.cost, `${cosmetic.name} Skin`);
+  showGameToast(state.devMode ? 0 : -cosmetic.cost, `${cosmetic.name} Skin`);
   updateStats();
 }
 
@@ -829,7 +937,9 @@ function renderCosmeticCards(listEl, entries, activeKey, onSelect, onBuy, previe
     const desc = document.createElement("p");
     desc.textContent = cosmetic.owned
       ? cosmetic.desc
-      : `${cosmetic.desc} - Kosten: ${format(cosmetic.cost)}`;
+      : (state.devMode
+        ? `${cosmetic.desc} - Kosten: Dev gratis (${format(cosmetic.cost)})`
+        : `${cosmetic.desc} - Kosten: ${format(cosmetic.cost)}`);
 
     info.appendChild(title);
     info.appendChild(desc);
@@ -843,7 +953,7 @@ function renderCosmeticCards(listEl, entries, activeKey, onSelect, onBuy, previe
       button.addEventListener("click", () => onSelect(cosmetic.key));
     } else {
       button.textContent = "Kaufen";
-      button.disabled = state.cookies < cosmetic.cost;
+      button.disabled = !canAfford(cosmetic.cost);
       button.addEventListener("click", () => onBuy(cosmetic.key));
     }
 
@@ -1006,6 +1116,7 @@ function renderCosmetics() {
 }
 
 function updateStats() {
+  renderDevMode();
   setDisplayValue(cookieCountEl, state.cookies);
   setDisplayValue(perClickEl, state.perClick);
   setDisplayValue(totalEl, state.total);
@@ -1035,14 +1146,16 @@ function renderUnlocks() {
   ];
   entries.forEach(({ key, open, buy }) => {
     const unlocked = gameUnlocks[key].unlocked;
-    const meetsLevelRequirement = state.level >= gameUnlocks[key].requiredLevel;
-    if (open) open.disabled = !unlocked;
+    const meetsLevelRequirement = state.devMode || state.level >= gameUnlocks[key].requiredLevel;
+    if (open) open.disabled = !(unlocked || state.devMode);
     if (buy) {
-      buy.disabled = unlocked || !meetsLevelRequirement || state.cookies < gameUnlocks[key].price;
+      buy.disabled = unlocked || !meetsLevelRequirement || !canAfford(gameUnlocks[key].price);
       buy.textContent = unlocked
         ? "Freigeschaltet"
         : (meetsLevelRequirement
-          ? `Freischalten (${format(gameUnlocks[key].price)})`
+          ? (state.devMode
+            ? `Freischalten (Dev gratis)`
+            : `Freischalten (${format(gameUnlocks[key].price)})`)
           : `Ab Level ${gameUnlocks[key].requiredLevel}`);
     }
   });
@@ -1051,17 +1164,17 @@ function renderUnlocks() {
 function buyGame(key, label) {
   const entry = gameUnlocks[key];
   if (entry.unlocked) return;
-  if (state.level < entry.requiredLevel) {
+  if (!state.devMode && state.level < entry.requiredLevel) {
     showGameToast(0, `${label} ab Level ${entry.requiredLevel}`);
     return;
   }
-  if (state.cookies < entry.price) {
-    showGameToast(-entry.price, label);
+  if (!canAfford(entry.price)) {
+    showGameToast(state.devMode ? 0 : -entry.price, label);
     return;
   }
-  state.cookies -= entry.price;
+  spendCookies(entry.price);
   entry.unlocked = true;
-  showGameToast(-entry.price, `${label} freigeschaltet`);
+  showGameToast(state.devMode ? 0 : -entry.price, `${label} freigeschaltet`);
   updateStats();
 }
 
@@ -1219,7 +1332,7 @@ function renderTowerVisual() {
 }
 
 function openTowerModal() {
-  if (!gameUnlocks.tower.unlocked) {
+  if (!gameUnlocks.tower.unlocked && !state.devMode) {
     return;
   }
   towerModal.classList.remove("hidden");
@@ -1233,7 +1346,7 @@ function closeTowerModal() {
 }
 
 function openBlackjackModal() {
-  if (!gameUnlocks.blackjack.unlocked) {
+  if (!gameUnlocks.blackjack.unlocked && !state.devMode) {
     return;
   }
   blackjackModal.classList.remove("hidden");
@@ -1247,7 +1360,7 @@ function closeBlackjackModal() {
 }
 
 function openSlotsModal() {
-  if (!gameUnlocks.slots.unlocked) {
+  if (!gameUnlocks.slots.unlocked && !state.devMode) {
     return;
   }
   slotsModal.classList.remove("hidden");
@@ -1261,7 +1374,7 @@ function closeSlotsModal() {
 }
 
 function openRouletteModal() {
-  if (!gameUnlocks.roulette.unlocked) {
+  if (!gameUnlocks.roulette.unlocked && !state.devMode) {
     return;
   }
   rouletteModal.classList.remove("hidden");
@@ -1275,7 +1388,7 @@ function closeRouletteModal() {
 }
 
 function openWheelModal() {
-  if (!gameUnlocks.wheel.unlocked) {
+  if (!gameUnlocks.wheel.unlocked && !state.devMode) {
     return;
   }
   wheelModal.classList.remove("hidden");
@@ -1312,11 +1425,11 @@ function clickCookie() {
 function buyUpgrade(index) {
   const upgrade = upgrades[index];
   const cost = costFor(upgrade);
-  if (state.cookies < cost) {
+  if (!canAfford(cost)) {
     return;
   }
 
-  state.cookies -= cost;
+  spendCookies(cost);
   upgrade.count += 1;
   recalculateProduction();
   updateStats();
@@ -1356,12 +1469,16 @@ function collectBonus() {
 
 function levelUp() {
   const requirement = currentLevelRequirement();
-  if (state.cookies < requirement) {
+  if (!canAfford(requirement)) {
     return;
   }
 
   state.level += 1;
-  state.cookies = 0;
+  if (state.devMode) {
+    state.cookies = Math.max(0, state.cookies);
+  } else {
+    state.cookies = 0;
+  }
   upgrades.forEach((upgrade) => {
     upgrade.count = 0;
   });
@@ -1441,7 +1558,7 @@ function renderBlackjack() {
   renderHand(playerHandEl, playerHand, false);
   dealerTotalEl.textContent = dealerHand.length ? (hideDealer ? "Total: ?" : `Total: ${dealerTotal}`) : "";
   playerTotalEl.textContent = playerHand.length ? `Total: ${playerTotal}` : "";
-  blackjackDealButton.disabled = blackjackActive || state.cookies < (Number(blackjackBetInput.value) || 0);
+  blackjackDealButton.disabled = blackjackActive || !canAfford(Number(blackjackBetInput.value) || 0) || (Number(blackjackBetInput.value) || 0) <= 0;
   blackjackHitButton.disabled = !blackjackActive;
   blackjackStandButton.disabled = !blackjackActive;
 }
@@ -1486,11 +1603,11 @@ function resolveDealer() {
 
 function dealBlackjack() {
   const bet = Math.floor(Number(blackjackBetInput.value) || 0);
-  if (bet <= 0 || bet > state.cookies) {
+  if (bet <= 0 || !canAfford(bet)) {
     blackjackStatus.textContent = "Nicht genug Kekse fuer diesen Einsatz.";
     return;
   }
-  state.cookies -= bet;
+  spendCookies(bet);
   blackjackBet = bet;
   blackjackDeck = shuffle(createDeck());
   dealerHand = [blackjackDeck.pop(), blackjackDeck.pop()];
@@ -1538,17 +1655,17 @@ function pickSlotSymbol() {
 
 function renderSlots() {
   const betValue = Number(slotsBetInput.value) || 0;
-  slotsSpinButton.disabled = slotsSpinning || state.cookies < betValue;
+  slotsSpinButton.disabled = slotsSpinning || betValue <= 0 || !canAfford(betValue);
 }
 
 function spinSlots() {
   if (slotsSpinning) return;
   const bet = Math.floor(Number(slotsBetInput.value) || 0);
-  if (bet <= 0 || bet > state.cookies) {
+  if (bet <= 0 || !canAfford(bet)) {
     slotsStatus.textContent = "Nicht genug Kekse fuer diesen Einsatz.";
     return;
   }
-  state.cookies -= bet;
+  spendCookies(bet);
   slotsSpinning = true;
   slotsStatus.textContent = "Walzen drehen...";
   slotReels.forEach((reel) => reel.classList.add("spinning"));
@@ -1748,7 +1865,7 @@ function renderRouletteBoard() {
 
 function renderRoulette() {
   const betValue = Number(rouletteBetInput.value) || 0;
-  rouletteSpinButton.disabled = rouletteSpinning || betValue <= 0 || state.cookies < betValue;
+  rouletteSpinButton.disabled = rouletteSpinning || betValue <= 0 || !canAfford(betValue);
   rouletteChips.forEach((chip) => {
     chip.classList.toggle("active", chip.dataset.bet === rouletteBetChoice);
   });
@@ -1759,11 +1876,11 @@ function renderRoulette() {
 function spinRoulette() {
   if (rouletteSpinning) return;
   const bet = Math.floor(Number(rouletteBetInput.value) || 0);
-  if (bet <= 0 || bet > state.cookies) {
+  if (bet <= 0 || !canAfford(bet)) {
     rouletteStatus.textContent = "Nicht genug Kekse fuer diesen Einsatz.";
     return;
   }
-  state.cookies -= bet;
+  spendCookies(bet);
   rouletteSpinning = true;
   rouletteStatus.textContent = "Rad dreht...";
 
@@ -1798,7 +1915,7 @@ function spinRoulette() {
 
 function renderWheel() {
   const betValue = Number(wheelBetInput.value) || 0;
-  wheelSpinButton.disabled = wheelSpinning || betValue <= 0 || state.cookies < betValue;
+  wheelSpinButton.disabled = wheelSpinning || betValue <= 0 || !canAfford(betValue);
 }
 
 function pickWheelIndex() {
@@ -1820,11 +1937,11 @@ function normalizeRotation(angle) {
 function spinWheel() {
   if (wheelSpinning) return;
   const bet = Math.floor(Number(wheelBetInput.value) || 0);
-  if (bet <= 0 || bet > state.cookies) {
+  if (bet <= 0 || !canAfford(bet)) {
     wheelStatus.textContent = "Nicht genug Kekse fuer diesen Einsatz.";
     return;
   }
-  state.cookies -= bet;
+  spendCookies(bet);
   wheelSpinning = true;
   wheelStatus.textContent = "Rad dreht...";
 
@@ -1862,7 +1979,8 @@ function renderTower() {
   towerMultiplierEl.textContent = `x${state.towerMultiplier}`;
   setDisplayValue(towerPayoutEl, payout);
 
-  const canStart = !state.towerActive && state.cookies >= (Number(towerBetInput.value) || 0);
+  const towerBetValue = Number(towerBetInput.value) || 0;
+  const canStart = !state.towerActive && towerBetValue > 0 && canAfford(towerBetValue);
   towerStartButton.disabled = !canStart;
   towerClimbButton.disabled = !state.towerActive;
   towerCashoutButton.disabled = !state.towerActive;
@@ -1875,12 +1993,12 @@ function renderTower() {
 
 function startTower() {
   const bet = Math.floor(Number(towerBetInput.value) || 0);
-  if (bet <= 0 || bet > state.cookies) {
+  if (bet <= 0 || !canAfford(bet)) {
     towerStatus.textContent = "Nicht genug Kekse fuer diesen Einsatz.";
     return;
   }
   towerVisual.classList.remove("tower-crash");
-  state.cookies -= bet;
+  spendCookies(bet);
   state.towerActive = true;
   state.towerBet = bet;
   state.towerStep = 0;
@@ -1996,6 +2114,7 @@ upgradeTabs.forEach((tab) => {
   });
 });
 resetOpenButton.addEventListener("click", openResetModal);
+if (devModeToggleButton) devModeToggleButton.addEventListener("click", toggleDevMode);
 resetCloseButton.addEventListener("click", closeResetModal);
 resetCloseOverlay.addEventListener("click", closeResetModal);
 resetCancelButton.addEventListener("click", closeResetModal);

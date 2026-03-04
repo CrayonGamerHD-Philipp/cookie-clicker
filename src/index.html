@@ -197,7 +197,10 @@
 
       <footer class="footer">
         <p>Tipp: Halte den Klick-Rhythmus, dann erscheinen goldene Kruemel.</p>
-        <button id="resetOpen" class="reset-open">Account zuruecksetzen</button>
+        <div class="footer-actions">
+          <button id="resetOpen" class="reset-open">Account zuruecksetzen</button>
+        </div>
+        <p id="devModeState" class="dev-mode-state hidden">Dev-Modus aktiv: Kauefe und Einsaetze sind gratis.</p>
       </footer>
     </div>
 
@@ -447,7 +450,7 @@
       </div>
     </div>
 
-    <div id="rouletteModal" class="modal hidden" aria-hidden="true">
+    <div id="rouletteModal" class="modal modal-scrollable hidden" aria-hidden="true">
       <div class="modal-overlay" id="rouletteCloseOverlay"></div>
       <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="rouletteTitle">
         <button id="rouletteClose" class="modal-close" aria-label="Schliessen">x</button>
@@ -532,7 +535,6 @@
     <script src="script.js"></script>
   </body>
 </html>
-
 
 
 
