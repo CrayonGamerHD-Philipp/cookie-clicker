@@ -89,6 +89,7 @@ const statsTowerEl = document.getElementById("statsTower");
 const statsBlackjackEl = document.getElementById("statsBlackjack");
 const statsSlotsEl = document.getElementById("statsSlots");
 const statsRouletteEl = document.getElementById("statsRoulette");
+const statsLootboxEl = document.getElementById("statsLootbox");
 const financeModal = document.getElementById("financeModal");
 const financeOpenButton = document.getElementById("financeOpen");
 const financeCloseButton = document.getElementById("financeClose");
@@ -103,6 +104,7 @@ const financeBlackjackNetEl = document.getElementById("financeBlackjackNet");
 const financeSlotsNetEl = document.getElementById("financeSlotsNet");
 const financeRouletteNetEl = document.getElementById("financeRouletteNet");
 const financeWheelNetEl = document.getElementById("financeWheelNet");
+const financeLootboxNetEl = document.getElementById("financeLootboxNet");
 const rouletteModal = document.getElementById("rouletteModal");
 const rouletteOpenButton = document.getElementById("rouletteOpen");
 const rouletteBuyButton = document.getElementById("rouletteBuy");
@@ -396,7 +398,8 @@ const gameStats = {
   blackjack: { wins: 0, losses: 0, net: 0 },
   slots: { wins: 0, losses: 0, net: 0 },
   roulette: { wins: 0, losses: 0, net: 0 },
-  wheel: { wins: 0, losses: 0, net: 0 }
+  wheel: { wins: 0, losses: 0, net: 0 },
+  lootbox: { opens: 0, net: 0 }
 };
 
 let toastTimer = null;
@@ -674,6 +677,8 @@ function rollLootboxReward() {
     const reward = randomFrom(cosmeticPool);
     unlockLootboxCosmetic(reward);
     return {
+      rewardType: "cosmetic",
+      cookiePayout: 0,
       status: `Jackpot! ${reward.entry.name} wurde freigeschaltet.`,
       title: reward.entry.name,
       meta: "Neues Cosmetic",
@@ -684,6 +689,8 @@ function rollLootboxReward() {
   if (roll < 0.06) {
     const reward = pickLootboxBoostReward();
     return {
+      rewardType: "boost",
+      cookiePayout: 0,
       status: `${reward.quantity}x ${reward.rarity.label}-Boost erhalten.`,
       title: `${reward.quantity}x ${reward.rarity.label}`,
       meta: "Boost-Drop",
@@ -695,11 +702,18 @@ function rollLootboxReward() {
   state.cookies += amount;
   state.total += amount;
   return {
+    rewardType: "cookies",
+    cookiePayout: amount,
     status: `${format(amount)} Kekse aus der Box gezogen.`,
     title: `+${format(amount)} Kekse`,
     meta: "Cookie-Gewinn",
     detail: "Direkt deinem Konto gutgeschrieben."
   };
+}
+
+function recordLootboxResult(reward) {
+  gameStats.lootbox.opens += 1;
+  gameStats.lootbox.net += (Number(reward.cookiePayout) || 0) - LOOTBOX_COST;
 }
 
 function resetLootboxVisual() {
@@ -883,6 +897,7 @@ function openLootbox() {
         <span>${reward.detail}</span>
       `;
     }
+    recordLootboxResult(reward);
     showInfoToast(`Lootbox: ${reward.title}`);
     updateStats();
     window.setTimeout(() => {
@@ -1079,11 +1094,13 @@ function resetProgressState() {
     upgrade.count = 0;
   });
   resetCosmeticsState();
-  Object.keys(gameStats).forEach((key) => {
+  ["tower", "blackjack", "slots", "roulette", "wheel"].forEach((key) => {
     gameStats[key].wins = 0;
     gameStats[key].losses = 0;
     gameStats[key].net = 0;
   });
+  gameStats.lootbox.opens = 0;
+  gameStats.lootbox.net = 0;
   Object.keys(gameUnlocks).forEach((key) => {
     gameUnlocks[key].unlocked = false;
   });
@@ -1159,6 +1176,9 @@ function loadState(forceDevMode = null) {
         gameStats[key].losses = Number(entry.losses) || 0;
         gameStats[key].net = Number(entry.net) || 0;
       });
+      const lootboxEntry = saved.stats.lootbox || {};
+      gameStats.lootbox.opens = Number(lootboxEntry.opens) || 0;
+      gameStats.lootbox.net = Number(lootboxEntry.net) || 0;
     }
     if (saved.unlocks) {
       Object.keys(gameUnlocks).forEach((key) => {
@@ -1882,7 +1902,7 @@ function renderGameStats() {
   const overall = {
     wins: gameStats.tower.wins + gameStats.blackjack.wins + gameStats.slots.wins + gameStats.roulette.wins + gameStats.wheel.wins,
     losses: gameStats.tower.losses + gameStats.blackjack.losses + gameStats.slots.losses + gameStats.roulette.losses + gameStats.wheel.losses,
-    net: gameStats.tower.net + gameStats.blackjack.net + gameStats.slots.net + gameStats.roulette.net + gameStats.wheel.net
+    net: gameStats.tower.net + gameStats.blackjack.net + gameStats.slots.net + gameStats.roulette.net + gameStats.wheel.net + gameStats.lootbox.net
   };
   statsOverallEl.textContent = `${overall.wins}W / ${overall.losses}L (${formatNet(overall.net)})`;
   statsTowerEl.textContent = `${gameStats.tower.wins}W / ${gameStats.tower.losses}L (${formatNet(gameStats.tower.net)})`;
@@ -1890,6 +1910,9 @@ function renderGameStats() {
   statsSlotsEl.textContent = `${gameStats.slots.wins}W / ${gameStats.slots.losses}L (${formatNet(gameStats.slots.net)})`;
   statsRouletteEl.textContent = `${gameStats.roulette.wins}W / ${gameStats.roulette.losses}L (${formatNet(gameStats.roulette.net)})`;
   statsWheelEl.textContent = `${gameStats.wheel.wins}W / ${gameStats.wheel.losses}L (${formatNet(gameStats.wheel.net)})`;
+  if (statsLootboxEl) {
+    statsLootboxEl.textContent = `${gameStats.lootbox.opens}x (${formatNet(gameStats.lootbox.net)})`;
+  }
 }
 
 function updateFinanceOverview() {
@@ -1904,6 +1927,9 @@ function updateFinanceOverview() {
   financeSlotsNetEl.textContent = formatFullNet(gameStats.slots.net);
   financeRouletteNetEl.textContent = formatFullNet(gameStats.roulette.net);
   financeWheelNetEl.textContent = formatFullNet(gameStats.wheel.net);
+  if (financeLootboxNetEl) {
+    financeLootboxNetEl.textContent = formatFullNet(gameStats.lootbox.net);
+  }
 }
 
 function recordGameResult(key, bet, payout) {
@@ -2001,11 +2027,13 @@ function resetAccount() {
   }
   applyCosmeticTheme();
 
-  Object.keys(gameStats).forEach((key) => {
+  ["tower", "blackjack", "slots", "roulette", "wheel"].forEach((key) => {
     gameStats[key].wins = 0;
     gameStats[key].losses = 0;
     gameStats[key].net = 0;
   });
+  gameStats.lootbox.opens = 0;
+  gameStats.lootbox.net = 0;
 
   Object.keys(gameUnlocks).forEach((key) => {
     gameUnlocks[key].unlocked = false;
