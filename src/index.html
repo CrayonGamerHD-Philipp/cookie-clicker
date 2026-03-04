@@ -17,6 +17,18 @@
 
       <main class="grid">
         <section class="cookie-panel">
+          <div class="boost-panel boost-panel-active">
+            <div class="boost-head">
+              <div class="boost-title-block">
+                <span class="label">Aktive Boosts</span>
+              </div>
+              <span id="activeBoostTotal" class="boost-total">x1</span>
+            </div>
+            <div id="activeBoostList" class="boost-list">
+              <p class="boost-empty">Keine aktiven Boosts.</p>
+            </div>
+          </div>
+
           <div class="meter">
             <span class="label">Kekse</span>
             <span id="cookieCount" class="value">0</span>
@@ -65,6 +77,18 @@
                 </div>
                 <button id="levelButton" class="level-button hidden">Auf Level 2</button>
               </div>
+            </div>
+          </div>
+
+          <div class="boost-panel boost-panel-inventory">
+            <div class="boost-head">
+              <div class="boost-title-block">
+                <span class="label">Boost-Inventar</span>
+                <span class="boost-subtitle">Hier sammelst du deine Level-Drops und aktivierst sie manuell.</span>
+              </div>
+            </div>
+            <div id="boostInventoryList" class="boost-list">
+              <p class="boost-empty">Noch keine Boosts gesammelt.</p>
             </div>
           </div>
 

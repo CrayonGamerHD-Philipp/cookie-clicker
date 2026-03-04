@@ -11,6 +11,9 @@ const levelProgressWrapEl = document.getElementById("levelProgressWrap");
 const levelProgressFillEl = document.getElementById("levelProgressFill");
 const levelProgressTextEl = document.getElementById("levelProgressText");
 const levelButton = document.getElementById("levelButton");
+const activeBoostTotalEl = document.getElementById("activeBoostTotal");
+const activeBoostListEl = document.getElementById("activeBoostList");
+const boostInventoryListEl = document.getElementById("boostInventoryList");
 const cookieSkinEl = document.getElementById("cookieSkin");
 const cookieMiscEl = document.getElementById("cookieMisc");
 const cookieAccessoryEl = document.getElementById("cookieAccessory");
@@ -303,6 +306,8 @@ const state = {
   activeSkin: "none",
   activeMisc: "none",
   activeAccessory: "none",
+  boostInventory: {},
+  boosts: [],
   bonusReady: false,
   lastBonusAt: 0,
   devMode: false,
@@ -339,6 +344,12 @@ const wheelSegments = [
   { label: "x0.5", multiplier: 0.5, weight: 28 },
   { label: "Niete", multiplier: 0, weight: 27 }
 ];
+const boostRarities = [
+  { key: "common", label: "Gewoehnlich", icon: "B", multiplier: 1.25, durationMs: 5 * 60_000, durationLabel: "5 Min", weight: 50 },
+  { key: "rare", label: "Selten", icon: "S", multiplier: 1.5, durationMs: 10 * 60_000, durationLabel: "10 Min", weight: 28 },
+  { key: "epic", label: "Episch", icon: "E", multiplier: 2, durationMs: 20 * 60_000, durationLabel: "20 Min", weight: 16 },
+  { key: "legendary", label: "Legendaer", icon: "L", multiplier: 5, durationMs: 30 * 60_000, durationLabel: "30 Min", weight: 6 }
+];
 
 const gameUnlocks = {
   tower: { price: 1_000_000, requiredLevel: 1, unlocked: false },
@@ -374,6 +385,10 @@ const gameStats = {
 
 let toastTimer = null;
 
+function createEmptyBoostInventory() {
+  return Object.fromEntries(boostRarities.map((rarity) => [rarity.key, 0]));
+}
+
 function applyUpgradeCounts(counts) {
   upgrades.forEach((upgrade, index) => {
     const count = Number(counts[index]) || 0;
@@ -388,6 +403,167 @@ function roundValue(value) {
 
 function levelGainMultiplier() {
   return 1 + Math.max(0, state.level - 1) * LEVEL_GAIN_STEP;
+}
+
+function boostRarityByKey(key) {
+  return boostRarities.find((rarity) => rarity.key === key) || boostRarities[0];
+}
+
+function removeExpiredBoosts() {
+  const now = Date.now();
+  const before = state.boosts.length;
+  state.boosts = state.boosts.filter((boost) => boost.expiresAt > now);
+  return before !== state.boosts.length;
+}
+
+function boostBonusAmount() {
+  removeExpiredBoosts();
+  return roundValue(
+    state.boosts.reduce((bonus, boost) => bonus + Math.max(0, boost.multiplier - 1), 0)
+  );
+}
+
+function boostGainMultiplier() {
+  return roundValue(1 + boostBonusAmount());
+}
+
+function totalGainMultiplier() {
+  return levelGainMultiplier() * boostGainMultiplier();
+}
+
+function formatBoostTimeLeft(expiresAt) {
+  const remainingMs = Math.max(0, expiresAt - Date.now());
+  const totalSeconds = Math.ceil(remainingMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes <= 0) {
+    return `${seconds}s`;
+  }
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function pickBoostRarity() {
+  const totalWeight = boostRarities.reduce((sum, rarity) => sum + rarity.weight, 0);
+  let roll = Math.random() * totalWeight;
+  for (const rarity of boostRarities) {
+    roll -= rarity.weight;
+    if (roll <= 0) {
+      return rarity;
+    }
+  }
+  return boostRarities[0];
+}
+
+function renderBoosts() {
+  if (!activeBoostListEl || !activeBoostTotalEl || !boostInventoryListEl) {
+    return;
+  }
+  removeExpiredBoosts();
+  const boostMultiplier = boostGainMultiplier();
+  activeBoostTotalEl.textContent = `x${formatMultiplier(boostMultiplier)}`;
+  activeBoostListEl.innerHTML = "";
+  boostInventoryListEl.innerHTML = "";
+
+  const inventorySection = document.createElement("section");
+  inventorySection.className = "boost-group";
+  inventorySection.innerHTML = `
+    <div class="boost-group-head">
+      <span class="boost-group-title">Inventar</span>
+      <span class="boost-group-meta">Zufaellige Drops pro Level</span>
+    </div>
+  `;
+  const inventoryGrid = document.createElement("div");
+  inventoryGrid.className = "boost-grid";
+
+  boostRarities.forEach((rarity) => {
+    const count = Number(state.boostInventory[rarity.key]) || 0;
+    const item = document.createElement("div");
+    item.className = `boost-card boost-card-tile ${rarity.key}`;
+
+    const info = document.createElement("div");
+    info.className = "boost-card-main";
+    info.innerHTML = `
+      <div class="boost-icon" aria-hidden="true">${rarity.icon}</div>
+      <div class="boost-card-topline">
+        <span class="boost-name">${rarity.label}</span>
+        <span class="boost-power">+${formatMultiplier(rarity.multiplier - 1)}x</span>
+      </div>
+      <div class="boost-meta">
+        <span>${rarity.durationLabel}</span>
+        <span class="boost-count">${count}x im Inventar</span>
+      </div>
+    `;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "boost-action";
+    button.textContent = "Aktivieren";
+    button.disabled = count <= 0;
+    button.addEventListener("click", () => activateBoost(rarity.key));
+
+    item.appendChild(info);
+    item.appendChild(button);
+    inventoryGrid.appendChild(item);
+  });
+
+  inventorySection.appendChild(inventoryGrid);
+  boostInventoryListEl.appendChild(inventorySection);
+
+  const activeBonus = boostBonusAmount();
+  const activeGrid = document.createElement("div");
+  activeGrid.className = "boost-grid boost-grid-active";
+
+  if (!state.boosts.length) {
+    const empty = document.createElement("p");
+    empty.className = "boost-empty";
+    empty.textContent = "Keine aktiven Boosts";
+    activeGrid.appendChild(empty);
+  } else {
+    activeGrid.dataset.summary = `Gesamt +${formatMultiplier(activeBonus)}x`;
+    activeGrid.classList.add("has-summary");
+    const sortedBoosts = [...state.boosts].sort((a, b) => a.expiresAt - b.expiresAt);
+    sortedBoosts.forEach((boost) => {
+      const item = document.createElement("div");
+      item.className = `boost-card ${boost.rarity} is-active active-summary`;
+      item.innerHTML = `
+        <div class="boost-card-main">
+          <div class="boost-card-topline">
+            <span class="boost-name">${boost.label}</span>
+            <span class="boost-power">+${formatMultiplier(boost.multiplier - 1)}x</span>
+            <span class="boost-timer">${formatBoostTimeLeft(boost.expiresAt)}</span>
+          </div>
+        </div>
+      `;
+      activeGrid.appendChild(item);
+    });
+  }
+
+  activeBoostListEl.appendChild(activeGrid);
+}
+
+function grantRandomBoost() {
+  const rarity = pickBoostRarity();
+  state.boostInventory[rarity.key] = (Number(state.boostInventory[rarity.key]) || 0) + 1;
+  return rarity;
+}
+
+function activateBoost(rarityKey) {
+  const rarity = boostRarityByKey(rarityKey);
+  const count = Number(state.boostInventory[rarity.key]) || 0;
+  if (count <= 0) {
+    return;
+  }
+  state.boostInventory[rarity.key] = count - 1;
+  state.boosts.push({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    rarity: rarity.key,
+    label: rarity.label,
+    multiplier: rarity.multiplier,
+    expiresAt: Date.now() + rarity.durationMs
+  });
+  recalculateProduction();
+  showInfoToast(`${rarity.label}-Boost aktiviert: +${formatMultiplier(rarity.multiplier - 1)}x fuer ${rarity.durationLabel}`);
+  updateStats();
 }
 
 function currentLevelRequirement() {
@@ -413,7 +589,7 @@ function calculateBaseProduction() {
 
 function recalculateProduction() {
   const baseProduction = calculateBaseProduction();
-  const multiplier = levelGainMultiplier();
+  const multiplier = totalGainMultiplier();
   state.basePerClick = baseProduction.perClick;
   state.baseCps = baseProduction.cps;
   state.perClick = roundValue(baseProduction.perClick * multiplier);
@@ -424,7 +600,7 @@ function scaleGain(amount) {
   if (amount <= 0) {
     return 0;
   }
-  return roundValue(amount * levelGainMultiplier());
+  return roundValue(amount * totalGainMultiplier());
 }
 
 function scalePayout(basePayout, invested = 0) {
@@ -432,7 +608,7 @@ function scalePayout(basePayout, invested = 0) {
     return 0;
   }
   const profit = Math.max(0, basePayout - invested);
-  return roundValue(invested + (profit * levelGainMultiplier()));
+  return roundValue(invested + (profit * totalGainMultiplier()));
 }
 
 function currentSaveKey() {
@@ -564,6 +740,8 @@ function resetProgressState() {
   state.baseCps = 0;
   state.perClick = 1;
   state.cps = 0;
+  state.boostInventory = createEmptyBoostInventory();
+  state.boosts = [];
   state.bonusReady = false;
   state.lastBonusAt = 0;
   state.towerActive = false;
@@ -622,6 +800,22 @@ function loadState(forceDevMode = null) {
     state.total = Number(saved.total) || 0;
     state.clicks = Number(saved.clicks) || 0;
     state.level = Math.max(1, Number(saved.level) || 1);
+    const savedInventory = saved.boostInventory || {};
+    state.boostInventory = createEmptyBoostInventory();
+    boostRarities.forEach((rarity) => {
+      state.boostInventory[rarity.key] = Math.max(0, Number(savedInventory[rarity.key]) || 0);
+    });
+    state.boosts = Array.isArray(saved.boosts)
+      ? saved.boosts
+        .map((boost) => ({
+          id: typeof boost.id === "string" ? boost.id : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          rarity: typeof boost.rarity === "string" ? boost.rarity : "common",
+          label: typeof boost.label === "string" ? boost.label : "Gewoehnlich",
+          multiplier: Number(boost.multiplier) || 1,
+          expiresAt: Number(boost.expiresAt) || 0
+        }))
+        .filter((boost) => boost.expiresAt > Date.now())
+      : [];
     state.lastBonusAt = Number(saved.lastBonusAt) || 0;
     state.bonusReady = false;
     applyUpgradeCounts(saved.upgrades || []);
@@ -700,6 +894,8 @@ function saveState() {
     total: state.total,
     clicks: state.clicks,
     level: state.level,
+    boostInventory: state.boostInventory,
+    boosts: state.boosts,
     lastBonusAt: state.lastBonusAt,
     upgrades: upgrades.map((upgrade) => upgrade.count),
     cosmetics: {
@@ -843,7 +1039,11 @@ function renderLevelProgress() {
     levelEl.textContent = String(state.level);
   }
   if (levelMultiplierEl) {
-    levelMultiplierEl.textContent = `Gewinn-Multiplikator x${formatMultiplier(levelGainMultiplier())}`;
+    const levelMultiplier = levelGainMultiplier();
+    const boostMultiplier = boostGainMultiplier();
+    levelMultiplierEl.textContent = boostMultiplier > 1
+      ? `Gesamt x${formatMultiplier(levelMultiplier * boostMultiplier)} (Level x${formatMultiplier(levelMultiplier)})`
+      : `Gewinn-Multiplikator x${formatMultiplier(levelMultiplier)}`;
   }
   if (levelRequirementEl) {
     levelRequirementEl.textContent = `Naechstes Level: ${formatClicks(requirement)}`;
@@ -1266,6 +1466,9 @@ function renderCosmetics() {
 }
 
 function updateStats() {
+  if (removeExpiredBoosts()) {
+    recalculateProduction();
+  }
   renderDevMode();
   updateVersionLink();
   setDisplayValue(cookieCountEl, state.cookies);
@@ -1274,6 +1477,7 @@ function updateStats() {
   setDisplayValue(clickCountEl, state.clicks);
   setDisplayValue(rateEl, state.cps, " / sek");
   renderLevelProgress();
+  renderBoosts();
   renderUpgrades();
   renderCosmetics();
   renderUnlocks();
@@ -1399,6 +1603,20 @@ function showGameToast(net, label) {
   }, 2200);
 }
 
+function showInfoToast(message) {
+  if (!gameToast) return;
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+    toastTimer = null;
+  }
+  gameToast.classList.remove("hidden", "win", "loss", "neutral");
+  gameToast.classList.add("neutral");
+  gameToast.textContent = message;
+  toastTimer = setTimeout(() => {
+    gameToast.classList.add("hidden");
+  }, 2600);
+}
+
 function openResetModal() {
   if (resetCosmeticsToggle) {
     resetCosmeticsToggle.checked = true;
@@ -1423,6 +1641,8 @@ function resetAccount() {
   state.baseCps = 0;
   state.perClick = 1;
   state.cps = 0;
+  state.boostInventory = createEmptyBoostInventory();
+  state.boosts = [];
   if (shouldResetCosmetics) {
     state.activeColor = "classic";
     state.activeSkin = "none";
@@ -1568,6 +1788,9 @@ function closeFinanceModal() {
 }
 
 function clickCookie() {
+  if (removeExpiredBoosts()) {
+    recalculateProduction();
+  }
   state.cookies += state.perClick;
   state.total += state.perClick;
   state.clicks += 1;
@@ -1589,9 +1812,21 @@ function buyUpgrade(index) {
 }
 
 function tick() {
+  const expiredBoosts = removeExpiredBoosts();
+  if (expiredBoosts) {
+    recalculateProduction();
+  }
   if (state.cps > 0) {
     state.cookies += state.cps;
     state.total += state.cps;
+    updateStats();
+    return;
+  }
+  if (expiredBoosts) {
+    updateStats();
+    return;
+  }
+  if (state.boosts.length > 0) {
     updateStats();
   }
 }
@@ -1653,7 +1888,9 @@ function levelUp() {
   slotsSpinning = false;
   rouletteSpinning = false;
   wheelSpinning = false;
+  const boost = grantRandomBoost();
   recalculateProduction();
+  showInfoToast(`Boost erhalten: ${boost.label} +${formatMultiplier(boost.multiplier - 1)}x fuer ${boost.durationLabel} (im Inventar)`);
   updateStats();
 }
 
