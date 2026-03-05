@@ -101,7 +101,7 @@
 
       <article class="leaderboard-player-card leaderboard-panel">
         <h2><i class="bi bi-palette2" aria-hidden="true"></i> Aktueller Cookie-Look</h2>
-        <div class="leaderboard-look">
+        <div class="leaderboard-look leaderboard-look-solo">
         <div
           class="cosmetics-preview-cookie leaderboard-cookie-look"
           style="
@@ -114,12 +114,6 @@
           <span class={`cookie-skin skin-${data.profile.look.skinKey || "none"}`} aria-hidden="true"></span>
           <span class={`cookie-accessory accessory-${data.profile.look.accessoryKey || "none"}`} aria-hidden="true"></span>
           <span class="cosmetics-preview-label">Look</span>
-        </div>
-        <div class="leaderboard-look-meta">
-          <p><strong>Farbe:</strong> {data.profile.look.colorName}</p>
-          <p><strong>Skin:</strong> {data.profile.look.skinName}</p>
-          <p><strong>Sonstiges:</strong> {data.profile.look.miscName}</p>
-          <p><strong>Hut:</strong> {data.profile.look.accessoryName}</p>
         </div>
       </div>
       </article>
