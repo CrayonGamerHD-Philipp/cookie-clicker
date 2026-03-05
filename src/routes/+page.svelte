@@ -1,13 +1,9 @@
-﻿<!doctype html>
-<html lang="de">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Cookie Klicker - HETHEY</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <div class="grain"></div>
+<svelte:head>
+  <title>Cookie Klicker - HETHEY</title>
+  <link rel="stylesheet" href="/style.css" />
+  <script src="/script.js" defer></script>
+</svelte:head>
+<div class="grain"></div>
     <div class="scene">
       <header class="hero">
         <p class="eyebrow">HETHEY Backstube</p>
@@ -129,7 +125,10 @@
             </div>
           </div>
 
-          <button id="financeOpen" class="finance-open">Finanz-Uebersicht</button>
+          <div class="utility-buttons">
+            <button id="financeOpen" class="finance-open">Finanz-Uebersicht</button>
+            <a href="/leaderboard" data-sveltekit-reload class="finance-open leaderboard-link">Leaderboard</a>
+          </div>
         </section>
 
         <aside class="shop">
@@ -301,42 +300,6 @@
           <div class="finance-row">
             <span>Lootboxes (Netto)</span>
             <strong id="financeLootboxNet">0</strong>
-          </div>
-        </div>
-        <div class="finance-global">
-          <div class="finance-global-head">
-            <h3>Globale Server-Statistik</h3>
-            <p>Backend-weit aggregiert ueber alle Spieler-Sessions.</p>
-          </div>
-          <div class="finance-grid">
-            <div class="finance-row">
-              <span>Spieler</span>
-              <strong id="globalPlayers">0</strong>
-            </div>
-            <div class="finance-row">
-              <span>Sessions</span>
-              <strong id="globalSessions">0</strong>
-            </div>
-            <div class="finance-row">
-              <span>Klicks</span>
-              <strong id="globalClicks">0</strong>
-            </div>
-            <div class="finance-row">
-              <span>Gespielte Games</span>
-              <strong id="globalGamesPlayed">0</strong>
-            </div>
-            <div class="finance-row">
-              <span>Lootboxes geoeffnet</span>
-              <strong id="globalLootboxesOpened">0</strong>
-            </div>
-            <div class="finance-row">
-              <span>Erzeugte Kekse</span>
-              <strong id="globalCookiesGenerated">0</strong>
-            </div>
-            <div class="finance-row">
-              <span>Status</span>
-              <strong id="globalStatsStatus">Wird geladen...</strong>
-            </div>
           </div>
         </div>
       </div>
@@ -663,10 +626,3 @@
         </div>
       </div>
     </div>
-
-    <script type="module" src="script.js"></script>
-  </body>
-</html>
-
-
-

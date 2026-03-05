@@ -1,0 +1,401 @@
+import { mkdirSync } from "node:fs";
+import path from "node:path";
+import Database from "better-sqlite3";
+
+const dataDir = path.resolve("backend", "data");
+const dataFile = path.join(dataDir, "game-data.sqlite");
+const allowedModes = ["tower", "blackjack", "slots", "roulette", "wheel", "lootbox"] as const;
+
+export type GameMode = (typeof allowedModes)[number];
+export type LeaderboardRange = "daily" | "weekly" | "monthly" | "alltime";
+
+export type GlobalStats = {
+  uniquePlayers: number;
+  totalSessions: number;
+  totalClicks: number;
+  totalGamesPlayed: number;
+  totalLootboxesOpened: number;
+  totalCookiesGenerated: number;
+  gamesByMode: Record<GameMode, number>;
+  lastUpdatedAt: string;
+};
+
+type PlayerRecord = {
+  bestScore: number;
+  lastScore: number;
+  totalClicks: number;
+  totalGames: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+};
+
+type PersistedData = {
+  globalStats: GlobalStats;
+  players: Record<string, PlayerRecord>;
+};
+
+export type LeaderboardEntry = {
+  playerName: string;
+  bestScore: number;
+  lastScore: number;
+  totalClicks: number;
+  totalGames: number;
+  updatedAt: string;
+};
+
+let db: Database.Database | null = null;
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function getRangeStart(range: LeaderboardRange): string | null {
+  const now = new Date();
+  if (range === "alltime") return null;
+
+  if (range === "daily") {
+    const d = new Date(now);
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString();
+  }
+
+  if (range === "weekly") {
+    const d = new Date(now);
+    const dayIndex = (d.getDay() + 6) % 7; // Monday = 0
+    d.setDate(d.getDate() - dayIndex);
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString();
+  }
+
+  const d = new Date(now);
+  d.setDate(1);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
+function getDb() {
+  if (db) return db;
+
+  mkdirSync(dataDir, { recursive: true });
+  db = new Database(dataFile);
+  db.pragma("journal_mode = WAL");
+  db.pragma("foreign_keys = ON");
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS players (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      best_score INTEGER NOT NULL DEFAULT 0,
+      last_score INTEGER NOT NULL DEFAULT 0,
+      total_clicks INTEGER NOT NULL DEFAULT 0,
+      total_games INTEGER NOT NULL DEFAULT 0,
+      first_seen_at TEXT NOT NULL,
+      last_seen_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS global_stats (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      unique_players INTEGER NOT NULL DEFAULT 0,
+      total_sessions INTEGER NOT NULL DEFAULT 0,
+      total_clicks INTEGER NOT NULL DEFAULT 0,
+      total_games_played INTEGER NOT NULL DEFAULT 0,
+      total_lootboxes_opened INTEGER NOT NULL DEFAULT 0,
+      total_cookies_generated INTEGER NOT NULL DEFAULT 0,
+      last_updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS global_mode_stats (
+      mode TEXT PRIMARY KEY,
+      count INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS score_submissions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      player_id INTEGER NOT NULL,
+      score INTEGER NOT NULL,
+      total_clicks INTEGER NOT NULL,
+      total_games INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(player_id) REFERENCES players(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_score_submissions_created_at ON score_submissions(created_at);
+    CREATE INDEX IF NOT EXISTS idx_score_submissions_player_created ON score_submissions(player_id, created_at DESC);
+  `);
+
+  db.prepare(`
+    INSERT OR IGNORE INTO global_stats (
+      id, unique_players, total_sessions, total_clicks, total_games_played, total_lootboxes_opened, total_cookies_generated, last_updated_at
+    ) VALUES (1, 0, 0, 0, 0, 0, 0, ?)
+  `).run(nowIso());
+
+  const modeStmt = db.prepare("INSERT OR IGNORE INTO global_mode_stats(mode, count) VALUES (?, 0)");
+  for (const mode of allowedModes) {
+    modeStmt.run(mode);
+  }
+
+  return db;
+}
+
+function touchGlobalStats() {
+  getDb().prepare("UPDATE global_stats SET last_updated_at = ? WHERE id = 1").run(nowIso());
+}
+
+function refreshUniquePlayersCount() {
+  const database = getDb();
+  const row = database.prepare("SELECT COUNT(*) AS count FROM players").get() as { count: number };
+  database.prepare("UPDATE global_stats SET unique_players = ? WHERE id = 1").run(Number(row.count) || 0);
+}
+
+export function normalizePlayerName(name: unknown): string {
+  if (typeof name !== "string") return "";
+  const value = name.trim().slice(0, 24);
+  if (!/^[\p{L}\p{N} _.-]+$/u.test(value)) {
+    return "";
+  }
+  return value;
+}
+
+export function sanitizePositiveInt(value: unknown, max = 1_000_000): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(Math.floor(value), max));
+}
+
+export function modeList() {
+  return [...allowedModes];
+}
+
+export async function getGlobalStats(): Promise<GlobalStats> {
+  const database = getDb();
+  const stats = database.prepare(`
+    SELECT
+      unique_players AS uniquePlayers,
+      total_sessions AS totalSessions,
+      total_clicks AS totalClicks,
+      total_games_played AS totalGamesPlayed,
+      total_lootboxes_opened AS totalLootboxesOpened,
+      total_cookies_generated AS totalCookiesGenerated,
+      last_updated_at AS lastUpdatedAt
+    FROM global_stats
+    WHERE id = 1
+  `).get() as Omit<GlobalStats, "gamesByMode">;
+
+  const modeRows = database.prepare("SELECT mode, count FROM global_mode_stats").all() as Array<{ mode: GameMode; count: number }>;
+  const gamesByMode = Object.fromEntries(allowedModes.map((mode) => [mode, 0])) as Record<GameMode, number>;
+  for (const row of modeRows) {
+    if (row.mode in gamesByMode) {
+      gamesByMode[row.mode] = Number(row.count) || 0;
+    }
+  }
+
+  return {
+    uniquePlayers: Number(stats?.uniquePlayers) || 0,
+    totalSessions: Number(stats?.totalSessions) || 0,
+    totalClicks: Number(stats?.totalClicks) || 0,
+    totalGamesPlayed: Number(stats?.totalGamesPlayed) || 0,
+    totalLootboxesOpened: Number(stats?.totalLootboxesOpened) || 0,
+    totalCookiesGenerated: Number(stats?.totalCookiesGenerated) || 0,
+    gamesByMode,
+    lastUpdatedAt: stats?.lastUpdatedAt || nowIso()
+  };
+}
+
+export async function registerPlayer(playerName: string): Promise<{ ok: boolean; created: boolean }> {
+  const database = getDb();
+  const now = nowIso();
+
+  const existing = database.prepare("SELECT id FROM players WHERE name = ?").get(playerName) as { id: number } | undefined;
+  let created = false;
+  if (!existing) {
+    database.prepare(`
+      INSERT INTO players (name, best_score, last_score, total_clicks, total_games, first_seen_at, last_seen_at)
+      VALUES (?, 0, 0, 0, 0, ?, ?)
+    `).run(playerName, now, now);
+    created = true;
+    refreshUniquePlayersCount();
+  } else {
+    database.prepare("UPDATE players SET last_seen_at = ? WHERE id = ?").run(now, existing.id);
+  }
+
+  database.prepare("UPDATE global_stats SET total_sessions = total_sessions + 1, last_updated_at = ? WHERE id = 1").run(now);
+  return { ok: true, created };
+}
+
+export async function applyStatsDelta(playerName: string, delta: {
+  clicks: number;
+  gamesPlayed: number;
+  lootboxesOpened: number;
+  cookiesGenerated: number;
+  gamesByMode: Partial<Record<GameMode, number>>;
+}): Promise<{ ok: boolean; stats?: GlobalStats }> {
+  const database = getDb();
+  const now = nowIso();
+  const player = database.prepare("SELECT id FROM players WHERE name = ?").get(playerName) as { id: number } | undefined;
+  if (!player) {
+    return { ok: false };
+  }
+
+  database.prepare(`
+    UPDATE global_stats
+    SET
+      total_clicks = total_clicks + ?,
+      total_games_played = total_games_played + ?,
+      total_lootboxes_opened = total_lootboxes_opened + ?,
+      total_cookies_generated = total_cookies_generated + ?,
+      last_updated_at = ?
+    WHERE id = 1
+  `).run(delta.clicks, delta.gamesPlayed, delta.lootboxesOpened, delta.cookiesGenerated, now);
+
+  database.prepare(`
+    UPDATE players
+    SET
+      total_clicks = total_clicks + ?,
+      total_games = total_games + ?,
+      last_seen_at = ?
+    WHERE id = ?
+  `).run(delta.clicks, delta.gamesPlayed, now, player.id);
+
+  const updateModeStmt = database.prepare("UPDATE global_mode_stats SET count = count + ? WHERE mode = ?");
+  for (const mode of allowedModes) {
+    const increment = Number(delta.gamesByMode[mode]) || 0;
+    if (increment > 0) {
+      updateModeStmt.run(increment, mode);
+    }
+  }
+
+  const stats = await getGlobalStats();
+  return { ok: true, stats };
+}
+
+export async function updateLeaderboardScore(playerName: string, score: number, totalClicks: number, totalGames: number): Promise<{ ok: boolean; bestScore?: number }> {
+  const database = getDb();
+  const now = nowIso();
+  const player = database.prepare("SELECT id, best_score FROM players WHERE name = ?").get(playerName) as { id: number; best_score: number } | undefined;
+  if (!player) {
+    return { ok: false };
+  }
+
+  database.prepare(`
+    UPDATE players
+    SET
+      last_score = ?,
+      best_score = CASE WHEN best_score > ? THEN best_score ELSE ? END,
+      total_clicks = CASE WHEN total_clicks > ? THEN total_clicks ELSE ? END,
+      total_games = CASE WHEN total_games > ? THEN total_games ELSE ? END,
+      last_seen_at = ?
+    WHERE id = ?
+  `).run(score, score, score, totalClicks, totalClicks, totalGames, totalGames, now, player.id);
+
+  database.prepare(`
+    INSERT INTO score_submissions (player_id, score, total_clicks, total_games, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(player.id, score, totalClicks, totalGames, now);
+
+  touchGlobalStats();
+  const updated = database.prepare("SELECT best_score AS bestScore FROM players WHERE id = ?").get(player.id) as { bestScore: number };
+  return { ok: true, bestScore: Number(updated.bestScore) || 0 };
+}
+
+export async function getLeaderboard(range: LeaderboardRange, limit = 20): Promise<LeaderboardEntry[]> {
+  const database = getDb();
+  const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
+  if (range === "alltime") {
+    const rows = database.prepare(`
+      SELECT
+        name AS playerName,
+        best_score AS bestScore,
+        last_score AS lastScore,
+        total_clicks AS totalClicks,
+        total_games AS totalGames,
+        last_seen_at AS updatedAt
+      FROM players
+      ORDER BY best_score DESC, last_seen_at ASC
+      LIMIT ?
+    `).all(safeLimit) as LeaderboardEntry[];
+    return rows.map((row) => ({
+      ...row,
+      bestScore: Number(row.bestScore) || 0,
+      lastScore: Number(row.lastScore) || 0,
+      totalClicks: Number(row.totalClicks) || 0,
+      totalGames: Number(row.totalGames) || 0
+    }));
+  }
+
+  const start = getRangeStart(range);
+  if (!start) return [];
+
+  const rows = database.prepare(`
+    SELECT
+      p.name AS playerName,
+      MAX(s.score) AS bestScore,
+      (
+        SELECT s2.score
+        FROM score_submissions s2
+        WHERE s2.player_id = p.id AND s2.created_at >= ?
+        ORDER BY s2.created_at DESC, s2.id DESC
+        LIMIT 1
+      ) AS lastScore,
+      MAX(s.total_clicks) AS totalClicks,
+      MAX(s.total_games) AS totalGames,
+      MAX(s.created_at) AS updatedAt
+    FROM players p
+    INNER JOIN score_submissions s ON s.player_id = p.id
+    WHERE s.created_at >= ?
+    GROUP BY p.id
+    ORDER BY bestScore DESC, updatedAt ASC
+    LIMIT ?
+  `).all(start, start, safeLimit) as LeaderboardEntry[];
+
+  return rows.map((row) => ({
+    ...row,
+    bestScore: Number(row.bestScore) || 0,
+    lastScore: Number(row.lastScore) || 0,
+    totalClicks: Number(row.totalClicks) || 0,
+    totalGames: Number(row.totalGames) || 0
+  }));
+}
+
+export async function resetPlayerAccount(playerName: string): Promise<{ ok: boolean; deleted: boolean }> {
+  const database = getDb();
+  const player = database.prepare("SELECT id FROM players WHERE name = ?").get(playerName) as { id: number } | undefined;
+  if (!player) {
+    return { ok: true, deleted: false };
+  }
+  database.prepare("DELETE FROM players WHERE id = ?").run(player.id);
+  refreshUniquePlayersCount();
+  touchGlobalStats();
+  return { ok: true, deleted: true };
+}
+
+export async function readData(): Promise<PersistedData> {
+  const database = getDb();
+  const stats = await getGlobalStats();
+  const rows = database.prepare(`
+    SELECT
+      name,
+      best_score AS bestScore,
+      last_score AS lastScore,
+      total_clicks AS totalClicks,
+      total_games AS totalGames,
+      first_seen_at AS firstSeenAt,
+      last_seen_at AS lastSeenAt
+    FROM players
+  `).all() as Array<{ name: string } & PlayerRecord>;
+
+  const players: Record<string, PlayerRecord> = {};
+  for (const row of rows) {
+    players[row.name] = {
+      bestScore: Number(row.bestScore) || 0,
+      lastScore: Number(row.lastScore) || 0,
+      totalClicks: Number(row.totalClicks) || 0,
+      totalGames: Number(row.totalGames) || 0,
+      firstSeenAt: row.firstSeenAt,
+      lastSeenAt: row.lastSeenAt
+    };
+  }
+  return { globalStats: stats, players };
+}
+
+export async function writeData(_data: PersistedData) {
+  // No-op: SQLite storage is now the source of truth and is mutated via dedicated methods.
+}

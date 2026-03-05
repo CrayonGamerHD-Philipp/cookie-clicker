@@ -1,46 +1,3 @@
-import { appConfig } from "../config/appConfig.js";
-import {
-  createDeck,
-  handValue,
-  resolveDealerRound,
-  shuffleDeck
-} from "../features/blackjack.js";
-import { createCosmeticsController } from "../features/cosmeticsController.js";
-import {
-  boostRarities,
-  pickBoostRarity,
-  pickLootboxBoostReward,
-  pickLootboxCookieReward
-} from "../features/lootbox.js";
-import {
-  getRouletteSpinDelta,
-  isWinningRouletteBet,
-  rouletteBetLabel,
-  rouletteColor,
-  rouletteColorLabel,
-  rouletteOrder,
-  roulettePayoutMultiplier,
-  rouletteRedNumbers,
-  rouletteTableRows
-} from "../features/roulette.js";
-import {
-  evaluateSlotMultiplier,
-  pickSlotSymbol
-} from "../features/slots.js";
-import {
-  currentTowerChance as getTowerChance,
-  nextTowerStep,
-  rollTowerClimb,
-  towerSteps
-} from "../features/tower.js";
-import { setAllInBetValue } from "../services/betControls.js";
-import { createGameApi } from "../services/gameApi.js";
-import {
-  normalizeRotation,
-  pickWheelIndex,
-  wheelSegments
-} from "../features/wheel.js";
-
 const cookieCountEl = document.getElementById("cookieCount");
 const perClickEl = document.getElementById("perClick");
 const clickCountEl = document.getElementById("clickCount");
@@ -150,13 +107,6 @@ const financeSlotsNetEl = document.getElementById("financeSlotsNet");
 const financeRouletteNetEl = document.getElementById("financeRouletteNet");
 const financeWheelNetEl = document.getElementById("financeWheelNet");
 const financeLootboxNetEl = document.getElementById("financeLootboxNet");
-const globalPlayersEl = document.getElementById("globalPlayers");
-const globalSessionsEl = document.getElementById("globalSessions");
-const globalClicksEl = document.getElementById("globalClicks");
-const globalGamesPlayedEl = document.getElementById("globalGamesPlayed");
-const globalLootboxesOpenedEl = document.getElementById("globalLootboxesOpened");
-const globalCookiesGeneratedEl = document.getElementById("globalCookiesGenerated");
-const globalStatsStatusEl = document.getElementById("globalStatsStatus");
 const rouletteModal = document.getElementById("rouletteModal");
 const rouletteOpenButton = document.getElementById("rouletteOpen");
 const rouletteBuyButton = document.getElementById("rouletteBuy");
@@ -202,14 +152,17 @@ const towerCashoutButton = document.getElementById("towerCashout");
 const towerStatus = document.getElementById("towerStatus");
 const towerMultiplierEl = document.getElementById("towerMultiplier");
 const towerPayoutEl = document.getElementById("towerPayout");
-const gameApi = createGameApi();
-
+const STORAGE_KEY = "hethey-cookie-clicker-v1";
+const DEV_STORAGE_KEY = "hethey-cookie-clicker-dev-v1";
+const DEV_MODE_KEY = "hethey-cookie-clicker-dev-mode";
+const PLAYER_NAME_KEY = "hethey-player-name";
 const LEVEL_UP_BASE_COST = 250_000_000;
 const LEVEL_UP_SCALE = 2;
 const LEVEL_GAIN_STEP = 0.5;
 const UPGRADE_LEVEL_COST_SCALE = 1.35;
-
+const RELEASES_BASE_URL = "https://github.com/CrayonGamerHD-Philipp/cookie-clicker/releases";
 const LOOTBOX_COST = 10_000_000;
+const SERVER_SYNC_INTERVAL_MS = 30_000;
 
 const upgrades = [
   { name: "Sprinkles", type: "click", power: 1, baseCost: 20, desc: "+1 pro Klick" },
@@ -385,6 +338,40 @@ const state = {
   towerMultiplier: 0
 };
 
+const towerSteps = [0, 0.5, 1, 1.5, 2, 2.5, 3, 4];
+const towerChances = [0.78, 0.74, 0.7, 0.66, 0.62, 0.58, 0.55, 0.52];
+const slotSymbols = [
+  { key: "CHERRY", icon: "\u{1F352}", weight: 30, multiplier: 2 },
+  { key: "LEMON", icon: "\u{1F34B}", weight: 26, multiplier: 1.5 },
+  { key: "COOKIE", icon: "\u{1F36A}", weight: 16, multiplier: 6 },
+  { key: "STAR", icon: "\u{2B50}", weight: 14, multiplier: 4 },
+  { key: "BELL", icon: "\u{1F514}", weight: 14, multiplier: 3 }
+];
+const rouletteOrder = [
+  0, 32, 15, 19, 4, 21, 2, 25, 17, 34,
+  6, 27, 13, 36, 11, 30, 8, 23, 10, 5,
+  24, 16, 33, 1, 20, 14, 31, 9, 22, 18,
+  29, 7, 28, 12, 35, 3, 26
+];
+const rouletteRedNumbers = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
+const rouletteTableRows = Array.from({ length: 12 }, (_, index) => {
+  const high = (index + 1) * 3;
+  return [high, high - 1, high - 2];
+});
+const wheelSegments = [
+  { label: "x2", multiplier: 2, weight: 36 },
+  { label: "x50", multiplier: 50, weight: 6 },
+  { label: "x100", multiplier: 100, weight: 3 },
+  { label: "x0.5", multiplier: 0.5, weight: 28 },
+  { label: "Niete", multiplier: 0, weight: 27 }
+];
+const boostRarities = [
+  { key: "common", label: "Gewoehnlich", icon: "B", multiplier: 1.25, durationMs: 5 * 60_000, durationLabel: "5 Min", weight: 50 },
+  { key: "rare", label: "Selten", icon: "S", multiplier: 1.5, durationMs: 10 * 60_000, durationLabel: "10 Min", weight: 28 },
+  { key: "epic", label: "Episch", icon: "E", multiplier: 2, durationMs: 20 * 60_000, durationLabel: "20 Min", weight: 16 },
+  { key: "legendary", label: "Legendaer", icon: "L", multiplier: 5, durationMs: 30 * 60_000, durationLabel: "30 Min", weight: 6 }
+];
+
 const gameUnlocks = {
   tower: { price: 1_000_000, requiredLevel: 1, unlocked: false },
   blackjack: { price: 5_000_000, requiredLevel: 2, unlocked: false },
@@ -412,6 +399,14 @@ let wheelSpinning = false;
 let wheelRotation = 0;
 let activeUpgradeTab = "click";
 let activeCosmeticsCategory = "colors";
+let playerName = "";
+let serverSyncTimer = null;
+let syncCountdownTimer = null;
+let nextServerSyncAt = 0;
+let leaderboardSnapshot = [];
+let syncStatusCountdownEl = null;
+let syncStatusRankEl = null;
+let chaseBannerEl = null;
 
 const gameStats = {
   tower: { wins: 0, losses: 0, net: 0 },
@@ -423,30 +418,6 @@ const gameStats = {
 };
 
 let toastTimer = null;
-let globalStatsPlayerId = "";
-let globalStatsFlushTimer = null;
-let globalStatsSyncing = false;
-
-const globalStatsState = {
-  uniquePlayers: 0,
-  totalSessions: 0,
-  totalClicks: 0,
-  totalGamesPlayed: 0,
-  totalLootboxesOpened: 0,
-  totalCookiesGenerated: 0,
-  gamesByMode: {},
-  lastUpdatedAt: "",
-  online: false,
-  status: "Noch nicht synchronisiert"
-};
-
-const pendingGlobalStatsDelta = {
-  clicks: 0,
-  gamesPlayed: 0,
-  lootboxesOpened: 0,
-  cookiesGenerated: 0,
-  gamesByMode: {}
-};
 
 function createEmptyBoostInventory() {
   return Object.fromEntries(boostRarities.map((rarity) => [rarity.key, 0]));
@@ -503,6 +474,18 @@ function formatBoostTimeLeft(expiresAt) {
     return `${seconds}s`;
   }
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function pickBoostRarity() {
+  const totalWeight = boostRarities.reduce((sum, rarity) => sum + rarity.weight, 0);
+  let roll = Math.random() * totalWeight;
+  for (const rarity of boostRarities) {
+    roll -= rarity.weight;
+    if (roll <= 0) {
+      return rarity;
+    }
+  }
+  return boostRarities[0];
 }
 
 function renderBoosts() {
@@ -621,6 +604,102 @@ function randomFrom(list) {
   return list[Math.floor(Math.random() * list.length)];
 }
 
+function availableLootboxCosmetics() {
+  return [
+    ...colorCosmetics.filter((entry) => !entry.owned).map((entry) => ({ type: "color", entry })),
+    ...accessoryCosmetics.filter((entry) => !entry.owned && !entry.hidden).map((entry) => ({ type: "accessory", entry })),
+    ...skinCosmetics.filter((entry) => !entry.owned).map((entry) => ({ type: "skin", entry })),
+    ...miscCosmetics.filter((entry) => !entry.owned).map((entry) => ({ type: "misc", entry }))
+  ];
+}
+
+function unlockLootboxCosmetic(reward) {
+  reward.entry.owned = true;
+  if (reward.type === "color") {
+    state.activeColor = reward.entry.key;
+  } else if (reward.type === "accessory") {
+    state.activeAccessory = reward.entry.key;
+  } else if (reward.type === "skin") {
+    state.activeSkin = reward.entry.key;
+  } else if (reward.type === "misc") {
+    state.activeMisc = reward.entry.key;
+  }
+  applyCosmeticTheme();
+}
+
+function pickLootboxBoostReward() {
+  const roll = Math.random();
+  let rarity = boostRarities[0];
+  if (roll > 0.985) {
+    rarity = boostRarities[3];
+  } else if (roll > 0.93) {
+    rarity = boostRarities[2];
+  } else if (roll > 0.7) {
+    rarity = boostRarities[1];
+  }
+  const quantity = rarity.key === "common"
+    ? (Math.random() < 0.35 ? 2 : 1)
+    : (rarity.key === "rare" && Math.random() < 0.18 ? 2 : 1);
+  state.boostInventory[rarity.key] = (Number(state.boostInventory[rarity.key]) || 0) + quantity;
+  return { rarity, quantity };
+}
+
+function pickLootboxCookieReward(isProfit) {
+  if (isProfit) {
+    return randomFrom([
+      5_000_000,
+      5_000_000,
+      5_000_000,
+      5_000_000,
+      5_500_000,
+      5_500_000,
+      6_000_000,
+      6_000_000,
+      6_000_000,
+      6_500_000,
+      6_500_000,
+      7_000_000,
+      7_000_000,
+      7_000_000,
+      7_500_000,
+      8_000_000,
+      8_000_000,
+      10_500_000,
+      12_000_000,
+      15_000_000,
+      25_000_000,
+      50_000_000,
+      500_000_000,
+      2_500_000_000
+    ]);
+  }
+  return randomFrom([
+    100,
+    500,
+    1_000,
+    5_000,
+    25_000,
+    100_000,
+    250_000,
+    500_000,
+    1_000_000,
+    2_000_000,
+    3_500_000,
+    5_000_000,
+    5_000_000,
+    5_000_000,
+    5_000_000,
+    5_500_000,
+    6_000_000,
+    6_000_000,
+    6_500_000,
+    7_000_000,
+    7_000_000,
+    5_000_000,
+    7_500_000
+  ]);
+}
+
 function rollLootboxReward() {
   const cosmeticPool = availableLootboxCosmetics();
   const roll = Math.random();
@@ -640,7 +719,6 @@ function rollLootboxReward() {
 
   if (roll < 0.06) {
     const reward = pickLootboxBoostReward();
-    state.boostInventory[reward.rarity.key] = (Number(state.boostInventory[reward.rarity.key]) || 0) + reward.quantity;
     return {
       rewardType: "boost",
       cookiePayout: 0,
@@ -651,8 +729,9 @@ function rollLootboxReward() {
     };
   }
 
-  const amount = pickLootboxCookieReward(roll < 0.21, randomFrom);
-  grantCookies(amount);
+  const amount = pickLootboxCookieReward(roll < 0.21);
+  state.cookies += amount;
+  state.total += amount;
   return {
     rewardType: "cookies",
     cookiePayout: amount,
@@ -666,13 +745,6 @@ function rollLootboxReward() {
 function recordLootboxResult(reward) {
   gameStats.lootbox.opens += 1;
   gameStats.lootbox.net += (Number(reward.cookiePayout) || 0) - LOOTBOX_COST;
-  queueGlobalStatsDelta({
-    gamesPlayed: 1,
-    lootboxesOpened: 1,
-    gamesByMode: {
-      lootbox: 1
-    }
-  });
 }
 
 function resetLootboxVisual() {
@@ -919,7 +991,7 @@ function scalePayout(basePayout, invested = 0) {
 }
 
 function currentSaveKey() {
-  return state.devMode ? appConfig.storageKeys.dev : appConfig.storageKeys.main;
+  return state.devMode ? DEV_STORAGE_KEY : STORAGE_KEY;
 }
 
 function canAfford(amount) {
@@ -940,47 +1012,103 @@ function formatMultiplier(value) {
   });
 }
 
-const {
-  activeColorCosmetic,
-  activeAccessoryCosmetic,
-  activeSkinCosmetic,
-  activeMiscCosmetic,
-  resetCosmeticsState,
-  applyCosmeticTheme,
-  migrateLegacyCosmetics,
-  availableLootboxCosmetics,
-  unlockLootboxCosmetic,
-  renderCosmetics
-} = createCosmeticsController({
-  documentRef: document,
-  state,
-  collections: {
-    colors: colorCosmetics,
-    accessories: accessoryCosmetics,
-    skins: skinCosmetics,
-    misc: miscCosmetics
-  },
-  elements: {
-    cookieButton,
-    cookieSkinEl,
-    cookieMiscEl,
-    cookieAccessoryEl,
-    cosmeticsPreviewCookie,
-    cosmeticsPreviewAccessory,
-    cosmeticsPreviewSkin,
-    cosmeticsPreviewMisc,
-    cosmeticsPreviewName,
-    cosmeticsPreviewMeta,
-    cosmeticsCatalogList,
-    cosmeticsCategoryTabs
-  },
-  getActiveCategory: () => activeCosmeticsCategory,
-  format,
-  canAfford,
-  spendCookies,
-  updateStats,
-  showGameToast
-});
+function activeColorCosmetic() {
+  return colorCosmetics.find((cosmetic) => cosmetic.key === state.activeColor) || colorCosmetics[0];
+}
+
+function activeAccessoryCosmetic() {
+  return accessoryCosmetics.find((cosmetic) => cosmetic.key === state.activeAccessory && !cosmetic.hidden) || accessoryCosmetics[0];
+}
+
+function activeSkinCosmetic() {
+  return skinCosmetics.find((cosmetic) => cosmetic.key === state.activeSkin) || skinCosmetics[0];
+}
+
+function activeMiscCosmetic() {
+  return miscCosmetics.find((cosmetic) => cosmetic.key === state.activeMisc) || miscCosmetics[0];
+}
+
+function resetCosmeticsState() {
+  colorCosmetics.forEach((cosmetic) => {
+    cosmetic.owned = cosmetic.key === "classic";
+  });
+  accessoryCosmetics.forEach((cosmetic) => {
+    cosmetic.owned = cosmetic.key === "none";
+  });
+  skinCosmetics.forEach((cosmetic) => {
+    cosmetic.owned = cosmetic.key === "none";
+  });
+  miscCosmetics.forEach((cosmetic) => {
+    cosmetic.owned = cosmetic.key === "none";
+  });
+  state.activeColor = "classic";
+  state.activeSkin = "none";
+  state.activeMisc = "none";
+  state.activeAccessory = "none";
+}
+
+function applyCosmeticTheme() {
+  const color = activeColorCosmetic();
+  const skin = activeSkinCosmetic();
+  const misc = activeMiscCosmetic();
+  const accessory = activeAccessoryCosmetic();
+  state.activeColor = color.key;
+  state.activeSkin = skin.key;
+  state.activeMisc = misc.key;
+  state.activeAccessory = accessory.key;
+  Object.entries(color.theme).forEach(([key, value]) => {
+    cookieButton.style.setProperty(key, value);
+  });
+  if (skin.theme) {
+    Object.entries(skin.theme).forEach(([key, value]) => {
+      cookieButton.style.setProperty(key, value);
+    });
+  }
+  cookieButton.dataset.skin = skin.key || "none";
+  cookieButton.dataset.misc = misc.key || "none";
+  if (cookieSkinEl) {
+    cookieSkinEl.className = `cookie-skin skin-${skin.key || "none"}`;
+  }
+  if (cookieMiscEl) {
+    cookieMiscEl.className = `cookie-misc misc-${misc.key || "none"}`;
+    cookieMiscEl.innerHTML = misc.svg || "";
+  }
+  if (cookieAccessoryEl) {
+    cookieAccessoryEl.className = `cookie-accessory accessory-${accessory.key || "none"}`;
+  }
+}
+
+function migrateLegacyCosmetics(savedCosmetics) {
+  const legacyMap = {
+    classic: { color: "classic", accessory: "none" },
+    strawberry: { color: "strawberry", accessory: "party" },
+    mint: { color: "mint", accessory: "none" },
+    midnight: { color: "midnight", accessory: "crown" },
+    "royal-velvet": { color: "royal-velvet", accessory: "crown" },
+    "captain-crunch": { color: "captain-crunch", accessory: "cowboy" }
+  };
+
+  const ownedKeys = Array.isArray(savedCosmetics.owned) ? savedCosmetics.owned : [];
+  ownedKeys.forEach((key) => {
+    const mapped = legacyMap[key];
+    if (!mapped) return;
+    const color = colorCosmetics.find((entry) => entry.key === mapped.color);
+    const accessory = accessoryCosmetics.find((entry) => entry.key === mapped.accessory);
+    if (color) color.owned = true;
+    if (accessory) accessory.owned = true;
+  });
+
+  if (typeof savedCosmetics.active === "string") {
+    const mapped = legacyMap[savedCosmetics.active];
+    if (!mapped) return;
+    if (colorCosmetics.some((entry) => entry.key === mapped.color && entry.owned)) {
+      state.activeColor = mapped.color;
+    }
+    if (accessoryCosmetics.some((entry) => entry.key === mapped.accessory && entry.owned)) {
+      state.activeAccessory = mapped.accessory;
+    }
+  }
+}
 
 function resetProgressState() {
   state.cookies = 0;
@@ -1042,14 +1170,14 @@ function resetProgressState() {
 function loadState(forceDevMode = null) {
   let savedMode = false;
   try {
-    savedMode = gameApi.getStorageItem(appConfig.storageKeys.devMode) === "true";
+    savedMode = localStorage.getItem(DEV_MODE_KEY) === "true";
   } catch (error) {
     savedMode = false;
   }
   state.devMode = typeof forceDevMode === "boolean" ? forceDevMode : savedMode;
   resetProgressState();
   try {
-    const raw = gameApi.getStorageItem(currentSaveKey());
+    const raw = localStorage.getItem(currentSaveKey());
     if (!raw) {
       applyCosmeticTheme();
       return;
@@ -1184,13 +1312,291 @@ function saveState() {
     )
   };
   try {
-    const serialized = JSON.stringify(payload);
-    gameApi.setStorageItem(currentSaveKey(), serialized);
-    gameApi.setStorageItem(appConfig.storageKeys.devMode, String(state.devMode));
-    void gameApi.syncState(payload, state.devMode ? "dev" : "main");
+    localStorage.setItem(currentSaveKey(), JSON.stringify(payload));
+    localStorage.setItem(DEV_MODE_KEY, String(state.devMode));
   } catch (error) {
     // Ignore storage failures (private mode, quota).
   }
+}
+
+function totalGamesPlayed() {
+  return (
+    gameStats.tower.wins + gameStats.tower.losses +
+    gameStats.blackjack.wins + gameStats.blackjack.losses +
+    gameStats.slots.wins + gameStats.slots.losses +
+    gameStats.roulette.wins + gameStats.roulette.losses +
+    gameStats.wheel.wins + gameStats.wheel.losses +
+    gameStats.lootbox.opens
+  );
+}
+
+async function requestJson(path, options = {}) {
+  try {
+    const response = await fetch(path, {
+      headers: {
+        "Content-Type": "application/json"
+      },
+      ...options
+    });
+    const data = await response.json().catch(() => ({}));
+    return {
+      ok: response.ok,
+      status: response.status,
+      ...data
+    };
+  } catch (error) {
+    return { ok: false, status: 0 };
+  }
+}
+
+async function registerPlayer(name) {
+  const normalized = String(name || "").trim().slice(0, 24);
+  if (!normalized) {
+    return { ok: false };
+  }
+  const response = await requestJson("/api/player/register", {
+    method: "POST",
+    body: JSON.stringify({ playerName: normalized })
+  });
+  if (!response.ok) {
+    return { ok: false };
+  }
+  playerName = normalized;
+  try {
+    localStorage.setItem(PLAYER_NAME_KEY, playerName);
+  } catch (error) {
+    // Ignore storage failures.
+  }
+  return { ok: true };
+}
+
+async function syncPlayerStats() {
+  if (!playerName) {
+    return { ok: false };
+  }
+  return requestJson("/api/leaderboard", {
+    method: "POST",
+    body: JSON.stringify({
+      playerName,
+      score: Math.floor(state.total),
+      totalClicks: Math.floor(state.clicks),
+      totalGames: Math.floor(totalGamesPlayed())
+    })
+  });
+}
+
+async function loadLeaderboardSnapshot() {
+  const response = await requestJson("/api/leaderboard", { method: "GET" });
+  if (!response.ok || !Array.isArray(response.leaderboard)) {
+    return;
+  }
+  leaderboardSnapshot = response.leaderboard;
+}
+
+function formatCountdown(seconds) {
+  const safe = Math.max(0, Math.floor(seconds));
+  const minutes = Math.floor(safe / 60);
+  const rest = safe % 60;
+  return `${minutes}:${String(rest).padStart(2, "0")}`;
+}
+
+function renderSyncStatusBar() {
+  if (syncStatusCountdownEl) {
+    return;
+  }
+  const footerEl = document.querySelector(".footer");
+  if (!footerEl) {
+    return;
+  }
+  const line = document.createElement("p");
+  line.className = "sync-status-subtle";
+  line.innerHTML = `Auto-Sync in <strong id="syncStatusCountdown">-</strong>`;
+  footerEl.appendChild(line);
+  syncStatusCountdownEl = line.querySelector("#syncStatusCountdown");
+
+  const rankLine = document.createElement("p");
+  rankLine.className = "sync-status-subtle";
+  rankLine.innerHTML = `<span id="syncStatusRank">Platz wird berechnet...</span>`;
+  footerEl.appendChild(rankLine);
+  syncStatusRankEl = rankLine.querySelector("#syncStatusRank");
+}
+
+function renderChaseBanner() {
+  if (chaseBannerEl) {
+    return;
+  }
+  const scene = document.querySelector(".scene");
+  if (!scene) {
+    return;
+  }
+  const banner = document.createElement("div");
+  banner.className = "chase-banner hidden";
+  banner.innerHTML = `Naechster Spieler in <strong id="chaseBannerDelta">-</strong>`;
+  const hero = scene.querySelector(".hero");
+  if (hero && hero.parentNode) {
+    hero.parentNode.insertBefore(banner, hero.nextSibling);
+  } else {
+    scene.prepend(banner);
+  }
+  chaseBannerEl = banner;
+}
+
+function updateSyncStatusBar() {
+  if (!syncStatusCountdownEl) {
+    return;
+  }
+  const remainingSeconds = nextServerSyncAt
+    ? Math.max(0, Math.ceil((nextServerSyncAt - Date.now()) / 1000))
+    : 0;
+  syncStatusCountdownEl.textContent = formatCountdown(remainingSeconds);
+
+  if (syncStatusRankEl) {
+    const myScore = Math.floor(Number(state.total) || 0);
+    const others = leaderboardSnapshot
+      .filter((entry) => entry && entry.playerName !== playerName)
+      .map((entry) => Number(entry.bestScore) || 0)
+      .sort((a, b) => b - a);
+    const rank = 1 + others.filter((score) => score > myScore).length;
+    const higherScores = others.filter((score) => score > myScore);
+    const nextHigher = higherScores.length ? Math.min(...higherScores) : null;
+    if (!others.length) {
+      syncStatusRankEl.textContent = "Platz 1 • noch keine weiteren Spieler";
+    } else if (nextHigher === null) {
+      syncStatusRankEl.textContent = `Platz ${rank} • du bist aktuell vorne`;
+    } else {
+      const delta = Math.max(0, nextHigher - myScore);
+      syncStatusRankEl.textContent = `Platz ${rank} • noch ${format(delta)} bis Platz ${rank - 1}`;
+    }
+  }
+
+  const myScore = Math.floor(Number(state.total) || 0);
+  const nextEntry = leaderboardSnapshot
+    .filter((entry) => entry && entry.playerName !== playerName && Number(entry.bestScore) > myScore)
+    .sort((a, b) => Number(a.bestScore) - Number(b.bestScore))[0];
+  if (!chaseBannerEl) {
+    return;
+  }
+  if (!nextEntry || myScore <= 0) {
+    chaseBannerEl.classList.add("hidden");
+    return;
+  }
+
+  const nextScore = Number(nextEntry.bestScore) || 0;
+  const inRange = nextScore <= myScore * 2;
+  if (!inRange) {
+    chaseBannerEl.classList.add("hidden");
+    return;
+  }
+
+  const delta = Math.max(0, nextScore - myScore);
+  const target = chaseBannerEl.querySelector("#chaseBannerDelta");
+  if (target) {
+    target.textContent = `${format(delta)} (${nextEntry.playerName})`;
+  }
+  chaseBannerEl.classList.remove("hidden");
+}
+
+function startSyncStatusCountdown() {
+  if (syncCountdownTimer) {
+    clearInterval(syncCountdownTimer);
+  }
+  syncCountdownTimer = setInterval(updateSyncStatusBar, 1000);
+}
+
+async function runServerSyncCycle() {
+  nextServerSyncAt = Date.now() + SERVER_SYNC_INTERVAL_MS;
+  updateSyncStatusBar();
+  await syncPlayerStats();
+  await loadLeaderboardSnapshot();
+  updateSyncStatusBar();
+}
+
+function startServerSync() {
+  if (!playerName) {
+    return;
+  }
+  if (serverSyncTimer) {
+    clearInterval(serverSyncTimer);
+  }
+  renderSyncStatusBar();
+  renderChaseBanner();
+  startSyncStatusCountdown();
+  void runServerSyncCycle();
+  serverSyncTimer = setInterval(() => {
+    void runServerSyncCycle();
+  }, SERVER_SYNC_INTERVAL_MS);
+}
+
+function createPlayerNameGate() {
+  const overlay = document.createElement("div");
+  overlay.className = "player-gate";
+  overlay.innerHTML = `
+    <div class="player-gate-card" role="dialog" aria-modal="true" aria-labelledby="playerGateTitle">
+      <p class="eyebrow">Willkommen</p>
+      <h2 id="playerGateTitle">Playername festlegen</h2>
+      <p class="player-gate-copy">Bitte einmalig einen Namen waehlen. Unter diesem Namen wird dein Stand alle 30 Sekunden synchronisiert.</p>
+      <div class="player-gate-row">
+        <input id="playerGateInput" class="player-gate-input" type="text" maxlength="24" placeholder="Dein Name" />
+        <button id="playerGateSave" class="player-gate-button" type="button">Speichern</button>
+      </div>
+      <p id="playerGateStatus" class="player-gate-status">Nur Buchstaben, Zahlen, Leerzeichen, Punkt, Unterstrich und Bindestrich.</p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const input = overlay.querySelector("#playerGateInput");
+  const button = overlay.querySelector("#playerGateSave");
+  const status = overlay.querySelector("#playerGateStatus");
+  return { overlay, input, button, status };
+}
+
+async function ensurePlayerIdentity() {
+  let savedName = "";
+  try {
+    savedName = localStorage.getItem(PLAYER_NAME_KEY) || "";
+  } catch (error) {
+    savedName = "";
+  }
+
+  if (savedName) {
+    const restored = await registerPlayer(savedName);
+    if (restored.ok) {
+      startServerSync();
+      return;
+    }
+  }
+
+  if (document.querySelector(".player-gate")) {
+    return;
+  }
+  const gate = createPlayerNameGate();
+  const submit = async () => {
+    const value = gate.input.value.trim();
+    if (!value) {
+      gate.status.textContent = "Bitte einen gueltigen Namen eingeben.";
+      return;
+    }
+    gate.button.disabled = true;
+    gate.status.textContent = "Pruefe Namen...";
+    const result = await registerPlayer(value);
+    gate.button.disabled = false;
+    if (!result.ok) {
+      gate.status.textContent = "Name ungueltig oder Server nicht erreichbar.";
+      return;
+    }
+    gate.overlay.remove();
+    startServerSync();
+  };
+
+  gate.button.addEventListener("click", () => {
+    void submit();
+  });
+  gate.input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void submit();
+    }
+  });
+  gate.input.focus();
 }
 
 function format(num) {
@@ -1248,11 +1654,11 @@ function updateVersionLink() {
   }
   const version = appVersionEl.textContent?.trim() || "";
   if (version.startsWith("v")) {
-    appVersionLinkEl.href = gameApi.getReleaseLink(version);
+    appVersionLinkEl.href = `${RELEASES_BASE_URL}/tag/${version}`;
     appVersionLinkEl.removeAttribute("aria-disabled");
     return;
   }
-  appVersionLinkEl.href = gameApi.getReleaseLink(version);
+  appVersionLinkEl.href = RELEASES_BASE_URL;
   appVersionLinkEl.setAttribute("aria-disabled", "true");
 }
 
@@ -1261,7 +1667,7 @@ function toggleDevMode() {
   saveState();
   state.devMode = nextMode;
   try {
-    gameApi.setStorageItem(appConfig.storageKeys.devMode, String(state.devMode));
+    localStorage.setItem(DEV_MODE_KEY, String(state.devMode));
   } catch (error) {
     // Ignore storage failures (private mode, quota).
   }
@@ -1379,6 +1785,254 @@ function renderUpgrades() {
   });
 }
 
+function selectColorCosmetic(key) {
+  const cosmetic = colorCosmetics.find((entry) => entry.key === key && entry.owned);
+  if (!cosmetic) {
+    return;
+  }
+  state.activeColor = cosmetic.key;
+  applyCosmeticTheme();
+  updateStats();
+}
+
+function buyColorCosmetic(key) {
+  const cosmetic = colorCosmetics.find((entry) => entry.key === key);
+  if (!cosmetic || cosmetic.owned || !canAfford(cosmetic.cost)) {
+    return;
+  }
+  spendCookies(cosmetic.cost);
+  cosmetic.owned = true;
+  state.activeColor = cosmetic.key;
+  applyCosmeticTheme();
+  showGameToast(state.devMode ? 0 : -cosmetic.cost, `${cosmetic.name} Farbe`);
+  updateStats();
+}
+
+function selectAccessoryCosmetic(key) {
+  const cosmetic = accessoryCosmetics.find((entry) => entry.key === key && entry.owned);
+  if (!cosmetic) {
+    return;
+  }
+  state.activeAccessory = cosmetic.key;
+  applyCosmeticTheme();
+  updateStats();
+}
+
+function buyAccessoryCosmetic(key) {
+  const cosmetic = accessoryCosmetics.find((entry) => entry.key === key);
+  if (!cosmetic || cosmetic.owned || !canAfford(cosmetic.cost)) {
+    return;
+  }
+  spendCookies(cosmetic.cost);
+  cosmetic.owned = true;
+  state.activeAccessory = cosmetic.key;
+  applyCosmeticTheme();
+  showGameToast(state.devMode ? 0 : -cosmetic.cost, `${cosmetic.name} Accessoire`);
+  updateStats();
+}
+
+function selectSkinCosmetic(key) {
+  const cosmetic = skinCosmetics.find((entry) => entry.key === key && entry.owned);
+  if (!cosmetic) {
+    return;
+  }
+  state.activeSkin = cosmetic.key;
+  applyCosmeticTheme();
+  updateStats();
+}
+
+function selectMiscCosmetic(key) {
+  const cosmetic = miscCosmetics.find((entry) => entry.key === key && entry.owned);
+  if (!cosmetic) {
+    return;
+  }
+  state.activeMisc = cosmetic.key;
+  applyCosmeticTheme();
+  updateStats();
+}
+
+function buySkinCosmetic(key) {
+  const cosmetic = skinCosmetics.find((entry) => entry.key === key);
+  if (!cosmetic || cosmetic.owned || !canAfford(cosmetic.cost)) {
+    return;
+  }
+  spendCookies(cosmetic.cost);
+  cosmetic.owned = true;
+  state.activeSkin = cosmetic.key;
+  applyCosmeticTheme();
+  showGameToast(state.devMode ? 0 : -cosmetic.cost, `${cosmetic.name} Skin`);
+  updateStats();
+}
+
+function buyMiscCosmetic(key) {
+  const cosmetic = miscCosmetics.find((entry) => entry.key === key);
+  if (!cosmetic || cosmetic.owned || !canAfford(cosmetic.cost)) {
+    return;
+  }
+  spendCookies(cosmetic.cost);
+  cosmetic.owned = true;
+  state.activeMisc = cosmetic.key;
+  applyCosmeticTheme();
+  showGameToast(state.devMode ? 0 : -cosmetic.cost, `${cosmetic.name} Sonstiges`);
+  updateStats();
+}
+
+function renderCosmeticCards(listEl, entries, activeKey, onSelect, onBuy, previewFactory) {
+  if (!listEl) {
+    return;
+  }
+  listEl.innerHTML = "";
+  entries.filter((cosmetic) => !cosmetic.hidden).forEach((cosmetic) => {
+    const item = document.createElement("div");
+    const isActive = cosmetic.key === activeKey;
+    item.className = "cosmetic-card";
+    if (cosmetic.owned) {
+      item.classList.add("owned");
+    }
+    if (isActive) {
+      item.classList.add("selected");
+    }
+
+    const preview = previewFactory(cosmetic);
+
+    const info = document.createElement("div");
+    const title = document.createElement("h3");
+    title.textContent = cosmetic.name;
+
+    const desc = document.createElement("p");
+    desc.textContent = cosmetic.owned
+      ? cosmetic.desc
+      : (state.devMode
+        ? `${cosmetic.desc} - Kosten: Dev gratis (${format(cosmetic.cost)})`
+        : `${cosmetic.desc} - Kosten: ${format(cosmetic.cost)}`);
+
+    info.appendChild(title);
+    info.appendChild(desc);
+
+    const button = document.createElement("button");
+    if (isActive) {
+      button.textContent = "Aktiv";
+      button.disabled = true;
+    } else if (cosmetic.owned) {
+      button.textContent = "Auswaehlen";
+      button.addEventListener("click", () => onSelect(cosmetic.key));
+    } else {
+      button.textContent = "Kaufen";
+      button.disabled = !canAfford(cosmetic.cost);
+      button.addEventListener("click", () => onBuy(cosmetic.key));
+    }
+
+    item.appendChild(preview);
+    item.appendChild(info);
+    item.appendChild(button);
+
+    if (!cosmetic.owned && !button.disabled) {
+      item.classList.add("affordable");
+    }
+
+    listEl.appendChild(item);
+  });
+}
+
+function createColorPreview(cosmetic) {
+  const preview = document.createElement("div");
+  preview.className = "cosmetic-preview";
+  Object.entries(cosmetic.theme).forEach(([key, value]) => {
+    preview.style.setProperty(key, value);
+  });
+  if (activeSkinCosmetic().theme) {
+    Object.entries(activeSkinCosmetic().theme).forEach(([key, value]) => {
+      preview.style.setProperty(key, value);
+    });
+  }
+  preview.dataset.skin = activeSkinCosmetic().key || "none";
+  preview.dataset.misc = activeMiscCosmetic().key || "none";
+  const previewSkin = document.createElement("span");
+  previewSkin.className = `cookie-skin skin-${state.activeSkin || "none"}`;
+  preview.appendChild(previewSkin);
+  preview.appendChild(createMiscLayer(activeMiscCosmetic()));
+  const previewAccessory = document.createElement("span");
+  previewAccessory.className = `cookie-accessory accessory-${state.activeAccessory || "none"}`;
+  preview.appendChild(previewAccessory);
+  return preview;
+}
+
+function createSkinPreview(cosmetic) {
+  const preview = document.createElement("div");
+  preview.className = "cosmetic-preview";
+  Object.entries(activeColorCosmetic().theme).forEach(([key, value]) => {
+    preview.style.setProperty(key, value);
+  });
+  if (cosmetic.theme) {
+    Object.entries(cosmetic.theme).forEach(([key, value]) => {
+      preview.style.setProperty(key, value);
+    });
+  }
+  preview.dataset.skin = cosmetic.key || "none";
+  preview.dataset.misc = activeMiscCosmetic().key || "none";
+  const previewSkin = document.createElement("span");
+  previewSkin.className = `cookie-skin skin-${cosmetic.key || "none"}`;
+  preview.appendChild(previewSkin);
+  preview.appendChild(createMiscLayer(activeMiscCosmetic()));
+  const previewAccessory = document.createElement("span");
+  previewAccessory.className = `cookie-accessory accessory-${state.activeAccessory || "none"}`;
+  preview.appendChild(previewAccessory);
+  return preview;
+}
+
+function createMiscLayer(cosmetic) {
+  const layer = document.createElement("span");
+  layer.className = `cookie-misc misc-${cosmetic.key || "none"}`;
+  layer.innerHTML = cosmetic.svg || "";
+  return layer;
+}
+
+function createMiscPreview(cosmetic) {
+  const preview = document.createElement("div");
+  preview.className = "cosmetic-preview";
+  Object.entries(activeColorCosmetic().theme).forEach(([key, value]) => {
+    preview.style.setProperty(key, value);
+  });
+  if (activeSkinCosmetic().theme) {
+    Object.entries(activeSkinCosmetic().theme).forEach(([key, value]) => {
+      preview.style.setProperty(key, value);
+    });
+  }
+  preview.dataset.skin = activeSkinCosmetic().key || "none";
+  preview.dataset.misc = cosmetic.key || "none";
+  const previewSkin = document.createElement("span");
+  previewSkin.className = `cookie-skin skin-${state.activeSkin || "none"}`;
+  preview.appendChild(previewSkin);
+  preview.appendChild(createMiscLayer(cosmetic));
+  const previewAccessory = document.createElement("span");
+  previewAccessory.className = `cookie-accessory accessory-${state.activeAccessory || "none"}`;
+  preview.appendChild(previewAccessory);
+  return preview;
+}
+
+function createAccessoryPreview(cosmetic) {
+  const preview = document.createElement("div");
+  preview.className = "cosmetic-preview";
+  Object.entries(activeColorCosmetic().theme).forEach(([key, value]) => {
+    preview.style.setProperty(key, value);
+  });
+  if (activeSkinCosmetic().theme) {
+    Object.entries(activeSkinCosmetic().theme).forEach(([key, value]) => {
+      preview.style.setProperty(key, value);
+    });
+  }
+  preview.dataset.skin = activeSkinCosmetic().key || "none";
+  preview.dataset.misc = activeMiscCosmetic().key || "none";
+  const previewSkin = document.createElement("span");
+  previewSkin.className = `cookie-skin skin-${state.activeSkin || "none"}`;
+  preview.appendChild(previewSkin);
+  preview.appendChild(createMiscLayer(activeMiscCosmetic()));
+  const previewAccessory = document.createElement("span");
+  previewAccessory.className = `cookie-accessory accessory-${cosmetic.key || "none"}`;
+  preview.appendChild(previewAccessory);
+  return preview;
+}
+
 function openCosmeticsModal() {
   if (!cosmeticsModal) return;
   cosmeticsModal.classList.remove("hidden");
@@ -1390,6 +2044,95 @@ function closeCosmeticsModal() {
   if (!cosmeticsModal) return;
   cosmeticsModal.classList.add("hidden");
   cosmeticsModal.setAttribute("aria-hidden", "true");
+}
+
+function renderCosmeticsTabs() {
+  cosmeticsCategoryTabs.forEach((tab) => {
+    const isActive = tab.dataset.cosmeticsCategory === activeCosmeticsCategory;
+    tab.classList.toggle("active", isActive);
+    tab.setAttribute("aria-selected", String(isActive));
+  });
+}
+
+function renderCosmeticsStage() {
+  if (!cosmeticsPreviewCookie || !cosmeticsPreviewAccessory || !cosmeticsPreviewSkin || !cosmeticsPreviewMisc) {
+    return;
+  }
+  const activeColor = activeColorCosmetic();
+  const activeSkin = activeSkinCosmetic();
+  const activeMisc = activeMiscCosmetic();
+  const activeAccessory = activeAccessoryCosmetic();
+
+  Object.entries(activeColor.theme).forEach(([key, value]) => {
+    cosmeticsPreviewCookie.style.setProperty(key, value);
+  });
+  if (activeSkin.theme) {
+    Object.entries(activeSkin.theme).forEach(([key, value]) => {
+      cosmeticsPreviewCookie.style.setProperty(key, value);
+    });
+  }
+  cosmeticsPreviewCookie.dataset.skin = activeSkin.key || "none";
+  cosmeticsPreviewCookie.dataset.misc = activeMisc.key || "none";
+  cosmeticsPreviewSkin.className = `cookie-skin skin-${activeSkin.key || "none"}`;
+  cosmeticsPreviewMisc.className = `cookie-misc misc-${activeMisc.key || "none"}`;
+  cosmeticsPreviewMisc.innerHTML = activeMisc.svg || "";
+  cosmeticsPreviewAccessory.className = `cookie-accessory accessory-${activeAccessory.key || "none"}`;
+
+  if (cosmeticsPreviewName) {
+    cosmeticsPreviewName.textContent = `${activeColor.name} + ${activeSkin.name} + ${activeMisc.name} + ${activeAccessory.name}`;
+  }
+  if (cosmeticsPreviewMeta) {
+    cosmeticsPreviewMeta.textContent = `Farbe: ${activeColor.name} | Skin: ${activeSkin.name} | Sonstiges: ${activeMisc.name} | Hut: ${activeAccessory.name}`;
+  }
+}
+
+function renderCosmetics() {
+  renderCosmeticsTabs();
+  renderCosmeticsStage();
+  if (activeCosmeticsCategory === "colors") {
+    renderCosmeticCards(
+      cosmeticsCatalogList,
+      colorCosmetics,
+      state.activeColor,
+      selectColorCosmetic,
+      buyColorCosmetic,
+      createColorPreview
+    );
+    return;
+  }
+
+  if (activeCosmeticsCategory === "skins") {
+    renderCosmeticCards(
+      cosmeticsCatalogList,
+      skinCosmetics,
+      state.activeSkin,
+      selectSkinCosmetic,
+      buySkinCosmetic,
+      createSkinPreview
+    );
+    return;
+  }
+
+  if (activeCosmeticsCategory === "misc") {
+    renderCosmeticCards(
+      cosmeticsCatalogList,
+      miscCosmetics,
+      state.activeMisc,
+      selectMiscCosmetic,
+      buyMiscCosmetic,
+      createMiscPreview
+    );
+    return;
+  }
+
+  renderCosmeticCards(
+    cosmeticsCatalogList,
+    accessoryCosmetics,
+    state.activeAccessory,
+    selectAccessoryCosmetic,
+    buyAccessoryCosmetic,
+    createAccessoryPreview
+  );
 }
 
 function updateStats() {
@@ -1472,152 +2215,6 @@ function formatFullNet(value) {
   return `${sign}${formatFull(value)}`;
 }
 
-function createEmptyGlobalGamesByMode() {
-  return {
-    tower: 0,
-    blackjack: 0,
-    slots: 0,
-    roulette: 0,
-    wheel: 0,
-    lootbox: 0
-  };
-}
-
-function renderGlobalStats() {
-  if (!globalPlayersEl) {
-    return;
-  }
-  globalPlayersEl.textContent = formatFull(globalStatsState.uniquePlayers);
-  globalSessionsEl.textContent = formatFull(globalStatsState.totalSessions);
-  globalClicksEl.textContent = formatFull(globalStatsState.totalClicks);
-  globalGamesPlayedEl.textContent = formatFull(globalStatsState.totalGamesPlayed);
-  globalLootboxesOpenedEl.textContent = formatFull(globalStatsState.totalLootboxesOpened);
-  globalCookiesGeneratedEl.textContent = formatFull(globalStatsState.totalCookiesGenerated);
-  globalStatsStatusEl.textContent = globalStatsState.status;
-}
-
-function applyGlobalStatsPayload(stats) {
-  if (!stats || typeof stats !== "object") {
-    return;
-  }
-  globalStatsState.uniquePlayers = Number(stats.uniquePlayers) || 0;
-  globalStatsState.totalSessions = Number(stats.totalSessions) || 0;
-  globalStatsState.totalClicks = Number(stats.totalClicks) || 0;
-  globalStatsState.totalGamesPlayed = Number(stats.totalGamesPlayed) || 0;
-  globalStatsState.totalLootboxesOpened = Number(stats.totalLootboxesOpened) || 0;
-  globalStatsState.totalCookiesGenerated = Number(stats.totalCookiesGenerated) || 0;
-  globalStatsState.gamesByMode = {
-    ...createEmptyGlobalGamesByMode(),
-    ...(stats.gamesByMode || {})
-  };
-  globalStatsState.lastUpdatedAt = typeof stats.lastUpdatedAt === "string" ? stats.lastUpdatedAt : "";
-  globalStatsState.online = true;
-  globalStatsState.status = "Live vom Backend";
-  renderGlobalStats();
-}
-
-function normalizeGlobalCount(value) {
-  return Math.max(0, Math.round(Number(value) || 0));
-}
-
-function hasPendingGlobalStats() {
-  if (pendingGlobalStatsDelta.clicks > 0 || pendingGlobalStatsDelta.gamesPlayed > 0 || pendingGlobalStatsDelta.lootboxesOpened > 0 || pendingGlobalStatsDelta.cookiesGenerated > 0) {
-    return true;
-  }
-  return Object.values(pendingGlobalStatsDelta.gamesByMode).some((value) => value > 0);
-}
-
-function queueGlobalStatsDelta(delta) {
-  pendingGlobalStatsDelta.clicks += normalizeGlobalCount(delta.clicks);
-  pendingGlobalStatsDelta.gamesPlayed += normalizeGlobalCount(delta.gamesPlayed);
-  pendingGlobalStatsDelta.lootboxesOpened += normalizeGlobalCount(delta.lootboxesOpened);
-  pendingGlobalStatsDelta.cookiesGenerated += normalizeGlobalCount(delta.cookiesGenerated);
-  if (delta.gamesByMode && typeof delta.gamesByMode === "object") {
-    Object.entries(delta.gamesByMode).forEach(([key, value]) => {
-      pendingGlobalStatsDelta.gamesByMode[key] = (Number(pendingGlobalStatsDelta.gamesByMode[key]) || 0) + normalizeGlobalCount(value);
-    });
-  }
-  if (!globalStatsFlushTimer) {
-    globalStatsFlushTimer = window.setTimeout(() => {
-      globalStatsFlushTimer = null;
-      void flushGlobalStatsDelta();
-    }, 3000);
-  }
-}
-
-async function refreshGlobalStats() {
-  const response = await gameApi.fetchGlobalStats();
-  if (response.ok && response.stats) {
-    applyGlobalStatsPayload(response.stats);
-    return;
-  }
-  globalStatsState.online = false;
-  globalStatsState.status = "Backend offline";
-  renderGlobalStats();
-}
-
-async function flushGlobalStatsDelta() {
-  if (globalStatsSyncing || !globalStatsPlayerId || !hasPendingGlobalStats()) {
-    return;
-  }
-  globalStatsSyncing = true;
-  const delta = {
-    clicks: pendingGlobalStatsDelta.clicks,
-    gamesPlayed: pendingGlobalStatsDelta.gamesPlayed,
-    lootboxesOpened: pendingGlobalStatsDelta.lootboxesOpened,
-    cookiesGenerated: pendingGlobalStatsDelta.cookiesGenerated,
-    gamesByMode: { ...pendingGlobalStatsDelta.gamesByMode }
-  };
-  pendingGlobalStatsDelta.clicks = 0;
-  pendingGlobalStatsDelta.gamesPlayed = 0;
-  pendingGlobalStatsDelta.lootboxesOpened = 0;
-  pendingGlobalStatsDelta.cookiesGenerated = 0;
-  pendingGlobalStatsDelta.gamesByMode = {};
-
-  const response = await gameApi.postGlobalStatsDelta(globalStatsPlayerId, delta);
-  if (response.ok && response.stats) {
-    applyGlobalStatsPayload(response.stats);
-  } else {
-    pendingGlobalStatsDelta.clicks += delta.clicks;
-    pendingGlobalStatsDelta.gamesPlayed += delta.gamesPlayed;
-    pendingGlobalStatsDelta.lootboxesOpened += delta.lootboxesOpened;
-    pendingGlobalStatsDelta.cookiesGenerated += delta.cookiesGenerated;
-    Object.entries(delta.gamesByMode).forEach(([key, value]) => {
-      pendingGlobalStatsDelta.gamesByMode[key] = (Number(pendingGlobalStatsDelta.gamesByMode[key]) || 0) + normalizeGlobalCount(value);
-    });
-    globalStatsState.online = false;
-    globalStatsState.status = "Sync fehlgeschlagen";
-    renderGlobalStats();
-  }
-  globalStatsSyncing = false;
-}
-
-async function initializeGlobalStats() {
-  globalStatsPlayerId = gameApi.getOrCreatePlayerId();
-  const registration = await gameApi.registerGlobalPlayer(globalStatsPlayerId);
-  if (registration.ok && registration.stats) {
-    applyGlobalStatsPayload(registration.stats);
-  } else {
-    globalStatsState.online = false;
-    globalStatsState.status = "Backend offline";
-    renderGlobalStats();
-  }
-  await refreshGlobalStats();
-  await flushGlobalStatsDelta();
-}
-
-function grantCookies(amount, options = {}) {
-  if (!(amount > 0)) {
-    return 0;
-  }
-  state.cookies += amount;
-  state.total += amount;
-  if (options.trackGlobal !== false) {
-    queueGlobalStatsDelta({ cookiesGenerated: amount });
-  }
-  return amount;
-}
-
 function renderGameStats() {
   const overall = {
     wins: gameStats.tower.wins + gameStats.blackjack.wins + gameStats.slots.wins + gameStats.roulette.wins + gameStats.wheel.wins,
@@ -1650,7 +2247,6 @@ function updateFinanceOverview() {
   if (financeLootboxNetEl) {
     financeLootboxNetEl.textContent = formatFullNet(gameStats.lootbox.net);
   }
-  renderGlobalStats();
 }
 
 function recordGameResult(key, bet, payout) {
@@ -1661,12 +2257,6 @@ function recordGameResult(key, bet, payout) {
     gameStats[key].losses += 1;
   }
   gameStats[key].net += net;
-  queueGlobalStatsDelta({
-    gamesPlayed: 1,
-    gamesByMode: {
-      [key]: 1
-    }
-  });
 }
 
 function showGameToast(net, label) {
@@ -1705,6 +2295,14 @@ function showInfoToast(message) {
   }, 2600);
 }
 
+function setAllInBet(input, renderFn) {
+  if (!input) return;
+  input.value = String(Math.max(0, Math.floor(state.cookies)));
+  if (typeof renderFn === "function") {
+    renderFn();
+  }
+}
+
 function openResetModal() {
   if (resetCosmeticsToggle) {
     resetCosmeticsToggle.checked = true;
@@ -1718,7 +2316,7 @@ function closeResetModal() {
   resetModal.setAttribute("aria-hidden", "true");
 }
 
-function resetAccount() {
+async function resetAccount() {
   const shouldResetCosmetics = resetCosmeticsToggle ? resetCosmeticsToggle.checked : true;
 
   state.cookies = 0;
@@ -1785,12 +2383,54 @@ function resetAccount() {
   rouletteSpinning = false;
   wheelSpinning = false;
 
+  const currentName = playerName || (() => {
+    try {
+      return localStorage.getItem(PLAYER_NAME_KEY) || "";
+    } catch (error) {
+      return "";
+    }
+  })();
+  if (currentName) {
+    await requestJson("/api/player/reset", {
+      method: "POST",
+      body: JSON.stringify({ playerName: currentName })
+    });
+  }
+
+  if (serverSyncTimer) {
+    clearInterval(serverSyncTimer);
+    serverSyncTimer = null;
+  }
+  if (syncCountdownTimer) {
+    clearInterval(syncCountdownTimer);
+    syncCountdownTimer = null;
+  }
+  nextServerSyncAt = 0;
+  leaderboardSnapshot = [];
+  playerName = "";
+  if (syncStatusCountdownEl) {
+    syncStatusCountdownEl.textContent = "-";
+  }
+  if (syncStatusRankEl) {
+    syncStatusRankEl.textContent = "Platz wird berechnet...";
+  }
+  if (chaseBannerEl) {
+    chaseBannerEl.classList.add("hidden");
+  }
+  try {
+    localStorage.removeItem(PLAYER_NAME_KEY);
+  } catch (error) {
+    // Ignore storage failures.
+  }
+
   closeResetModal();
   updateStats();
+  showInfoToast("Account und Leaderboard-Eintrag wurden zurueckgesetzt.");
+  void ensurePlayerIdentity();
 }
 
 function currentTowerChance() {
-  return getTowerChance(state.towerStep);
+  return towerChances[Math.min(state.towerStep, towerChances.length - 1)];
 }
 
 function renderTowerVisual() {
@@ -1908,7 +2548,6 @@ function openFinanceModal() {
   financeModal.classList.remove("hidden");
   financeModal.setAttribute("aria-hidden", "false");
   updateFinanceOverview();
-  void refreshGlobalStats();
 }
 
 function closeFinanceModal() {
@@ -1921,9 +2560,9 @@ function clickCookie() {
   if (removeExpiredBoosts()) {
     recalculateProduction();
   }
-  grantCookies(state.perClick);
+  state.cookies += state.perClick;
+  state.total += state.perClick;
   state.clicks += 1;
-  queueGlobalStatsDelta({ clicks: 1 });
   maybeTriggerBonus();
   updateStats();
 }
@@ -1947,7 +2586,8 @@ function tick() {
     recalculateProduction();
   }
   if (state.cps > 0) {
-    grantCookies(state.cps);
+    state.cookies += state.cps;
+    state.total += state.cps;
     updateStats();
     return;
   }
@@ -1977,7 +2617,8 @@ function collectBonus() {
     return;
   }
   const bonusAmount = scaleGain(50 + (state.basePerClick * 2));
-  grantCookies(bonusAmount);
+  state.cookies += bonusAmount;
+  state.total += bonusAmount;
   state.bonusReady = false;
   bonusPanel.classList.add("hidden");
   updateStats();
@@ -2027,6 +2668,42 @@ function levelUp() {
   updateStats();
 }
 
+function createDeck() {
+  const suits = ["S", "H", "D", "C"];
+  const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+  const deck = [];
+  suits.forEach((suit) => {
+    ranks.forEach((rank) => {
+      deck.push({ rank, suit });
+    });
+  });
+  return deck;
+}
+
+function shuffle(deck) {
+  for (let i = deck.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  return deck;
+}
+
+function cardValue(card) {
+  if (card.rank === "A") return 11;
+  if (["K", "Q", "J"].includes(card.rank)) return 10;
+  return Number(card.rank);
+}
+
+function handValue(hand) {
+  let total = hand.reduce((sum, card) => sum + cardValue(card), 0);
+  let aces = hand.filter((card) => card.rank === "A").length;
+  while (total > 21 && aces > 0) {
+    total -= 10;
+    aces -= 1;
+  }
+  return total;
+}
+
 function renderHand(container, hand, hideFirst) {
   container.innerHTML = "";
   hand.forEach((card, index) => {
@@ -2054,7 +2731,8 @@ function endBlackjack(result) {
   blackjackActive = false;
   const payout = scalePayout(Math.floor(blackjackBet * result), blackjackBet);
   if (payout > 0) {
-    grantCookies(payout);
+    state.cookies += payout;
+    state.total += payout;
   }
   recordGameResult("blackjack", blackjackBet, payout);
   showGameToast(payout - blackjackBet, "Blackjack");
@@ -2063,10 +2741,28 @@ function endBlackjack(result) {
 }
 
 function resolveDealer() {
-  const resolution = resolveDealerRound(dealerHand, playerHand, blackjackDeck);
-  dealerHand = resolution.dealerHand;
-  blackjackStatus.textContent = resolution.status;
-  endBlackjack(resolution.result);
+  const playerTotal = handValue(playerHand);
+  while (handValue(dealerHand) < 17) {
+    dealerHand.push(blackjackDeck.pop());
+  }
+  const dealerTotal = handValue(dealerHand);
+  if (playerTotal > 21) {
+    blackjackStatus.textContent = "Bust! Einsatz verloren.";
+    endBlackjack(0);
+    return;
+  }
+  if (dealerTotal > 21 || playerTotal > dealerTotal) {
+    blackjackStatus.textContent = "Gewonnen! Auszahlung x2.";
+    endBlackjack(2);
+    return;
+  }
+  if (dealerTotal === playerTotal) {
+    blackjackStatus.textContent = "Push. Einsatz zurueck.";
+    endBlackjack(1);
+    return;
+  }
+  blackjackStatus.textContent = "Dealer gewinnt.";
+  endBlackjack(0);
 }
 
 function dealBlackjack() {
@@ -2077,7 +2773,7 @@ function dealBlackjack() {
   }
   spendCookies(bet);
   blackjackBet = bet;
-  blackjackDeck = shuffleDeck(createDeck());
+  blackjackDeck = shuffle(createDeck());
   dealerHand = [blackjackDeck.pop(), blackjackDeck.pop()];
   playerHand = [blackjackDeck.pop(), blackjackDeck.pop()];
   blackjackActive = true;
@@ -2107,6 +2803,18 @@ function hitBlackjack() {
 function standBlackjack() {
   if (!blackjackActive) return;
   resolveDealer();
+}
+
+function pickSlotSymbol() {
+  const total = slotSymbols.reduce((sum, symbol) => sum + symbol.weight, 0);
+  let roll = Math.random() * total;
+  for (const symbol of slotSymbols) {
+    roll -= symbol.weight;
+    if (roll <= 0) {
+      return symbol;
+    }
+  }
+  return slotSymbols[0];
 }
 
 function renderSlots() {
@@ -2141,10 +2849,32 @@ function spinSlots() {
     });
     slotReels.forEach((reel) => reel.classList.remove("spinning"));
     slotsSpinning = false;
-    const totalMultiplier = evaluateSlotMultiplier(finalSymbols);
+    const lines = [
+      [0, 1, 2],
+      [3, 4, 5],
+      [6, 7, 8],
+      [0, 3, 6],
+      [1, 4, 7],
+      [2, 5, 8],
+      [0, 4, 8],
+      [2, 4, 6]
+    ];
+    let totalMultiplier = 0;
+    lines.forEach((line) => {
+      const [a, b, c] = line.map((index) => finalSymbols[index]);
+      if (a.key === b.key && b.key === c.key) {
+        totalMultiplier += a.multiplier;
+        return;
+      }
+      const cookieCount = [a, b, c].filter((symbol) => symbol.key === "COOKIE").length;
+      if (cookieCount === 2) {
+        totalMultiplier += 1.5;
+      }
+    });
     const payout = scalePayout(Math.floor(bet * totalMultiplier), bet);
     if (payout > 0) {
-      grantCookies(payout);
+      state.cookies += payout;
+      state.total += payout;
       slotsStatus.textContent = `Gewonnen! Gesamt x${totalMultiplier}.`;
     } else {
       slotsStatus.textContent = "Leider leer ausgegangen.";
@@ -2154,6 +2884,76 @@ function spinSlots() {
     updateStats();
   }, spinTime);
   updateStats();
+}
+
+function rouletteColor(number) {
+  if (number === 0) return "green";
+  return rouletteRedNumbers.has(number) ? "red" : "black";
+}
+
+function rouletteColorLabel(color) {
+  if (color === "green") return "Gruen";
+  if (color === "red") return "Rot";
+  return "Schwarz";
+}
+
+function roulettePayoutMultiplier(choice) {
+  if (choice === "number") return 36;
+  if (choice.startsWith("dozen")) return 3;
+  return 2;
+}
+
+function rouletteBetLabel(choice) {
+  switch (choice) {
+    case "red":
+      return "Rot";
+    case "black":
+      return "Schwarz";
+    case "even":
+      return "Gerade";
+    case "odd":
+      return "Ungerade";
+    case "low":
+      return "1-18";
+    case "high":
+      return "19-36";
+    case "dozen1":
+      return "1st 12";
+    case "dozen2":
+      return "2nd 12";
+    case "dozen3":
+      return "3rd 12";
+    case "number":
+      return `Zahl ${rouletteBetNumber}`;
+    default:
+      return "Unbekannt";
+  }
+}
+
+function isWinningRouletteBet(choice, number) {
+  switch (choice) {
+    case "number":
+      return number === rouletteBetNumber;
+    case "red":
+    case "black":
+      return rouletteColor(number) === choice;
+    case "even":
+      return number !== 0 && number % 2 === 0;
+    case "odd":
+      return number % 2 === 1;
+    case "low":
+      return number >= 1 && number <= 18;
+    case "high":
+      return number >= 19 && number <= 36;
+    case "dozen1":
+      return number >= 1 && number <= 12;
+    case "dozen2":
+      return number >= 13 && number <= 24;
+    case "dozen3":
+      return number >= 25 && number <= 36;
+    default:
+      return false;
+  }
 }
 
 function buildRouletteWheel() {
@@ -2234,7 +3034,7 @@ function renderRoulette() {
     chip.classList.toggle("active", chip.dataset.bet === rouletteBetChoice);
   });
   renderRouletteBoard();
-  rouletteSelection.textContent = `Aktiver Tipp: ${rouletteBetLabel(rouletteBetChoice, rouletteBetNumber)} (x${roulettePayoutMultiplier(rouletteBetChoice)})`;
+  rouletteSelection.textContent = `Aktiver Tipp: ${rouletteBetLabel(rouletteBetChoice)} (x${roulettePayoutMultiplier(rouletteBetChoice)})`;
 }
 
 function spinRoulette() {
@@ -2251,7 +3051,11 @@ function spinRoulette() {
   const index = Math.floor(Math.random() * rouletteOrder.length);
   const number = rouletteOrder[index];
   const color = rouletteColor(number);
-  const rotationDelta = getRouletteSpinDelta(rouletteRotation, index);
+  const anglePer = 360 / rouletteOrder.length;
+  const targetAngle = index * anglePer + anglePer / 2;
+  const normalizedRotation = ((rouletteRotation % 360) + 360) % 360;
+  const targetRotation = (360 - targetAngle + 360) % 360;
+  const rotationDelta = (targetRotation - normalizedRotation + 360) % 360;
   rouletteRotation += 360 * 6 + rotationDelta;
   updateRouletteWheelLabels(rouletteRotation, true);
   rouletteWheel.style.transform = `rotate(${rouletteRotation}deg)`;
@@ -2259,12 +3063,13 @@ function spinRoulette() {
   setTimeout(() => {
     rouletteSpinning = false;
     let payout = 0;
-    if (isWinningRouletteBet(rouletteBetChoice, number, rouletteBetNumber)) {
+    if (isWinningRouletteBet(rouletteBetChoice, number)) {
       payout = scalePayout(bet * roulettePayoutMultiplier(rouletteBetChoice), bet);
     }
     if (payout > 0) {
-      grantCookies(payout);
-      rouletteStatus.textContent = `Gewonnen! Ergebnis: ${number} (${rouletteColorLabel(color)}). ${rouletteBetLabel(rouletteBetChoice, rouletteBetNumber)} trifft, Auszahlung x${roulettePayoutMultiplier(rouletteBetChoice)}.`;
+      state.cookies += payout;
+      state.total += payout;
+      rouletteStatus.textContent = `Gewonnen! Ergebnis: ${number} (${rouletteColorLabel(color)}). ${rouletteBetLabel(rouletteBetChoice)} trifft, Auszahlung x${roulettePayoutMultiplier(rouletteBetChoice)}.`;
     } else {
       rouletteStatus.textContent = `Verloren. Ergebnis: ${number} (${rouletteColorLabel(color)}).`;
     }
@@ -2278,6 +3083,22 @@ function spinRoulette() {
 function renderWheel() {
   const betValue = Number(wheelBetInput.value) || 0;
   wheelSpinButton.disabled = wheelSpinning || betValue <= 0 || !canAfford(betValue);
+}
+
+function pickWheelIndex() {
+  const total = wheelSegments.reduce((sum, segment) => sum + segment.weight, 0);
+  let roll = Math.random() * total;
+  for (let i = 0; i < wheelSegments.length; i += 1) {
+    roll -= wheelSegments[i].weight;
+    if (roll <= 0) {
+      return i;
+    }
+  }
+  return 0;
+}
+
+function normalizeRotation(angle) {
+  return ((angle % 360) + 360) % 360;
 }
 
 function spinWheel() {
@@ -2305,7 +3126,8 @@ function spinWheel() {
     wheelSpinning = false;
     const payout = scalePayout(Math.floor(bet * segment.multiplier), bet);
     if (payout > 0) {
-      grantCookies(payout);
+      state.cookies += payout;
+      state.total += payout;
       wheelStatus.textContent = `Gewonnen: ${segment.label}. Auszahlung x${segment.multiplier}.`;
     } else if (segment.multiplier === 0) {
       wheelStatus.textContent = "Niete. Kein Gewinn.";
@@ -2356,7 +3178,7 @@ function climbTower() {
   if (!state.towerActive) {
     return;
   }
-  const success = rollTowerClimb(state.towerStep);
+  const success = Math.random() < currentTowerChance();
   if (!success) {
     const lostBet = state.towerBet;
     state.towerActive = false;
@@ -2374,7 +3196,7 @@ function climbTower() {
     updateStats();
     return;
   }
-  state.towerStep = nextTowerStep(state.towerStep);
+  state.towerStep = Math.min(state.towerStep + 1, towerSteps.length - 1);
   state.towerMultiplier = towerSteps[state.towerStep];
   towerStatus.textContent = `Geschafft! Aktuell x${state.towerMultiplier}. Naechste Chance: ${Math.round(currentTowerChance() * 100)}%.`;
   updateStats();
@@ -2386,7 +3208,8 @@ function cashoutTower() {
   }
   const payout = scalePayout(Math.floor(state.towerBet * state.towerMultiplier), state.towerBet);
   const bet = state.towerBet;
-  grantCookies(payout);
+  state.cookies += payout;
+  state.total += payout;
   state.towerActive = false;
   state.towerBet = 0;
   state.towerStep = 0;
@@ -2415,7 +3238,7 @@ towerOpenButton.addEventListener("click", openTowerModal);
 towerCloseButton.addEventListener("click", closeTowerModal);
 towerCloseOverlay.addEventListener("click", closeTowerModal);
 towerBetInput.addEventListener("input", renderTower);
-towerAllInButton.addEventListener("click", () => setAllInBetValue(towerBetInput, state.cookies, renderTower));
+towerAllInButton.addEventListener("click", () => setAllInBet(towerBetInput, renderTower));
 towerStartButton.addEventListener("click", startTower);
 towerClimbButton.addEventListener("click", climbTower);
 towerCashoutButton.addEventListener("click", cashoutTower);
@@ -2424,7 +3247,7 @@ blackjackOpenButton.addEventListener("click", openBlackjackModal);
 blackjackCloseButton.addEventListener("click", closeBlackjackModal);
 blackjackCloseOverlay.addEventListener("click", closeBlackjackModal);
 blackjackBetInput.addEventListener("input", renderBlackjack);
-blackjackAllInButton.addEventListener("click", () => setAllInBetValue(blackjackBetInput, state.cookies, renderBlackjack));
+blackjackAllInButton.addEventListener("click", () => setAllInBet(blackjackBetInput, renderBlackjack));
 blackjackDealButton.addEventListener("click", dealBlackjack);
 blackjackHitButton.addEventListener("click", hitBlackjack);
 blackjackStandButton.addEventListener("click", standBlackjack);
@@ -2432,7 +3255,7 @@ blackjackBuyButton.addEventListener("click", () => buyGame("blackjack", "Blackja
 slotsOpenButton.addEventListener("click", openSlotsModal);
 slotsCloseButton.addEventListener("click", closeSlotsModal);
 slotsCloseOverlay.addEventListener("click", closeSlotsModal);
-slotsAllInButton.addEventListener("click", () => setAllInBetValue(slotsBetInput, state.cookies, renderSlots));
+slotsAllInButton.addEventListener("click", () => setAllInBet(slotsBetInput, renderSlots));
 slotsSpinButton.addEventListener("click", spinSlots);
 slotsBetInput.addEventListener("input", renderSlots);
 slotsBuyButton.addEventListener("click", () => buyGame("slots", "Slots"));
@@ -2444,7 +3267,7 @@ lootboxBuyButton.addEventListener("click", () => buyGame("lootbox", "Lootboxes")
 rouletteOpenButton.addEventListener("click", openRouletteModal);
 rouletteCloseButton.addEventListener("click", closeRouletteModal);
 rouletteCloseOverlay.addEventListener("click", closeRouletteModal);
-rouletteAllInButton.addEventListener("click", () => setAllInBetValue(rouletteBetInput, state.cookies, renderRoulette));
+rouletteAllInButton.addEventListener("click", () => setAllInBet(rouletteBetInput, renderRoulette));
 rouletteSpinButton.addEventListener("click", spinRoulette);
 rouletteBetInput.addEventListener("input", renderRoulette);
 rouletteChips.forEach((chip) => {
@@ -2457,7 +3280,7 @@ rouletteBuyButton.addEventListener("click", () => buyGame("roulette", "Roulette"
 wheelOpenButton.addEventListener("click", openWheelModal);
 wheelCloseButton.addEventListener("click", closeWheelModal);
 wheelCloseOverlay.addEventListener("click", closeWheelModal);
-wheelAllInButton.addEventListener("click", () => setAllInBetValue(wheelBetInput, state.cookies, renderWheel));
+wheelAllInButton.addEventListener("click", () => setAllInBet(wheelBetInput, renderWheel));
 wheelSpinButton.addEventListener("click", spinWheel);
 if (levelButton) levelButton.addEventListener("click", levelUp);
 wheelBetInput.addEventListener("input", renderWheel);
@@ -2476,16 +3299,14 @@ resetCloseOverlay.addEventListener("click", closeResetModal);
 resetCancelButton.addEventListener("click", closeResetModal);
 resetConfirmButton.addEventListener("click", resetAccount);
 
-export function startGameApp() {
-  buildRouletteWheel();
-  setInterval(tick, 1000);
-  loadState();
-  updateStats();
-  renderGlobalStats();
-  void initializeGlobalStats();
-  window.addEventListener("beforeunload", () => {
-    void flushGlobalStatsDelta();
-  });
-}
+buildRouletteWheel();
+setInterval(tick, 1000);
+loadState();
+updateStats();
+void ensurePlayerIdentity();
+window.addEventListener("beforeunload", () => {
+  void syncPlayerStats();
+});
+
 
 

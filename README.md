@@ -1,65 +1,45 @@
-# Cookie Klicker
+# HETHEY Cookie Clicker (SvelteKit)
 
-Eine Cookie-Klicker Website mit Casino-Modi (Tower, Blackjack, Slots, Roulette).
+Kompletter Refactor auf **SvelteKit + TailwindCSS** mit komponentenbasierter UI, serverseitiger API und globalem Leaderboard.
 
-## Projektstruktur
+## Features
 
-- `src/index.html`: Einstieg fuer den Client.
-- `src/script.js`: schlanker Bootstrap fuer den Browser.
-- `src/app/`: modulare Client-Struktur mit Config, Services und Spiel-App.
-- `src/app/legacy/gameApp.js`: bestehende Spiellogik, jetzt als eingebundene App-Schicht statt globalem Monolith-Einstieg.
-- `backend/server.js`: separates Backend-Scaffold fuer spaetere API-Endpunkte.
+- SvelteKit-Frontend mit wiederverwendbaren Components
+- TailwindCSS-Designsystem
+- Pflicht-Playername beim ersten Start (lokal gespeichert)
+- Serverseitige API-Endpunkte in `src/routes/api/*`
+- Persistente globale Statistiken + Leaderboard in `backend/data/game-data.json`
 
-## Backend-Scaffold
-
-Lokalen API-Stub starten:
+## Lokal starten
 
 ```bash
-npm run start:backend
+npm install
+npm run dev
 ```
 
-Aktuell vorhanden:
+App läuft dann standardmäßig auf `http://localhost:5173`.
 
-- `GET /api/health`
-- `GET /api/config`
-- `GET /api/global-stats`
-- `POST /api/global-stats/register`
-- `POST /api/global-stats/events`
-
-Die Client-Architektur ist damit bereits auf eine kuenftige HTTP-API vorbereitet, bleibt im Moment aber lokal funktionsfaehig.
-
-## Docker Compose
-
-```yaml
-services:
-  cookie-clicker:
-    image: ghcr.io/crayongamerhd-philipp/cookie-clicker:latest
-    ports:
-      - "8080:80"
-```
-
-Starten:
+## Build / Production
 
 ```bash
-docker compose up -d
+npm run build
+npm start
 ```
 
-## Docker Compose mit Traefik
+## API Endpoints
 
-```yaml
-services:
-  cookie-clicker:
-    image: ghcr.io/crayongamerhd-philipp/cookie-clicker:latest
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.cookie-clicker.rule=Host(`cookie.example.com`)"
-      - "traefik.http.routers.cookie-clicker.entrypoints=websecure"
-      - "traefik.http.routers.cookie-clicker.tls=true"
-      - "traefik.http.services.cookie-clicker.loadbalancer.server.port=80"
-    networks:
-      - traefik
+- `POST /api/player/register`
+  - Body: `{ "playerName": "..." }`
+- `GET /api/stats`
+- `POST /api/stats/event`
+  - Body: `{ "playerName": "...", "delta": { clicks, gamesPlayed, lootboxesOpened, cookiesGenerated, gamesByMode } }`
+- `GET /api/leaderboard`
+- `POST /api/leaderboard`
+  - Body: `{ "playerName": "...", "score": number, "totalClicks": number, "totalGames": number }`
 
-networks:
-  traefik:
-    external: true
-```
+## Wichtige Pfade
+
+- `src/routes/+page.svelte`: Hauptoberfläche
+- `src/lib/components/*`: UI-Komponenten
+- `src/lib/game/modes.ts`: Modus-Logik
+- `src/lib/server/dataStore.ts`: persistente Server-Datenhaltung
