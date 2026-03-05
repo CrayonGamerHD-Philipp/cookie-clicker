@@ -954,25 +954,26 @@ function upgradeLevelCostMultiplier() {
 }
 
 function calculateBaseProduction() {
-  let perClick = 1;
-  let cps = 0;
+  const basePerClick = 1;
+  let upgradePerClick = 0;
+  let upgradeCps = 0;
   upgrades.forEach((upgrade) => {
     if (upgrade.type === "click") {
-      perClick += upgrade.power * upgrade.count;
+      upgradePerClick += upgrade.power * upgrade.count;
     } else {
-      cps += upgrade.power * upgrade.count;
+      upgradeCps += upgrade.power * upgrade.count;
     }
   });
-  return { perClick, cps };
+  return { basePerClick, upgradePerClick, upgradeCps };
 }
 
 function recalculateProduction() {
   const baseProduction = calculateBaseProduction();
   const multiplier = totalGainMultiplier();
-  state.basePerClick = baseProduction.perClick;
-  state.baseCps = baseProduction.cps;
-  state.perClick = roundValue(baseProduction.perClick * multiplier);
-  state.cps = roundValue(baseProduction.cps * multiplier);
+  state.basePerClick = roundValue(baseProduction.basePerClick + baseProduction.upgradePerClick);
+  state.baseCps = roundValue(baseProduction.upgradeCps);
+  state.perClick = roundValue((baseProduction.basePerClick * multiplier) + baseProduction.upgradePerClick);
+  state.cps = roundValue(baseProduction.upgradeCps);
 }
 
 function scaleGain(amount) {
