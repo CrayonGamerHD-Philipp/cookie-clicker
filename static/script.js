@@ -1355,7 +1355,7 @@ async function registerPlayer(name) {
   if (!normalized) {
     return { ok: false };
   }
-  const response = await requestJson("/api/player/register", {
+  const response = await requestJson("/game/api/player/register", {
     method: "POST",
     body: JSON.stringify({ playerName: normalized })
   });
@@ -1375,7 +1375,7 @@ async function syncPlayerStats() {
   if (!playerName) {
     return { ok: false };
   }
-  return requestJson("/api/leaderboard", {
+  return requestJson("/game/api/leaderboard", {
     method: "POST",
     body: JSON.stringify({
       playerName,
@@ -1388,7 +1388,7 @@ async function syncPlayerStats() {
 }
 
 async function loadLeaderboardSnapshot() {
-  const response = await requestJson("/api/leaderboard", { method: "GET" });
+  const response = await requestJson("/game/api/leaderboard", { method: "GET" });
   if (!response.ok || !Array.isArray(response.leaderboard)) {
     return;
   }
@@ -2452,7 +2452,7 @@ async function resetAccount() {
     }
   })();
   if (currentName) {
-    await requestJson("/api/player/reset", {
+    await requestJson("/game/api/player/reset", {
       method: "POST",
       body: JSON.stringify({ playerName: currentName })
     });

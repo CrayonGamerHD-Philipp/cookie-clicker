@@ -15,7 +15,7 @@
   <main class="leaderboard-shell">
     <div class="leaderboard-toolbar">
       <input id="leaderboardName" class="leaderboard-input" type="text" maxlength="24" placeholder="Dein Name" />
-      <a href="/" data-sveltekit-reload class="reset-open">Zurueck zum Spiel</a>
+      <a href="/game" data-sveltekit-reload class="reset-open">Zurueck zum Spiel</a>
     </div>
 
     <div class="leaderboard-ranges" role="tablist" aria-label="Leaderboard Zeitraum">

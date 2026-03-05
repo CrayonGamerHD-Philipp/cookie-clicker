@@ -146,7 +146,7 @@ function renderEntries(entries) {
 }
 
 async function refreshLeaderboard() {
-  const response = await requestJson(`/api/leaderboard?range=${encodeURIComponent(activeRange)}`, { method: "GET" });
+  const response = await requestJson(`/game/api/leaderboard?range=${encodeURIComponent(activeRange)}`, { method: "GET" });
   if (!response.ok || !Array.isArray(response.leaderboard)) {
     setStatus("Konnte globales Leaderboard nicht laden.");
     rowsEl.innerHTML = '<tr><td colspan="6">Fehler beim Laden der globalen Daten.</td></tr>';
@@ -173,7 +173,7 @@ async function saveCurrentScore() {
   const clicks = Math.floor(Number(game.clicks) || 0);
   const totalGames = parseTotalGames(game);
 
-  const register = await requestJson("/api/player/register", {
+  const register = await requestJson("/game/api/player/register", {
     method: "POST",
     body: JSON.stringify({ playerName: name })
   });
@@ -182,7 +182,7 @@ async function saveCurrentScore() {
     return;
   }
 
-  const submit = await requestJson("/api/leaderboard", {
+  const submit = await requestJson("/game/api/leaderboard", {
     method: "POST",
     body: JSON.stringify({
       playerName: name,

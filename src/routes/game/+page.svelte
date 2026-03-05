@@ -1,0 +1,628 @@
+<svelte:head>
+  <title>Cookie Klicker - HETHEY</title>
+  <link rel="stylesheet" href="/style.css" />
+  <script src="/script.js" defer></script>
+</svelte:head>
+<div class="grain"></div>
+    <div class="scene">
+      <header class="hero">
+        <p class="eyebrow">HETHEY Backstube</p>
+        <h1>Cookie Klicker</h1>
+        <p class="tagline">Klick dich zur groessten Keksmanufaktur der Stadt.</p>
+      </header>
+
+      <main class="grid">
+        <section class="cookie-panel">
+          <div class="boost-panel boost-panel-active">
+            <div class="boost-head">
+              <div class="boost-title-block">
+                <span class="label">Aktive Boosts</span>
+              </div>
+              <span id="activeBoostTotal" class="boost-total">x1</span>
+            </div>
+            <div id="activeBoostList" class="boost-list">
+              <p class="boost-empty">Keine aktiven Boosts.</p>
+            </div>
+          </div>
+
+          <div class="meter">
+            <span class="label">Kekse</span>
+            <span id="cookieCount" class="value">0</span>
+            <span id="rate" class="rate">0 / sek</span>
+          </div>
+
+          <button id="cookieButton" class="cookie" aria-label="Keks backen">
+            <span id="cookieSkin" class="cookie-skin skin-none" aria-hidden="true"></span>
+            <span id="cookieMisc" class="cookie-misc misc-none" aria-hidden="true"></span>
+            <span id="cookieAccessory" class="cookie-accessory accessory-none" aria-hidden="true"></span>
+            <span class="cookie-text">KLICK!</span>
+          </button>
+
+          <div class="stats">
+            <div class="stat">
+              <span class="label">Pro Klick</span>
+              <span id="perClick" class="value">1</span>
+            </div>
+            <div class="stat">
+              <span class="label">Klicks</span>
+              <span id="clickCount" class="value">0</span>
+            </div>
+            <div class="stat stat-wide">
+              <span class="label">Gesamt</span>
+              <span id="total" class="value">0</span>
+            </div>
+          </div>
+
+          <div class="level-panel">
+            <div class="level-orbit" aria-hidden="true">
+              <span class="level-orbit-ring"></span>
+              <span id="levelValue" class="level-orbit-value">1</span>
+            </div>
+            <div class="level-main">
+              <div class="level-copy">
+                <span class="label">Dein Backstuben-Level</span>
+                <span id="levelMultiplier" class="level-title">Gewinn-Multiplikator x1</span>
+                <span id="levelRequirement" class="level-meta">Naechstes Level: 1 Mrd</span>
+              </div>
+              <div class="level-progress-block">
+                <div id="levelProgressWrap" class="level-progress-wrap">
+                  <div class="level-progress-track" aria-hidden="true">
+                    <span id="levelProgressFill" class="level-progress-fill"></span>
+                  </div>
+                  <span id="levelProgressText" class="level-progress-text">0 / 1 Mrd</span>
+                </div>
+                <button id="levelButton" class="level-button hidden">Auf Level 2</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="boost-panel boost-panel-inventory">
+            <div class="boost-head">
+              <div class="boost-title-block">
+                <span class="label">Boost-Inventar</span>
+                <span class="boost-subtitle">Hier sammelst du deine Level-Drops und aktivierst sie manuell.</span>
+              </div>
+            </div>
+            <div id="boostInventoryList" class="boost-list">
+              <p class="boost-empty">Noch keine Boosts gesammelt.</p>
+            </div>
+          </div>
+
+          <div id="bonus" class="bonus hidden">
+            <span>Goldene Kruemel!</span>
+            <button id="bonusButton">Einsammeln</button>
+          </div>
+
+          <div class="game-stats">
+            <h3>Spielstatistik</h3>
+            <div class="game-stat-row">
+              <span>Gesamt</span>
+              <span id="statsOverall">0</span>
+            </div>
+            <div class="game-stat-row">
+              <span>Cookie Tower</span>
+              <span id="statsTower">0</span>
+            </div>
+            <div class="game-stat-row">
+              <span>Blackjack</span>
+              <span id="statsBlackjack">0</span>
+            </div>
+            <div class="game-stat-row">
+              <span>Slots</span>
+              <span id="statsSlots">0</span>
+            </div>
+            <div class="game-stat-row">
+              <span>Roulette</span>
+              <span id="statsRoulette">0</span>
+            </div>
+            <div class="game-stat-row">
+              <span>Gluecksrad</span>
+              <span id="statsWheel">0</span>
+            </div>
+            <div class="game-stat-row">
+              <span>Lootboxes</span>
+              <span id="statsLootbox">0</span>
+            </div>
+          </div>
+
+          <div class="utility-buttons">
+            <button id="financeOpen" class="finance-open">Finanz-Uebersicht</button>
+            <a href="/game/leaderboard" data-sveltekit-reload class="finance-open leaderboard-link">Leaderboard</a>
+          </div>
+        </section>
+
+        <aside class="shop">
+          <div class="shop-header">
+            <h2>Upgrades</h2>
+            <p>Investiere in die Backstube fuer mehr Kekse pro Sekunde.</p>
+          </div>
+          <div class="upgrade-tabs" role="tablist" aria-label="Upgrade Kategorien">
+            <button
+              type="button"
+              class="upgrade-tab active"
+              data-upgrade-tab="click"
+              role="tab"
+              aria-selected="true"
+            >
+              Klick
+            </button>
+            <button
+              type="button"
+              class="upgrade-tab"
+              data-upgrade-tab="cps"
+              role="tab"
+              aria-selected="false"
+            >
+              Pro Sekunde
+            </button>
+          </div>
+          <div id="upgradeList" class="upgrade-list"></div>
+
+          <div class="cosmetics-entry">
+            <div class="tower-header">
+              <h2>Cosmetics</h2>
+              <p>Farben und Huete im eigenen Atelier kombinieren.</p>
+            </div>
+            <button id="cosmeticsOpen" class="cosmetics-open">Cosmetics-Atelier</button>
+          </div>
+
+          <div class="tower">
+            <div class="tower-header">
+              <h2>Cookie Tower</h2>
+              <p>Eine Runde Tower? Dein Einsatz wartet.</p>
+            </div>
+            <div class="casino-actions">
+              <button id="towerOpen" class="tower-open">Tower spielen</button>
+              <button id="towerBuy" class="tower-buy">Freischalten (1.000.000)</button>
+            </div>
+          </div>
+
+          <div class="casino">
+            <div class="tower-header">
+              <h2>Blackjack</h2>
+              <p>Schlage den Dealer und sichere dir Cookies.</p>
+            </div>
+            <div class="casino-actions">
+              <button id="blackjackOpen" class="tower-open">Blackjack spielen</button>
+              <button id="blackjackBuy" class="tower-buy">Freischalten (5.000.000)</button>
+            </div>
+          </div>
+
+          <div class="casino">
+            <div class="tower-header">
+              <h2>Slots</h2>
+              <p>Dreh die Walzen und jage die grossen Multiplikatoren.</p>
+            </div>
+            <div class="casino-actions">
+              <button id="slotsOpen" class="tower-open">Slots spielen</button>
+              <button id="slotsBuy" class="tower-buy">Freischalten (25.000.000)</button>
+            </div>
+          </div>
+
+          <div class="casino">
+            <div class="tower-header">
+              <h2>Lootboxes</h2>
+              <p>Zieh Cosmetics, Boosts oder einen Haufen extra Kekse.</p>
+            </div>
+            <div class="casino-actions">
+              <button id="lootboxOpen" class="tower-open">Lootboxes oeffnen</button>
+              <button id="lootboxBuy" class="tower-buy">Freischalten (40.000.000)</button>
+            </div>
+          </div>
+
+          <div class="casino">
+            <div class="tower-header">
+              <h2>Roulette</h2>
+              <p>Setz auf Rot, Schwarz oder die gruene Null.</p>
+            </div>
+            <div class="casino-actions">
+              <button id="rouletteOpen" class="tower-open">Roulette spielen</button>
+              <button id="rouletteBuy" class="tower-buy">Freischalten (50.000.000)</button>
+            </div>
+          </div>
+
+          <div class="casino">
+            <div class="tower-header">
+              <h2>Gluecksrad</h2>
+              <p>Dreh das Rad: x2, x50, x100, x0.5 oder Niete.</p>
+            </div>
+            <div class="casino-actions">
+              <button id="wheelOpen" class="tower-open">Gluecksrad spielen</button>
+              <button id="wheelBuy" class="tower-buy">Freischalten (150.000.000)</button>
+            </div>
+          </div>
+        </aside>
+      </main>
+
+      <footer class="footer">
+        <p>Tipp: Halte den Klick-Rhythmus, dann erscheinen goldene Kruemel.</p>
+        <p class="footer-version">Version: <a id="appVersionLink" href="#" target="_blank" rel="noreferrer"><span id="appVersion">lokal</span></a></p>
+        <div class="footer-actions">
+          <button id="devModeExit" class="reset-open hidden">Dev-Modus verlassen</button>
+          <button id="resetOpen" class="reset-open">Account zuruecksetzen</button>
+        </div>
+        <p id="devModeState" class="dev-mode-state hidden">Dev-Modus aktiv: Kauefe und Einsaetze sind gratis.</p>
+      </footer>
+    </div>
+
+    <div id="gameToast" class="game-toast hidden" role="status" aria-live="polite"></div>
+
+    <div id="financeModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="financeCloseOverlay"></div>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="financeTitle">
+        <button id="financeClose" class="modal-close" aria-label="Schliessen">x</button>
+        <div class="modal-head">
+          <p class="eyebrow">Finanzen</p>
+          <h2 id="financeTitle">Finanz-Uebersicht</h2>
+          <p class="modal-sub">Deine exakten Werte auf einen Blick.</p>
+        </div>
+        <div class="finance-grid">
+          <div class="finance-row">
+            <span>Aktuelle Kekse</span>
+            <strong id="financeCookies">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Pro Klick</span>
+            <strong id="financePerClick">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Pro Sekunde</span>
+            <strong id="financeCps">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Gesamt</span>
+            <strong id="financeTotal">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Klicks</span>
+            <strong id="financeClicks">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Tower (Netto)</span>
+            <strong id="financeTowerNet">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Blackjack (Netto)</span>
+            <strong id="financeBlackjackNet">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Slots (Netto)</span>
+            <strong id="financeSlotsNet">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Roulette (Netto)</span>
+            <strong id="financeRouletteNet">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Gluecksrad (Netto)</span>
+            <strong id="financeWheelNet">0</strong>
+          </div>
+          <div class="finance-row">
+            <span>Lootboxes (Netto)</span>
+            <strong id="financeLootboxNet">0</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="cosmeticsModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="cosmeticsCloseOverlay"></div>
+      <div class="modal-card modal-cosmetics" role="dialog" aria-modal="true" aria-labelledby="cosmeticsTitle">
+        <button id="cosmeticsClose" class="modal-close" aria-label="Schliessen">x</button>
+        <div class="modal-head">
+          <p class="eyebrow">Atelier</p>
+          <h2 id="cosmeticsTitle">Cookie Cosmetics</h2>
+          <p class="modal-sub">Kombiniere Farbe, Hut, optionale Skins und Sonstiges.</p>
+        </div>
+        <div class="cosmetics-panel">
+          <div class="cosmetics-stage">
+            <div id="cosmeticsPreviewCookie" class="cosmetics-preview-cookie">
+              <span class="cookie-skin skin-none" id="cosmeticsPreviewSkin" aria-hidden="true"></span>
+              <span class="cookie-misc misc-none" id="cosmeticsPreviewMisc" aria-hidden="true"></span>
+              <span class="cookie-accessory accessory-none" id="cosmeticsPreviewAccessory" aria-hidden="true"></span>
+              <span class="cosmetics-preview-label">Preview</span>
+            </div>
+            <div class="cosmetics-stage-copy">
+              <h3 id="cosmeticsPreviewName">Classic Bake</h3>
+              <p id="cosmeticsPreviewMeta">Aktiv: Ohne</p>
+            </div>
+          </div>
+          <div class="cosmetics-tabs" role="tablist" aria-label="Cosmetics Kategorien">
+            <button
+              type="button"
+              class="cosmetics-tab active"
+              data-cosmetics-category="colors"
+              role="tab"
+              aria-selected="true"
+            >
+              Farben
+            </button>
+            <button
+              type="button"
+              class="cosmetics-tab"
+              data-cosmetics-category="accessories"
+              role="tab"
+              aria-selected="false"
+            >
+              Huete
+            </button>
+            <button
+              type="button"
+              class="cosmetics-tab"
+              data-cosmetics-category="skins"
+              role="tab"
+              aria-selected="false"
+            >
+              Skins
+            </button>
+            <button
+              type="button"
+              class="cosmetics-tab"
+              data-cosmetics-category="misc"
+              role="tab"
+              aria-selected="false"
+            >
+              Sonstiges
+            </button>
+          </div>
+          <div class="cosmetics-browser">
+            <div id="cosmeticsCatalogList" class="cosmetics-catalog"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="resetModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="resetCloseOverlay"></div>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="resetTitle">
+        <button id="resetClose" class="modal-close" aria-label="Schliessen">x</button>
+        <div class="modal-head">
+          <p class="eyebrow">Warnung</p>
+          <h2 id="resetTitle">Alles zuruecksetzen?</h2>
+          <p class="modal-sub">Dies loescht deinen Fortschritt und alle Freischaltungen.</p>
+        </div>
+        <label class="reset-option" for="resetCosmeticsToggle">
+          <input id="resetCosmeticsToggle" type="checkbox" checked>
+          <span>Cosmetics ebenfalls zuruecksetzen</span>
+        </label>
+        <div class="reset-actions">
+          <button id="resetConfirm" class="reset-confirm">Ja, resetten</button>
+          <button id="resetCancel" class="reset-cancel">Abbrechen</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="towerModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="towerCloseOverlay"></div>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="towerTitle">
+        <button id="towerClose" class="modal-close" aria-label="Schliessen">x</button>
+        <div class="modal-head">
+          <p class="eyebrow">Cookie Tower</p>
+          <h2 id="towerTitle">Double or Crumble</h2>
+          <p class="modal-sub">Mehr Gewinnchance pro Stufe. Je weiter du gehst, desto groesser die Spannung.</p>
+        </div>
+        <div class="tower-controls">
+          <div class="tower-visual" id="towerVisual" aria-hidden="true">
+            <div class="tower-stack" id="towerStack"></div>
+            <div class="tower-base"></div>
+          </div>
+          <label class="tower-label" for="towerBet">Einsatz</label>
+          <div class="tower-row bet-row">
+            <input id="towerBet" type="number" min="1" step="1" value="100" />
+            <button id="towerAllIn" class="all-in-button" type="button">All In</button>
+            <button id="towerStart">Start</button>
+          </div>
+          <div class="tower-row">
+            <button id="towerClimb" disabled>Naechste Stufe</button>
+            <button id="towerCashout" disabled>Auszahlen</button>
+          </div>
+          <div class="tower-stats">
+            <span>Multiplikator</span>
+            <strong id="towerMultiplier">x0</strong>
+            <span>Auszahlung</span>
+            <strong id="towerPayout">0</strong>
+          </div>
+          <p id="towerStatus" class="tower-status">Setze einen Einsatz und starte.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="blackjackModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="blackjackCloseOverlay"></div>
+      <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="blackjackTitle">
+        <button id="blackjackClose" class="modal-close" aria-label="Schliessen">x</button>
+        <div class="modal-head">
+          <p class="eyebrow">Casino</p>
+          <h2 id="blackjackTitle">Blackjack</h2>
+          <p class="modal-sub">Ziel: 21 erreichen. Ass zaehlt 1 oder 11.</p>
+        </div>
+        <div class="blackjack">
+          <div class="blackjack-controls">
+            <label class="tower-label" for="blackjackBet">Einsatz</label>
+            <div class="tower-row bet-row">
+              <input id="blackjackBet" type="number" min="1" step="1" value="200" />
+              <button id="blackjackAllIn" class="all-in-button" type="button">All In</button>
+              <button id="blackjackDeal">Deal</button>
+            </div>
+            <div class="tower-row">
+              <button id="blackjackHit" disabled>Hit</button>
+              <button id="blackjackStand" disabled>Stand</button>
+            </div>
+            <p id="blackjackStatus" class="tower-status">Setze einen Einsatz und starte.</p>
+          </div>
+          <div class="blackjack-table">
+            <div>
+              <p class="hand-label">Dealer</p>
+              <div id="dealerHand" class="card-row"></div>
+              <p id="dealerTotal" class="hand-total"></p>
+            </div>
+            <div>
+              <p class="hand-label">Du</p>
+              <div id="playerHand" class="card-row"></div>
+              <p id="playerTotal" class="hand-total"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="slotsModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="slotsCloseOverlay"></div>
+      <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="slotsTitle">
+        <button id="slotsClose" class="modal-close" aria-label="Schliessen">x</button>
+        <div class="modal-head">
+          <p class="eyebrow">Casino</p>
+          <h2 id="slotsTitle">Slot Maschine</h2>
+          <p class="modal-sub">Drei gleiche Symbole bringen den grossen Gewinn.</p>
+        </div>
+        <div class="slots">
+          <div class="slots-controls">
+            <label class="tower-label" for="slotsBet">Einsatz</label>
+            <div class="tower-row bet-row">
+              <input id="slotsBet" type="number" min="1" step="1" value="150" />
+              <button id="slotsAllIn" class="all-in-button" type="button">All In</button>
+              <button id="slotsSpin">Spin</button>
+            </div>
+            <p id="slotsStatus" class="tower-status">Setze einen Einsatz und drehe.</p>
+          </div>
+          <div class="slots-machine" id="slotsMachine">
+            <div class="slot-reel" id="slot0">&#x1F352;</div>
+            <div class="slot-reel" id="slot1">&#x1F34B;</div>
+            <div class="slot-reel" id="slot2">&#x1F36A;</div>
+            <div class="slot-reel" id="slot3">&#x2B50;</div>
+            <div class="slot-reel" id="slot4">&#x1F514;</div>
+            <div class="slot-reel" id="slot5">&#x1F352;</div>
+            <div class="slot-reel" id="slot6">&#x1F34B;</div>
+            <div class="slot-reel" id="slot7">&#x1F36A;</div>
+            <div class="slot-reel" id="slot8">&#x2B50;</div>
+          </div>
+          <div class="slots-payouts">
+            <p>3x &#x1F36A; = x6</p>
+            <p>3x &#x2B50; = x4</p>
+            <p>3x &#x1F514; = x3</p>
+            <p>3x &#x1F352; = x2</p>
+            <p>3x &#x1F34B; = x1.5</p>
+            <p>2x &#x1F36A; (in einer Linie) = x1.5</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="lootboxModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="lootboxCloseOverlay"></div>
+      <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="lootboxTitle">
+        <button id="lootboxClose" class="modal-close" aria-label="Schliessen">x</button>
+        <div class="modal-head">
+          <p class="eyebrow">Casino</p>
+          <h2 id="lootboxTitle">Lootboxes</h2>
+          <p class="modal-sub">Kaufe eine Box und zieh Cosmetics, Boosts oder fette Cookie-Pakete.</p>
+        </div>
+        <div class="lootbox">
+          <div class="lootbox-showcase">
+            <div id="lootboxCrate" class="lootbox-crate" aria-hidden="true">
+              <span class="lootbox-ribbon"></span>
+              <span class="lootbox-gem"></span>
+            </div>
+            <div id="lootboxParticles" class="lootbox-particles" aria-hidden="true"></div>
+            <p class="lootbox-note">Jede Box kostet Kekse, aber kann dir direkt Fortschritt bringen.</p>
+          </div>
+          <div class="lootbox-controls">
+            <button id="lootboxRoll" class="lootbox-buy-button">Lootbox kaufen</button>
+            <p id="lootboxStatus" class="tower-status">Bereit fuer deinen naechsten Pull.</p>
+            <div class="lootbox-preview">
+              <span class="lootbox-tag">Moegliche Gewinne</span>
+              <div id="lootboxPreviewTrack" class="lootbox-preview-track"></div>
+            </div>
+            <div id="lootboxResult" class="lootbox-result">
+              <span class="lootbox-tag">Moegliche Rewards</span>
+              <strong>Cosmetics, Boosts und Cookie-Gewinne</strong>
+              <span>Cosmetics schalten sich sofort frei.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="rouletteModal" class="modal modal-scrollable hidden" aria-hidden="true">
+      <div class="modal-overlay" id="rouletteCloseOverlay"></div>
+      <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="rouletteTitle">
+        <button id="rouletteClose" class="modal-close" aria-label="Schliessen">x</button>
+        <div class="modal-head">
+          <p class="eyebrow">Casino</p>
+          <h2 id="rouletteTitle">Roulette</h2>
+          <p class="modal-sub">Setze wie am echten Tisch: Zahlen x36, Dutzende x3, Aussenwetten x2.</p>
+        </div>
+        <div class="roulette">
+          <div class="roulette-wheel-wrap">
+            <div class="roulette-pointer"></div>
+            <div id="rouletteWheel" class="roulette-wheel"></div>
+          </div>
+          <div class="roulette-controls">
+            <label class="tower-label" for="rouletteBet">Einsatz</label>
+            <div class="tower-row bet-row">
+              <input id="rouletteBet" type="number" min="1" step="1" value="200" />
+              <button id="rouletteAllIn" class="all-in-button" type="button">All In</button>
+              <button id="rouletteSpin">Spin</button>
+            </div>
+            <div class="roulette-bets">
+              <button class="roulette-chip" data-bet="red">Rot</button>
+              <button class="roulette-chip" data-bet="black">Schwarz</button>
+              <button class="roulette-chip" data-bet="even">Gerade</button>
+              <button class="roulette-chip" data-bet="odd">Ungerade</button>
+              <button class="roulette-chip" data-bet="low">1-18</button>
+              <button class="roulette-chip" data-bet="high">19-36</button>
+              <button class="roulette-chip" data-bet="dozen1">1st 12</button>
+              <button class="roulette-chip" data-bet="dozen2">2nd 12</button>
+              <button class="roulette-chip" data-bet="dozen3">3rd 12</button>
+            </div>
+            <div class="roulette-layout">
+              <div id="rouletteBoard" class="roulette-board" aria-label="Roulette Zahlenfeld"></div>
+              <p id="rouletteSelection" class="roulette-selection">Aktiver Tipp: Rot</p>
+            </div>
+            <p id="rouletteStatus" class="tower-status">Waehle eine Wette und drehe.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="wheelModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="wheelCloseOverlay"></div>
+      <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="wheelTitle">
+        <button id="wheelClose" class="modal-close" aria-label="Schliessen">x</button>
+        <div class="modal-head">
+          <p class="eyebrow">Casino</p>
+          <h2 id="wheelTitle">Gluecksrad</h2>
+          <p class="modal-sub">Dreh das Rad und nimm deinen Multiplikator mit.</p>
+        </div>
+        <div class="wheel">
+          <div class="wheel-wrap">
+            <div class="roulette-pointer"></div>
+            <div id="fortuneWheel" class="fortune-wheel">
+              <div class="wheel-labels" aria-hidden="true">
+                <span class="wheel-label" style="--angle: 36deg">x2</span>
+                <span class="wheel-label" style="--angle: 108deg">x50</span>
+                <span class="wheel-label" style="--angle: 180deg">x100</span>
+                <span class="wheel-label" style="--angle: 252deg">x0.5</span>
+                <span class="wheel-label" style="--angle: 324deg">Niete</span>
+              </div>
+            </div>
+          </div>
+          <div class="wheel-controls">
+            <label class="tower-label" for="wheelBet">Einsatz</label>
+            <div class="tower-row bet-row">
+              <input id="wheelBet" type="number" min="1" step="1" value="150" />
+              <button id="wheelAllIn" class="all-in-button" type="button">All In</button>
+              <button id="wheelSpin">Spin</button>
+            </div>
+            <p id="wheelStatus" class="tower-status">Bereit zum Drehen.</p>
+            <div class="wheel-payouts">
+              <p>x2</p>
+              <p>x50</p>
+              <p>x100</p>
+              <p>x0.5</p>
+              <p>Niete</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
