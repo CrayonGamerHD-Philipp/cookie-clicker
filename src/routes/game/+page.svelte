@@ -1,6 +1,7 @@
 <svelte:head>
   <title>Cookie Klicker - HETHEY</title>
   <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
   <script src="/script.js" defer></script>
 </svelte:head>
 <div class="grain"></div>
@@ -67,6 +68,7 @@
           <div class="utility-buttons">
             <button id="financeOpen" class="finance-open">Finanz-Uebersicht</button>
             <a href="/game/leaderboard" data-sveltekit-reload class="finance-open leaderboard-link">Leaderboard</a>
+            <button id="achievementOpen" class="finance-open">Achievements</button>
           </div>
 
           <div class="boost-panel boost-panel-active">
@@ -129,6 +131,7 @@
               <span id="statsLootbox">0</span>
             </div>
           </div>
+
         </section>
 
         <aside class="shop">
@@ -236,7 +239,7 @@
 
       <footer class="footer">
         <p>Tipp: Halte den Klick-Rhythmus, dann erscheinen goldene Kruemel.</p>
-        <p class="footer-version">Version: <a id="appVersionLink" href="#" target="_blank" rel="noreferrer"><span id="appVersion">lokal</span></a></p>
+        <p class="footer-version">Version: <a id="appVersionLink" href="https://github.com/CrayonGamerHD-Philipp/cookie-clicker/releases" target="_blank" rel="noreferrer"><span id="appVersion">lokal</span></a></p>
         <div class="footer-actions">
           <button id="accountAuthOpen" class="reset-open">Account anmelden</button>
           <button id="accountLogout" class="reset-open hidden">Logout</button>
@@ -249,6 +252,25 @@
     </div>
 
     <div id="gameToast" class="game-toast hidden" role="status" aria-live="polite"></div>
+
+    <div id="achievementModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-overlay" id="achievementCloseOverlay"></div>
+      <div class="modal-card modal-wide modal-achievements" role="dialog" aria-modal="true" aria-labelledby="achievementTitle">
+        <button id="achievementClose" class="modal-close" aria-label="Schliessen">x</button>
+        <div class="modal-head">
+          <p class="eyebrow">Fortschritt</p>
+          <h2 id="achievementTitle">Achievements</h2>
+          <p class="modal-sub">Freischaltungen, Meilensteine und dein Fortschritt je Ziel.</p>
+        </div>
+        <div class="achievement-head">
+          <span>Gesamt</span>
+          <span id="achievementSummary" class="achievement-summary">0 / 0</span>
+        </div>
+        <div id="achievementList" class="achievement-list">
+          <p class="achievement-empty">Noch keine Achievements freigeschaltet.</p>
+        </div>
+      </div>
+    </div>
 
     <div id="financeModal" class="modal hidden" aria-hidden="true">
       <div class="modal-overlay" id="financeCloseOverlay"></div>

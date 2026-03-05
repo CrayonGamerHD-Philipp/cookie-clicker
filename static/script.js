@@ -92,6 +92,8 @@ const statsBlackjackEl = document.getElementById("statsBlackjack");
 const statsSlotsEl = document.getElementById("statsSlots");
 const statsRouletteEl = document.getElementById("statsRoulette");
 const statsLootboxEl = document.getElementById("statsLootbox");
+const achievementSummaryEl = document.getElementById("achievementSummary");
+const achievementListEl = document.getElementById("achievementList");
 const financeModal = document.getElementById("financeModal");
 const financeOpenButton = document.getElementById("financeOpen");
 const financeCloseButton = document.getElementById("financeClose");
@@ -122,6 +124,10 @@ const rouletteBoard = document.getElementById("rouletteBoard");
 const rouletteSelection = document.getElementById("rouletteSelection");
 const statsWheelEl = document.getElementById("statsWheel");
 const gameToast = document.getElementById("gameToast");
+const achievementModal = document.getElementById("achievementModal");
+const achievementOpenButton = document.getElementById("achievementOpen");
+const achievementCloseButton = document.getElementById("achievementClose");
+const achievementCloseOverlay = document.getElementById("achievementCloseOverlay");
 const resetModal = document.getElementById("resetModal");
 const devModeExitButton = document.getElementById("devModeExit");
 const resetOpenButton = document.getElementById("resetOpen");
@@ -429,6 +435,111 @@ const gameStats = {
   lootbox: { opens: 0, net: 0 }
 };
 
+const achievementMetricKeys = [
+  "manualClicks",
+  "totalLootboxesOpened",
+  "upgradesPurchased",
+  "gamesStarted",
+  "gameWins",
+  "gameLosses",
+  "towerGames",
+  "blackjackGames",
+  "slotsGames",
+  "rouletteGames",
+  "wheelGames",
+  "totalBetPlaced",
+  "totalPayoutReceived",
+  "biggestSingleWin",
+  "levelUps",
+  "bonusesCollected",
+  "boostsActivated",
+  "gamesUnlocked",
+  "cosmeticsOwned",
+  "highestLevel",
+  "highestCookies",
+  "highestPerClick",
+  "highestCps",
+  "totalCookiesGenerated",
+  "secondsPlayed"
+];
+
+function createAchievementProgress() {
+  return {
+    manualClicks: 0,
+    totalLootboxesOpened: 0,
+    upgradesPurchased: 0,
+    gamesStarted: 0,
+    gameWins: 0,
+    gameLosses: 0,
+    towerGames: 0,
+    blackjackGames: 0,
+    slotsGames: 0,
+    rouletteGames: 0,
+    wheelGames: 0,
+    totalBetPlaced: 0,
+    totalPayoutReceived: 0,
+    biggestSingleWin: 0,
+    levelUps: 0,
+    bonusesCollected: 0,
+    boostsActivated: 0,
+    gamesUnlocked: 0,
+    cosmeticsOwned: 0,
+    highestLevel: 1,
+    highestCookies: 0,
+    highestPerClick: 1,
+    highestCps: 0,
+    totalCookiesGenerated: 0,
+    secondsPlayed: 0,
+    unlocked: {}
+  };
+}
+
+const achievementProgress = createAchievementProgress();
+
+function formatAchievementTarget(value) {
+  return new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 }).format(Math.floor(Math.max(0, Number(value) || 0)));
+}
+
+const achievementGroups = [
+  { category: "Core", group: "clicker", title: "Click Titan", metric: "manualClicks", icon: "bi-hand-index-thumb", tiers: [250, 1_000, 10_000, 100_000, 1_000_000, 10_000_000], unit: "Klicks" },
+  { category: "Core", group: "upgrades", title: "Ausbauer", metric: "upgradesPurchased", icon: "bi-hammer", tiers: [25, 100, 250, 500, 1_000, 2_500], unit: "Upgrades" },
+  { category: "Core", group: "level", title: "Ofenmeister", metric: "highestLevel", icon: "bi-fire", tiers: [5, 10, 25, 50, 75, 100], unit: "Level" },
+  { category: "Core", group: "levelups", title: "Reborn Baker", metric: "levelUps", icon: "bi-arrow-repeat", tiers: [1, 3, 10, 25, 50], unit: "Level-Ups" },
+  { category: "Core", group: "playtime", title: "Schichtleiter", metric: "secondsPlayed", icon: "bi-clock-history", tiers: [600, 3_600, 21_600, 86_400, 604_800], unit: "Sekunden Spielzeit" },
+  { category: "Economy", group: "cps", title: "Fliessband", metric: "highestCps", icon: "bi-speedometer2", tiers: [100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000], unit: "Cookies/Sek" },
+  { category: "Economy", group: "per-click", title: "Super Click", metric: "highestPerClick", icon: "bi-lightning-charge", tiers: [10, 100, 1_000, 10_000, 100_000], unit: "Cookies/Klick" },
+  { category: "Economy", group: "cookies-generated", title: "Backstuben-Tycoon", metric: "totalCookiesGenerated", icon: "bi-graph-up-arrow", tiers: [1_000_000, 100_000_000, 10_000_000_000, 1_000_000_000_000, 100_000_000_000_000], unit: "erzeugte Cookies" },
+  { category: "Economy", group: "bank", title: "Safe voll", metric: "highestCookies", icon: "bi-piggy-bank", tiers: [100_000, 10_000_000, 1_000_000_000, 100_000_000_000], unit: "Cookies auf der Hand" },
+  { category: "Economy", group: "bonus", title: "Kruemel-Collector", metric: "bonusesCollected", icon: "bi-sun", tiers: [5, 25, 100, 500, 2_000], unit: "Bonus-Einsammlungen" },
+  { category: "Economy", group: "boost", title: "Boost Alchemist", metric: "boostsActivated", icon: "bi-rocket-takeoff", tiers: [5, 25, 100, 500, 2_000], unit: "aktivierte Boosts" },
+  { category: "Casino", group: "games-started", title: "Casino Stammgast", metric: "gamesStarted", icon: "bi-dice-5", tiers: [25, 100, 500, 1_000, 5_000, 20_000], unit: "Runden" },
+  { category: "Casino", group: "wins", title: "High Roller", metric: "gameWins", icon: "bi-trophy", tiers: [10, 50, 100, 500, 2_000, 10_000], unit: "Siege" },
+  { category: "Casino", group: "bets", title: "Big Spender", metric: "totalBetPlaced", icon: "bi-cash-stack", tiers: [1_000_000, 100_000_000, 1_000_000_000, 10_000_000_000, 100_000_000_000], unit: "gesetzte Cookies" },
+  { category: "Casino", group: "payout", title: "Kassensturz", metric: "totalPayoutReceived", icon: "bi-wallet2", tiers: [1_000_000, 100_000_000, 1_000_000_000, 10_000_000_000, 100_000_000_000], unit: "ausgezahlte Cookies" },
+  { category: "Casino", group: "single-win", title: "Jackpot", metric: "biggestSingleWin", icon: "bi-stars", tiers: [10_000, 1_000_000, 100_000_000, 1_000_000_000], unit: "groesster Einzelgewinn" },
+  { category: "Casino", group: "tower", title: "Tower Kletterer", metric: "towerGames", icon: "bi-building", tiers: [10, 50, 250, 1_000, 5_000], unit: "Tower-Runden" },
+  { category: "Casino", group: "blackjack", title: "Kartencount", metric: "blackjackGames", icon: "bi-suit-spade", tiers: [10, 50, 250, 1_000, 5_000], unit: "Blackjack-Runden" },
+  { category: "Casino", group: "slots", title: "Walzenfieber", metric: "slotsGames", icon: "bi-dice-6", tiers: [10, 50, 250, 1_000, 5_000], unit: "Slots-Runden" },
+  { category: "Casino", group: "roulette", title: "Roulette Runner", metric: "rouletteGames", icon: "bi-record-circle", tiers: [10, 50, 250, 1_000, 5_000], unit: "Roulette-Runden" },
+  { category: "Casino", group: "wheel", title: "Rad Rebelle", metric: "wheelGames", icon: "bi-disc", tiers: [10, 50, 250, 1_000, 5_000], unit: "Gluecksrad-Runden" },
+  { category: "Collection", group: "lootboxes", title: "Loot Jager", metric: "totalLootboxesOpened", icon: "bi-box-seam", tiers: [10, 50, 100, 500, 2_500, 10_000, 25_000], unit: "Lootboxes" },
+  { category: "Collection", group: "unlocks", title: "Arcade Betreiber", metric: "gamesUnlocked", icon: "bi-unlock", tiers: [1, 3, 6], unit: "freigeschaltete Spiele" },
+  { category: "Collection", group: "cosmetics", title: "Style Connoisseur", metric: "cosmeticsOwned", icon: "bi-palette", tiers: [1, 5, 10, 15, 20], unit: "freigeschaltete Cosmetics" }
+];
+
+const achievementDefinitions = achievementGroups.flatMap((group) =>
+  group.tiers.map((target, index) => ({
+    key: `${group.group}-tier-${index + 1}`,
+    group: group.group,
+    tier: index + 1,
+    title: `${group.title} - Stufe ${index + 1}`,
+    desc: `Erreiche ${formatAchievementTarget(target)} ${group.unit}.`,
+    metric: group.metric,
+    target,
+    icon: group.icon
+  }))
+);
+
 let toastTimer = null;
 
 function createEmptyBoostInventory() {
@@ -445,6 +556,193 @@ function applyUpgradeCounts(counts) {
 
 function roundValue(value) {
   return Math.round(value * 100) / 100;
+}
+
+function formatAchievementNumber(value) {
+  return new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 }).format(Math.floor(Math.max(0, Number(value) || 0)));
+}
+
+function normalizeAchievementProgress(saved) {
+  const normalized = createAchievementProgress();
+  if (!saved || typeof saved !== "object") {
+    return normalized;
+  }
+
+  achievementMetricKeys.forEach((key) => {
+    normalized[key] = Math.max(0, Number(saved[key]) || 0);
+  });
+
+  const unlockedRaw = saved.unlocked;
+  if (unlockedRaw && typeof unlockedRaw === "object") {
+    Object.keys(unlockedRaw).forEach((key) => {
+      if (!achievementDefinitions.some((achievement) => achievement.key === key)) {
+        return;
+      }
+      const unlockedAt = unlockedRaw[key];
+      if (typeof unlockedAt === "string" && unlockedAt.trim()) {
+        normalized.unlocked[key] = unlockedAt;
+      } else if (unlockedAt === true) {
+        normalized.unlocked[key] = new Date().toISOString();
+      }
+    });
+  }
+
+  return normalized;
+}
+
+function resetAchievementProgress() {
+  const initial = createAchievementProgress();
+  achievementMetricKeys.forEach((key) => {
+    achievementProgress[key] = initial[key];
+  });
+  achievementProgress.unlocked = {};
+}
+
+function setAchievementMetric(metric, value) {
+  if (!achievementMetricKeys.includes(metric)) return;
+  achievementProgress[metric] = Math.max(0, Number(value) || 0);
+}
+
+function bumpAchievementMetric(metric, amount = 1) {
+  if (!achievementMetricKeys.includes(metric)) return;
+  achievementProgress[metric] = Math.max(0, Number(achievementProgress[metric]) || 0) + Math.max(0, Number(amount) || 0);
+}
+
+function raiseAchievementMetric(metric, value) {
+  if (!achievementMetricKeys.includes(metric)) return;
+  const current = Math.max(0, Number(achievementProgress[metric]) || 0);
+  const next = Math.max(0, Number(value) || 0);
+  achievementProgress[metric] = Math.max(current, next);
+}
+
+function getAchievementValue(definition) {
+  return Math.max(0, Number(achievementProgress[definition.metric]) || 0);
+}
+
+function countUnlockedGames() {
+  return Object.values(gameUnlocks).filter((entry) => entry.unlocked).length;
+}
+
+function countOwnedCosmetics() {
+  const colors = colorCosmetics.filter((entry) => entry.owned && entry.key !== "classic").length;
+  const accessories = accessoryCosmetics.filter((entry) => entry.owned && !entry.hidden && entry.key !== "none").length;
+  const skins = skinCosmetics.filter((entry) => entry.owned && entry.key !== "none").length;
+  const miscs = miscCosmetics.filter((entry) => entry.owned && entry.key !== "none").length;
+  return colors + accessories + skins + miscs;
+}
+
+function syncAchievementDerivedMetrics() {
+  const towerGames = gameStats.tower.wins + gameStats.tower.losses;
+  const blackjackGames = gameStats.blackjack.wins + gameStats.blackjack.losses;
+  const slotsGames = gameStats.slots.wins + gameStats.slots.losses;
+  const rouletteGames = gameStats.roulette.wins + gameStats.roulette.losses;
+  const wheelGames = gameStats.wheel.wins + gameStats.wheel.losses;
+
+  raiseAchievementMetric("highestLevel", state.level);
+  raiseAchievementMetric("highestCookies", state.cookies);
+  raiseAchievementMetric("highestPerClick", state.perClick);
+  raiseAchievementMetric("highestCps", state.cps);
+  raiseAchievementMetric("totalCookiesGenerated", state.total);
+  raiseAchievementMetric("manualClicks", state.clicks);
+  raiseAchievementMetric("totalLootboxesOpened", gameStats.lootbox.opens);
+  raiseAchievementMetric("towerGames", towerGames);
+  raiseAchievementMetric("blackjackGames", blackjackGames);
+  raiseAchievementMetric("slotsGames", slotsGames);
+  raiseAchievementMetric("rouletteGames", rouletteGames);
+  raiseAchievementMetric("wheelGames", wheelGames);
+  raiseAchievementMetric("gamesUnlocked", countUnlockedGames());
+  raiseAchievementMetric("cosmeticsOwned", countOwnedCosmetics());
+}
+
+function evaluateAchievements(silent = false) {
+  const newlyUnlocked = [];
+  achievementDefinitions.forEach((achievement) => {
+    if (achievementProgress.unlocked[achievement.key]) {
+      return;
+    }
+    const value = getAchievementValue(achievement);
+    if (value >= achievement.target) {
+      achievementProgress.unlocked[achievement.key] = new Date().toISOString();
+      newlyUnlocked.push(achievement);
+    }
+  });
+
+  if (!silent && newlyUnlocked.length > 0) {
+    const first = newlyUnlocked[0];
+    const suffix = newlyUnlocked.length > 1 ? ` (+${newlyUnlocked.length - 1})` : "";
+    showInfoToast(`Achievement freigeschaltet: ${first.title}${suffix}`);
+  }
+}
+
+function renderAchievements() {
+  if (!achievementSummaryEl || !achievementListEl) return;
+
+  const unlockedCount = achievementDefinitions.filter((achievement) => achievementProgress.unlocked[achievement.key]).length;
+  achievementSummaryEl.textContent = `${unlockedCount} / ${achievementDefinitions.length}`;
+  achievementListEl.innerHTML = "";
+  const categories = [...new Set(achievementGroups.map((group) => group.category))];
+  categories.forEach((categoryName) => {
+    const groupsInCategory = achievementGroups.filter((group) => group.category === categoryName);
+    const categoryDefs = achievementDefinitions.filter((achievement) => groupsInCategory.some((group) => group.group === achievement.group));
+    const categoryUnlocked = categoryDefs.filter((achievement) => achievementProgress.unlocked[achievement.key]).length;
+
+    const categoryBlock = document.createElement("section");
+    categoryBlock.className = "achievement-category";
+    categoryBlock.innerHTML = `
+      <div class="achievement-category-head">
+        <h3>${categoryName}</h3>
+        <span>${categoryUnlocked} / ${categoryDefs.length}</span>
+      </div>
+    `;
+
+    groupsInCategory.forEach((group) => {
+      const defs = achievementDefinitions
+        .filter((achievement) => achievement.group === group.group)
+        .sort((a, b) => a.tier - b.tier);
+      const unlockedTiers = defs.filter((achievement) => achievementProgress.unlocked[achievement.key]).length;
+
+      const groupBlock = document.createElement("div");
+      groupBlock.className = "achievement-group";
+      groupBlock.innerHTML = `
+        <div class="achievement-group-head">
+          <span class="achievement-icon" aria-hidden="true"><i class="bi ${group.icon || "bi-award"}"></i></span>
+          <div class="achievement-group-meta">
+            <strong>${group.title}</strong>
+            <span>${unlockedTiers} / ${defs.length} Stufen</span>
+          </div>
+        </div>
+      `;
+
+      defs.forEach((achievement) => {
+        const unlocked = Boolean(achievementProgress.unlocked[achievement.key]);
+        const current = getAchievementValue(achievement);
+        const ratio = Math.max(0, Math.min(1, achievement.target > 0 ? current / achievement.target : 0));
+        const item = document.createElement("div");
+        item.className = `achievement-item${unlocked ? " unlocked" : ""}`;
+        const doneLabel = unlocked ? "Erledigt" : "In Arbeit";
+        item.innerHTML = `
+          <div class="achievement-row">
+            <div class="achievement-copy">
+              <p class="achievement-title">${achievement.title}</p>
+              <p class="achievement-desc">${achievement.desc}</p>
+              <div class="achievement-progress-row">
+                <span class="achievement-progress">${formatAchievementNumber(Math.min(current, achievement.target))} / ${formatAchievementNumber(achievement.target)}</span>
+                <span class="achievement-state">${doneLabel}</span>
+              </div>
+              <div class="achievement-progress-track" aria-hidden="true">
+                <span class="achievement-progress-fill${unlocked ? " unlocked" : ""}" style="width:${Math.round(ratio * 100)}%"></span>
+              </div>
+            </div>
+          </div>
+        `;
+        groupBlock.appendChild(item);
+      });
+
+      categoryBlock.appendChild(groupBlock);
+    });
+
+    achievementListEl.appendChild(categoryBlock);
+  });
 }
 
 function levelGainMultiplier() {
@@ -607,6 +905,7 @@ function activateBoost(rarityKey) {
     multiplier: rarity.multiplier,
     expiresAt: Date.now() + rarity.durationMs
   });
+  bumpAchievementMetric("boostsActivated", 1);
   recalculateProduction();
   showInfoToast(`${rarity.label}-Boost aktiviert: +${formatMultiplier(rarity.multiplier - 1)}x fuer ${rarity.durationLabel}`);
   updateStats();
@@ -757,6 +1056,17 @@ function rollLootboxReward() {
 function recordLootboxResult(reward) {
   gameStats.lootbox.opens += 1;
   gameStats.lootbox.net += (Number(reward.cookiePayout) || 0) - LOOTBOX_COST;
+  bumpAchievementMetric("gamesStarted", 1);
+  bumpAchievementMetric("totalLootboxesOpened", 1);
+  bumpAchievementMetric("totalBetPlaced", LOOTBOX_COST);
+  bumpAchievementMetric("totalPayoutReceived", Number(reward.cookiePayout) || 0);
+  const net = (Number(reward.cookiePayout) || 0) - LOOTBOX_COST;
+  if (net > 0) {
+    bumpAchievementMetric("gameWins", 1);
+    raiseAchievementMetric("biggestSingleWin", net);
+  } else if (net < 0) {
+    bumpAchievementMetric("gameLosses", 1);
+  }
 }
 
 function resetLootboxVisual() {
@@ -1151,6 +1461,7 @@ function resetProgressState() {
   });
   gameStats.lootbox.opens = 0;
   gameStats.lootbox.net = 0;
+  resetAchievementProgress();
   Object.keys(gameUnlocks).forEach((key) => {
     gameUnlocks[key].unlocked = false;
   });
@@ -1232,6 +1543,11 @@ function loadState(forceDevMode = null) {
       gameStats.lootbox.opens = Number(lootboxEntry.opens) || 0;
       gameStats.lootbox.net = Number(lootboxEntry.net) || 0;
     }
+    const loadedAchievementProgress = normalizeAchievementProgress(saved.achievements);
+    achievementMetricKeys.forEach((metric) => {
+      setAchievementMetric(metric, loadedAchievementProgress[metric]);
+    });
+    achievementProgress.unlocked = { ...loadedAchievementProgress.unlocked };
     if (saved.statsSyncCursor && typeof saved.statsSyncCursor === "object") {
       const cursor = saved.statsSyncCursor;
       statsSyncCursor = {
@@ -1310,6 +1626,8 @@ function loadState(forceDevMode = null) {
   if (!statsSyncCursor) {
     statsSyncCursor = initialStatsCursor();
   }
+  syncAchievementDerivedMetrics();
+  evaluateAchievements(true);
   applyCosmeticTheme();
 }
 
@@ -1343,6 +1661,10 @@ function saveState() {
     },
     stats: gameStats,
     statsSyncCursor: statsSyncCursor || initialStatsCursor(),
+    achievements: {
+      ...Object.fromEntries(achievementMetricKeys.map((metric) => [metric, achievementProgress[metric]])),
+      unlocked: { ...achievementProgress.unlocked }
+    },
     unlocks: Object.fromEntries(
       Object.entries(gameUnlocks).map(([key, entry]) => [key, entry.unlocked])
     )
@@ -1877,6 +2199,28 @@ function mergeUnlocks(localUnlocks, cloudUnlocks) {
   return merged;
 }
 
+function mergeAchievementProgress(localAchievements, cloudAchievements) {
+  const local = normalizeAchievementProgress(localAchievements);
+  const cloud = normalizeAchievementProgress(cloudAchievements);
+  const merged = createAchievementProgress();
+
+  achievementMetricKeys.forEach((metric) => {
+    merged[metric] = mergeNumberByMax(local[metric], cloud[metric]);
+  });
+
+  const unlocked = {};
+  achievementDefinitions.forEach((achievement) => {
+    const localAt = local.unlocked?.[achievement.key];
+    const cloudAt = cloud.unlocked?.[achievement.key];
+    if (localAt || cloudAt) {
+      unlocked[achievement.key] = localAt || cloudAt || new Date().toISOString();
+    }
+  });
+  merged.unlocked = unlocked;
+
+  return merged;
+}
+
 function isObject(value) {
   return Boolean(value) && typeof value === "object";
 }
@@ -1900,6 +2244,7 @@ function mergeAccountSaves(localSave, cloudSave) {
     cosmetics: mergeCosmetics(local.cosmetics, cloud.cosmetics),
     stats: mergeStats(local.stats, cloud.stats),
     statsSyncCursor: mergeStatsCursor(local.statsSyncCursor, cloud.statsSyncCursor),
+    achievements: mergeAchievementProgress(local.achievements, cloud.achievements),
     unlocks: mergeUnlocks(local.unlocks, cloud.unlocks)
   };
 }
@@ -3108,6 +3453,8 @@ function updateStats() {
   if (removeExpiredBoosts()) {
     recalculateProduction();
   }
+  syncAchievementDerivedMetrics();
+  evaluateAchievements();
   renderDevMode();
   updateVersionLink();
   setDisplayValue(cookieCountEl, state.cookies);
@@ -3127,6 +3474,7 @@ function updateStats() {
   renderWheel();
   renderRoulette();
   renderGameStats();
+  renderAchievements();
   updateFinanceOverview();
   saveState();
 }
@@ -3220,10 +3568,16 @@ function updateFinanceOverview() {
 
 function recordGameResult(key, bet, payout) {
   const net = payout - bet;
+  bumpAchievementMetric("gamesStarted", bet > 0 ? 1 : 0);
+  bumpAchievementMetric("totalBetPlaced", Math.max(0, Number(bet) || 0));
+  bumpAchievementMetric("totalPayoutReceived", Math.max(0, Number(payout) || 0));
   if (net > 0) {
     gameStats[key].wins += 1;
+    bumpAchievementMetric("gameWins", 1);
+    raiseAchievementMetric("biggestSingleWin", net);
   } else if (net < 0) {
     gameStats[key].losses += 1;
+    bumpAchievementMetric("gameLosses", 1);
   }
   gameStats[key].net += net;
 }
@@ -3328,6 +3682,7 @@ async function resetAccount() {
   });
   gameStats.lootbox.opens = 0;
   gameStats.lootbox.net = 0;
+  resetAchievementProgress();
 
   Object.keys(gameUnlocks).forEach((key) => {
     gameUnlocks[key].unlocked = false;
@@ -3523,6 +3878,19 @@ function closeWheelModal() {
   wheelModal.setAttribute("aria-hidden", "true");
 }
 
+function openAchievementModal() {
+  if (!achievementModal) return;
+  renderAchievements();
+  achievementModal.classList.remove("hidden");
+  achievementModal.setAttribute("aria-hidden", "false");
+}
+
+function closeAchievementModal() {
+  if (!achievementModal) return;
+  achievementModal.classList.add("hidden");
+  achievementModal.setAttribute("aria-hidden", "true");
+}
+
 function openFinanceModal() {
   if (!financeModal) return;
   financeModal.classList.remove("hidden");
@@ -3543,6 +3911,7 @@ function clickCookie() {
   state.cookies += state.perClick;
   state.total += state.perClick;
   state.clicks += 1;
+  bumpAchievementMetric("manualClicks", 1);
   maybeTriggerBonus();
   updateStats();
 }
@@ -3556,6 +3925,7 @@ function buyUpgrade(index) {
 
   spendCookies(cost);
   upgrade.count += 1;
+  bumpAchievementMetric("upgradesPurchased", 1);
   recalculateProduction();
   updateStats();
 }
@@ -3565,6 +3935,7 @@ function tick() {
   if (expiredBoosts) {
     recalculateProduction();
   }
+  bumpAchievementMetric("secondsPlayed", 1);
   if (state.cps > 0) {
     state.cookies += state.cps;
     state.total += state.cps;
@@ -3599,6 +3970,7 @@ function collectBonus() {
   const bonusAmount = scaleGain(50 + (state.basePerClick * 2));
   state.cookies += bonusAmount;
   state.total += bonusAmount;
+  bumpAchievementMetric("bonusesCollected", 1);
   state.bonusReady = false;
   bonusPanel.classList.add("hidden");
   updateStats();
@@ -3611,6 +3983,7 @@ function levelUp() {
   }
 
   state.level += 1;
+  bumpAchievementMetric("levelUps", 1);
   if (state.devMode) {
     state.cookies = Math.max(0, state.cookies);
   } else {
@@ -4214,6 +4587,9 @@ cosmeticsCategoryTabs.forEach((tab) => {
 if (financeOpenButton) financeOpenButton.addEventListener("click", openFinanceModal);
 if (financeCloseButton) financeCloseButton.addEventListener("click", closeFinanceModal);
 if (financeCloseOverlay) financeCloseOverlay.addEventListener("click", closeFinanceModal);
+if (achievementOpenButton) achievementOpenButton.addEventListener("click", openAchievementModal);
+if (achievementCloseButton) achievementCloseButton.addEventListener("click", closeAchievementModal);
+if (achievementCloseOverlay) achievementCloseOverlay.addEventListener("click", closeAchievementModal);
 towerOpenButton.addEventListener("click", openTowerModal);
 towerCloseButton.addEventListener("click", closeTowerModal);
 towerCloseOverlay.addEventListener("click", closeTowerModal);

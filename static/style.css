@@ -983,6 +983,187 @@ h1 {
   justify-content: space-between;
 }
 
+.achievement-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.achievement-summary {
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: #f0d2b2;
+  color: #5f3218;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.achievement-list {
+  display: grid;
+  gap: 12px;
+  max-height: min(62vh, 620px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.achievement-category {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  background: #fff4e6;
+  border: 1px solid #ecd8c4;
+}
+
+.achievement-category-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.achievement-category-head h3 {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.achievement-category-head span {
+  font-size: 0.76rem;
+  color: rgba(43, 29, 18, 0.7);
+  font-weight: 700;
+}
+
+.achievement-group {
+  display: grid;
+  gap: 6px;
+}
+
+.achievement-group-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.achievement-group-meta {
+  display: grid;
+  gap: 1px;
+}
+
+.achievement-group-meta strong {
+  font-size: 0.85rem;
+}
+
+.achievement-group-meta span {
+  font-size: 0.73rem;
+  color: rgba(43, 29, 18, 0.68);
+}
+
+.achievement-item {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fffdf9;
+  border: 1px solid #ecd8c4;
+}
+
+.achievement-item.unlocked {
+  border-color: #f0c48b;
+  box-shadow: inset 0 0 0 1px rgba(240, 196, 139, 0.55);
+  background: linear-gradient(180deg, #fffdf6, #fff3de);
+}
+
+.achievement-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.achievement-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f6e7d4;
+  color: #7a3b1a;
+  font-size: 1rem;
+}
+
+.achievement-icon.unlocked {
+  background: #ffdba9;
+  color: #8a3a13;
+}
+
+.achievement-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.achievement-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.achievement-desc {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(43, 29, 18, 0.72);
+}
+
+.achievement-progress {
+  margin: 0;
+  font-size: 0.78rem;
+  color: rgba(43, 29, 18, 0.74);
+}
+
+.achievement-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.achievement-state {
+  font-size: 0.74rem;
+  color: rgba(43, 29, 18, 0.68);
+}
+
+.achievement-progress-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #edd8c1;
+  overflow: hidden;
+}
+
+.achievement-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #d55a2a, #ef8f4f);
+}
+
+.achievement-progress-fill.unlocked {
+  background: linear-gradient(90deg, #d6943a, #f0be71);
+}
+
+.achievement-empty {
+  margin: 0;
+  font-size: 0.82rem;
+  color: rgba(43, 29, 18, 0.6);
+}
+
+.modal-card.modal-achievements {
+  width: calc(100vw - 24px);
+  max-width: none;
+}
+
 .finance-open {
   margin-top: 12px;
   border: none;
@@ -1080,31 +1261,6 @@ h1 {
 @media (min-width: 981px) {
   .grid {
     grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
-  }
-
-  .shop {
-    position: sticky;
-    top: 18px;
-    max-height: calc(100vh - 36px);
-    overflow: auto;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable both-edges;
-  }
-
-  .shop-header {
-    position: sticky;
-    top: -24px;
-    z-index: 3;
-    background: #fff;
-    padding-top: 24px;
-  }
-
-  .upgrade-tabs {
-    position: sticky;
-    top: 76px;
-    z-index: 3;
-    background: #fff;
-    padding-bottom: 8px;
   }
 }
 
@@ -2634,7 +2790,7 @@ h1 {
 
 .utility-buttons {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-top: 6px;
 }
