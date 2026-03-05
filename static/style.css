@@ -1236,9 +1236,15 @@ h1 {
 
 .achievement-group-head {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
 }
 
 .achievement-group-meta {
@@ -1253,6 +1259,25 @@ h1 {
 .achievement-group-meta span {
   font-size: 0.73rem;
   color: rgba(43, 29, 18, 0.68);
+}
+
+.achievement-group-chevron {
+  font-size: 0.72rem;
+  color: rgba(43, 29, 18, 0.72);
+  transition: transform 0.2s ease;
+}
+
+.achievement-group.collapsed .achievement-group-chevron {
+  transform: rotate(-90deg);
+}
+
+.achievement-group-content {
+  display: grid;
+  gap: 6px;
+}
+
+.achievement-group.collapsed .achievement-group-content {
+  display: none;
 }
 
 .achievement-item {

@@ -170,6 +170,7 @@ const GUEST_MODE_KEY = "hethey-guest-mode";
 const ACCOUNT_TOKEN_KEY = "hethey-account-token";
 const ACCOUNT_NAME_KEY = "hethey-account-name";
 const ACHIEVEMENT_CATEGORY_COLLAPSE_KEY = "hethey-achievement-category-collapse-v1";
+const ACHIEVEMENT_GROUP_COLLAPSE_KEY = "hethey-achievement-group-collapse-v1";
 const LEVEL_UP_BASE_COST = 250_000_000;
 const LEVEL_UP_SCALE = 2;
 const LEVEL_GAIN_STEP = 0.5;
@@ -600,10 +601,29 @@ const collapsedAchievementCategories = (() => {
     return new Set();
   }
 })();
+const collapsedAchievementGroups = (() => {
+  try {
+    const raw = localStorage.getItem(ACHIEVEMENT_GROUP_COLLAPSE_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.filter((entry) => typeof entry === "string" && entry.trim()));
+  } catch (_error) {
+    return new Set();
+  }
+})();
 
 function persistCollapsedAchievementCategories() {
   try {
     localStorage.setItem(ACHIEVEMENT_CATEGORY_COLLAPSE_KEY, JSON.stringify([...collapsedAchievementCategories]));
+  } catch (_error) {
+    // Ignore storage failures.
+  }
+}
+
+function persistCollapsedAchievementGroups() {
+  try {
+    localStorage.setItem(ACHIEVEMENT_GROUP_COLLAPSE_KEY, JSON.stringify([...collapsedAchievementGroups]));
   } catch (_error) {
     // Ignore storage failures.
   }
@@ -871,18 +891,36 @@ function renderAchievements() {
         .filter((achievement) => achievement.group === group.group)
         .sort((a, b) => a.tier - b.tier);
       const unlockedTiers = defs.filter((achievement) => achievementProgress.unlocked[achievement.key]).length;
+      const isGroupCollapsed = collapsedAchievementGroups.has(group.group);
 
       const groupBlock = document.createElement("div");
-      groupBlock.className = "achievement-group";
+      groupBlock.className = `achievement-group${isGroupCollapsed ? " collapsed" : ""}`;
       groupBlock.innerHTML = `
-        <div class="achievement-group-head">
+        <button type="button" class="achievement-group-head" aria-expanded="${String(!isGroupCollapsed)}">
           <span class="achievement-icon" aria-hidden="true"><i class="bi ${group.icon || "bi-award"}"></i></span>
           <div class="achievement-group-meta">
             <strong>${group.title}</strong>
             <span>${unlockedTiers} / ${defs.length} Stufen</span>
           </div>
-        </div>
+          <i class="bi bi-chevron-down achievement-group-chevron" aria-hidden="true"></i>
+        </button>
+        <div class="achievement-group-content"></div>
       `;
+      const groupContent = groupBlock.querySelector(".achievement-group-content");
+      const groupToggle = groupBlock.querySelector(".achievement-group-head");
+      if (groupToggle) {
+        groupToggle.addEventListener("click", () => {
+          const nextCollapsed = !groupBlock.classList.contains("collapsed");
+          groupBlock.classList.toggle("collapsed", nextCollapsed);
+          groupToggle.setAttribute("aria-expanded", String(!nextCollapsed));
+          if (nextCollapsed) {
+            collapsedAchievementGroups.add(group.group);
+          } else {
+            collapsedAchievementGroups.delete(group.group);
+          }
+          persistCollapsedAchievementGroups();
+        });
+      }
 
       defs.forEach((achievement) => {
         const unlocked = Boolean(achievementProgress.unlocked[achievement.key]);
@@ -908,7 +946,7 @@ function renderAchievements() {
             </div>
           </div>
         `;
-        groupBlock.appendChild(item);
+        groupContent?.appendChild(item);
       });
 
       categoryContent?.appendChild(groupBlock);
