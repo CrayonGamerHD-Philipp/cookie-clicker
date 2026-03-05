@@ -19,6 +19,40 @@ function formatNumber(value) {
   return new Intl.NumberFormat("de-DE").format(Math.floor(Number(value) || 0));
 }
 
+function formatCompactNumber(value) {
+  const num = Math.floor(Number(value) || 0);
+  const abs = Math.abs(num);
+  if (abs < 1_000) {
+    return formatNumber(num);
+  }
+
+  const units = [
+    { value: 1e30, suffix: "no" },
+    { value: 1e27, suffix: "oc" },
+    { value: 1e24, suffix: "sp" },
+    { value: 1e21, suffix: "sx" },
+    { value: 1e18, suffix: "qi" },
+    { value: 1e15, suffix: "qa" },
+    { value: 1e12, suffix: "t" },
+    { value: 1e9, suffix: "b" },
+    { value: 1e6, suffix: "m" },
+    { value: 1e3, suffix: "k" }
+  ];
+
+  const unit = units.find((entry) => abs >= entry.value);
+  if (!unit) {
+    return formatNumber(num);
+  }
+
+  const scaled = num / unit.value;
+  const digits = abs >= unit.value * 100 ? 0 : abs >= unit.value * 10 ? 1 : 2;
+  const short = scaled.toLocaleString("de-DE", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: digits
+  });
+  return `${short}${unit.suffix}`;
+}
+
 function safeLocalGet(key, fallback = "") {
   try {
     const value = localStorage.getItem(key);
@@ -103,8 +137,8 @@ function renderEntries(entries) {
         <td>${index + 1}</td>
         <td>${entry.playerName}</td>
         <td>${formatNumber(entry.bestLevel)}</td>
-        <td>${formatNumber(entry.bestScore)}</td>
-        <td>${formatNumber(entry.totalClicks)}</td>
+        <td title="${formatNumber(entry.bestScore)}">${formatCompactNumber(entry.bestScore)}</td>
+        <td title="${formatNumber(entry.totalClicks)}">${formatCompactNumber(entry.totalClicks)}</td>
         <td>${date.toLocaleString("de-DE")}</td>
       </tr>`;
     })

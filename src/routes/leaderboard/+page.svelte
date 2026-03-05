@@ -44,5 +44,9 @@
         <tbody id="leaderboardRows"></tbody>
       </table>
     </div>
+    <p class="leaderboard-muted leaderboard-legend">
+      Legende: k = Tausend, m = Million, b = Milliarde, t = Trillion, qa = Quadrillion, qi = Quintillion, sx =
+      Sextillion, sp = Septillion, oc = Oktillion, no = Nonillion.
+    </p>
   </main>
 </div>
