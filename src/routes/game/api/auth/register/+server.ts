@@ -3,7 +3,7 @@ import { registerAccount } from "$lib/server/accountStore";
 
 export async function POST({ request }) {
   const body = await request.json().catch(() => ({}));
-  const result = await registerAccount(body?.username, body?.password);
+  const result = await registerAccount(body?.username, body?.password, body?.preferredPlayerName);
   if (!result.ok) {
     return json({ ok: false, error: result.error || "Registration failed" }, { status: 400 });
   }

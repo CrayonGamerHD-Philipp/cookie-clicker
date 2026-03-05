@@ -174,6 +174,7 @@ const LEVEL_UP_SCALE = 2;
 const LEVEL_GAIN_STEP = 0.5;
 const UPGRADE_LEVEL_COST_SCALE = 1.35;
 const RELEASES_BASE_URL = "https://github.com/CrayonGamerHD-Philipp/cookie-clicker/releases";
+const RELEASES_API_URL = "https://api.github.com/repos/CrayonGamerHD-Philipp/cookie-clicker/releases/latest";
 const LOOTBOX_COST = 10_000_000;
 const SERVER_SYNC_INTERVAL_MS = 30_000;
 
@@ -271,6 +272,48 @@ const colorCosmetics = [
       "--cookie-spot": "rgba(14, 34, 74, 0.28)",
       "--cookie-text": "#fff7ee"
     }
+  },
+  {
+    key: "aurora-frost",
+    name: "Aurora Frost",
+    cost: 0,
+    unlockAchievement: "clicker-tier-5",
+    desc: "Achievement exklusiv: Polar-Frost mit Neon-Akzenten.",
+    owned: false,
+    theme: {
+      "--cookie-top": "#9be8ff",
+      "--cookie-bottom": "#1f8dbe",
+      "--cookie-spot": "rgba(14, 68, 95, 0.26)",
+      "--cookie-text": "#eefcff"
+    }
+  },
+  {
+    key: "ember-sunrise",
+    name: "Ember Sunrise",
+    cost: 0,
+    unlockAchievement: "wins-tier-4",
+    desc: "Achievement exklusiv: Glutrot mit warmen Goldkruemeln.",
+    owned: false,
+    theme: {
+      "--cookie-top": "#ffbf88",
+      "--cookie-bottom": "#c84a1e",
+      "--cookie-spot": "rgba(96, 32, 12, 0.26)",
+      "--cookie-text": "#fff6e8"
+    }
+  },
+  {
+    key: "night-neon",
+    name: "Night Neon",
+    cost: 0,
+    unlockAchievement: "lootboxes-tier-4",
+    desc: "Achievement exklusiv: Tiefes Violett mit Neon-Kanten.",
+    owned: false,
+    theme: {
+      "--cookie-top": "#6b5d8f",
+      "--cookie-bottom": "#2a183f",
+      "--cookie-spot": "rgba(158, 120, 236, 0.23)",
+      "--cookie-text": "#f8f1ff"
+    }
   }
 ];
 
@@ -280,6 +323,10 @@ const accessoryCosmetics = [
   { key: "crown", name: "Krone", cost: 5_000_000_000, desc: "Goldene Krone fuer den Kekskoenig.", owned: false },
   { key: "witch", name: "Hexenhut", cost: 3_500_000_000, desc: "Spitzer Hexenhut mit dunklem Band.", owned: false },
   { key: "cowboy", name: "Cowboyhut", cost: 4_500_000_000, desc: "Breiter Westernhut mit warmem Lederlook.", owned: false },
+  { key: "halo", name: "Heiligenschein", cost: 0, unlockAchievement: "bonus-tier-3", desc: "Achievement exklusiv: Leuchtender Ring ueber dem Keks.", owned: false },
+  { key: "laurels", name: "Lorbeer", cost: 0, unlockAchievement: "games-started-tier-4", desc: "Achievement exklusiv: Sieger-Lorbeer fuer Grinder.", owned: false },
+  { key: "visor", name: "Neon-Visor", cost: 0, unlockAchievement: "cps-tier-4", desc: "Achievement exklusiv: Futuristisches Visor-Band.", owned: false },
+  { key: "monocle", name: "Monokel", cost: 0, unlockAchievement: "bank-tier-3", desc: "Achievement exklusiv: Edler Monokel-Look.", owned: false },
   { key: "chef", name: "Kochmuetze", cost: 375_000, desc: "Legacy", owned: false, hidden: true },
   { key: "captain", name: "Kapitaenshut", cost: 10_000_000, desc: "Legacy", owned: false, hidden: true }
 ];
@@ -305,6 +352,34 @@ const skinCosmetics = [
       "--cookie-spot": "rgba(255, 255, 255, 0)",
       "--cookie-text": "#fff7ee"
     }
+  },
+  {
+    key: "ember-core",
+    name: "Ember Core",
+    cost: 0,
+    unlockAchievement: "tower-tier-3",
+    desc: "Achievement exklusiv: Vulkanischer Kern mit Magma-Rand.",
+    owned: false,
+    theme: {
+      "--cookie-top": "#ff9765",
+      "--cookie-bottom": "#842212",
+      "--cookie-spot": "rgba(255, 220, 140, 0.18)",
+      "--cookie-text": "#fff6ea"
+    }
+  },
+  {
+    key: "glitchbyte",
+    name: "Glitchbyte",
+    cost: 0,
+    unlockAchievement: "slots-tier-3",
+    desc: "Achievement exklusiv: Pixel-Skin im Retro-Arcade-Stil.",
+    owned: false,
+    theme: {
+      "--cookie-top": "#94f9d9",
+      "--cookie-bottom": "#1a9278",
+      "--cookie-spot": "rgba(18, 66, 58, 0.2)",
+      "--cookie-text": "#ddfff4"
+    }
   }
 ];
 
@@ -316,6 +391,24 @@ const miscCosmetics = [
     desc: "Keine zusaetzliche Sonderfigur.",
     owned: true,
     svg: ""
+  },
+  {
+    key: "medal",
+    name: "Siegermedaille",
+    cost: 0,
+    unlockAchievement: "wins-tier-5",
+    desc: "Achievement exklusiv: Goldmedaille am Keks.",
+    owned: false,
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220"><g fill="none" fill-rule="evenodd"><path fill="#2f6fc7" d="M96 18h28l-8 58h-12z"/><path fill="#d84f56" d="M74 18h22l22 58H96z"/><circle cx="110" cy="128" r="54" fill="#ffcb5a" stroke="#b6781f" stroke-width="10"/><circle cx="110" cy="128" r="26" fill="#fff3cf" stroke="#b6781f" stroke-width="8"/><path fill="#c28b2d" d="M110 95l10 20 22 3-16 15 4 22-20-11-20 11 4-22-16-15 22-3z"/></g></svg>`
+  },
+  {
+    key: "comet-tail",
+    name: "Comet Trail",
+    cost: 0,
+    unlockAchievement: "lootboxes-tier-5",
+    desc: "Achievement exklusiv: Leuchtender Kometenschweif.",
+    owned: false,
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 220"><defs><linearGradient id="g" x1="0%" y1="50%" x2="100%" y2="50%"><stop offset="0%" stop-color="#fff2b0" stop-opacity=".2"/><stop offset="70%" stop-color="#ffd06a" stop-opacity=".9"/><stop offset="100%" stop-color="#ff8a2d"/></linearGradient></defs><path d="M8 164c44-38 96-54 160-60l36-4c-22 20-34 40-44 66-64 4-109 14-152 35z" fill="url(#g)"/><circle cx="196" cy="94" r="30" fill="#ffd979" stroke="#e4922f" stroke-width="8"/><circle cx="196" cy="94" r="12" fill="#fff4ca"/></svg>`
   },
   {
     key: "kirby",
@@ -619,6 +712,37 @@ function getAchievementValue(definition) {
   return Math.max(0, Number(achievementProgress[definition.metric]) || 0);
 }
 
+function isAchievementUnlocked(achievementKey) {
+  return Boolean(achievementKey && achievementProgress.unlocked[achievementKey]);
+}
+
+function findAchievementDefinition(achievementKey) {
+  return achievementDefinitions.find((achievement) => achievement.key === achievementKey) || null;
+}
+
+function isAchievementLockedCosmetic(cosmetic) {
+  return Boolean(cosmetic && cosmetic.unlockAchievement && !isAchievementUnlocked(cosmetic.unlockAchievement));
+}
+
+function unlockAchievementExclusiveCosmetics() {
+  const newlyOwned = [];
+  const collections = [
+    { entries: colorCosmetics, label: "Farbe" },
+    { entries: accessoryCosmetics, label: "Accessoire" },
+    { entries: skinCosmetics, label: "Skin" },
+    { entries: miscCosmetics, label: "Cosmetic" }
+  ];
+  collections.forEach(({ entries, label }) => {
+    entries.forEach((entry) => {
+      if (!entry || entry.owned || !entry.unlockAchievement) return;
+      if (!isAchievementUnlocked(entry.unlockAchievement)) return;
+      entry.owned = true;
+      newlyOwned.push({ name: entry.name, label });
+    });
+  });
+  return newlyOwned;
+}
+
 function countUnlockedGames() {
   return Object.values(gameUnlocks).filter((entry) => entry.unlocked).length;
 }
@@ -667,10 +791,17 @@ function evaluateAchievements(silent = false) {
     }
   });
 
+  const newlyUnlockedCosmetics = unlockAchievementExclusiveCosmetics();
+
   if (!silent && newlyUnlocked.length > 0) {
     const first = newlyUnlocked[0];
     const suffix = newlyUnlocked.length > 1 ? ` (+${newlyUnlocked.length - 1})` : "";
     showInfoToast(`Achievement freigeschaltet: ${first.title}${suffix}`);
+  }
+  if (!silent && newlyUnlockedCosmetics.length > 0) {
+    const first = newlyUnlockedCosmetics[0];
+    const suffix = newlyUnlockedCosmetics.length > 1 ? ` (+${newlyUnlockedCosmetics.length - 1})` : "";
+    showInfoToast(`${first.label} freigeschaltet: ${first.name}${suffix}`);
   }
 }
 
@@ -917,10 +1048,10 @@ function randomFrom(list) {
 
 function availableLootboxCosmetics() {
   return [
-    ...colorCosmetics.filter((entry) => !entry.owned).map((entry) => ({ type: "color", entry })),
-    ...accessoryCosmetics.filter((entry) => !entry.owned && !entry.hidden).map((entry) => ({ type: "accessory", entry })),
-    ...skinCosmetics.filter((entry) => !entry.owned).map((entry) => ({ type: "skin", entry })),
-    ...miscCosmetics.filter((entry) => !entry.owned).map((entry) => ({ type: "misc", entry }))
+    ...colorCosmetics.filter((entry) => !entry.owned && !entry.unlockAchievement).map((entry) => ({ type: "color", entry })),
+    ...accessoryCosmetics.filter((entry) => !entry.owned && !entry.hidden && !entry.unlockAchievement).map((entry) => ({ type: "accessory", entry })),
+    ...skinCosmetics.filter((entry) => !entry.owned && !entry.unlockAchievement).map((entry) => ({ type: "skin", entry })),
+    ...miscCosmetics.filter((entry) => !entry.owned && !entry.unlockAchievement).map((entry) => ({ type: "misc", entry }))
   ];
 }
 
@@ -2669,9 +2800,14 @@ function openAccountAuthModal() {
     }
     setPending(true, mode === "login" ? "Login laeuft..." : "Registrierung laeuft...");
     const endpoint = mode === "login" ? "/game/api/auth/login" : "/game/api/auth/register";
+    const preferredPlayerName = mode === "register" && isGuestMode ? (playerName || readStoredGuestName()) : "";
     const result = await requestJson(endpoint, {
       method: "POST",
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({
+        username,
+        password,
+        preferredPlayerName
+      })
     });
     setPending(false, "Gast: nur lokal. Account: Cloud-Save + geraeteuebergreifend.");
     if (!result.ok) {
@@ -2976,6 +3112,35 @@ function updateVersionLink() {
   appVersionLinkEl.setAttribute("aria-disabled", "true");
 }
 
+function normalizeReleaseVersion(rawVersion) {
+  const value = typeof rawVersion === "string" ? rawVersion.trim() : "";
+  if (!value) return "";
+  return value.startsWith("v") ? value : `v${value}`;
+}
+
+async function hydrateAppVersion() {
+  if (!appVersionEl) return;
+  try {
+    const response = await fetch(RELEASES_API_URL, {
+      headers: {
+        Accept: "application/vnd.github+json"
+      }
+    });
+    if (!response.ok) {
+      return;
+    }
+    const data = await response.json().catch(() => ({}));
+    const resolved = normalizeReleaseVersion(data?.tag_name);
+    if (!resolved) {
+      return;
+    }
+    appVersionEl.textContent = resolved;
+    updateVersionLink();
+  } catch (error) {
+    // Keep local fallback when release lookup is unavailable.
+  }
+}
+
 function toggleDevMode() {
   const nextMode = !state.devMode;
   saveState();
@@ -3111,7 +3276,7 @@ function selectColorCosmetic(key) {
 
 function buyColorCosmetic(key) {
   const cosmetic = colorCosmetics.find((entry) => entry.key === key);
-  if (!cosmetic || cosmetic.owned || !canAfford(cosmetic.cost)) {
+  if (!cosmetic || cosmetic.owned || cosmetic.unlockAchievement || !canAfford(cosmetic.cost)) {
     return;
   }
   spendCookies(cosmetic.cost);
@@ -3134,7 +3299,7 @@ function selectAccessoryCosmetic(key) {
 
 function buyAccessoryCosmetic(key) {
   const cosmetic = accessoryCosmetics.find((entry) => entry.key === key);
-  if (!cosmetic || cosmetic.owned || !canAfford(cosmetic.cost)) {
+  if (!cosmetic || cosmetic.owned || cosmetic.unlockAchievement || !canAfford(cosmetic.cost)) {
     return;
   }
   spendCookies(cosmetic.cost);
@@ -3167,7 +3332,7 @@ function selectMiscCosmetic(key) {
 
 function buySkinCosmetic(key) {
   const cosmetic = skinCosmetics.find((entry) => entry.key === key);
-  if (!cosmetic || cosmetic.owned || !canAfford(cosmetic.cost)) {
+  if (!cosmetic || cosmetic.owned || cosmetic.unlockAchievement || !canAfford(cosmetic.cost)) {
     return;
   }
   spendCookies(cosmetic.cost);
@@ -3180,7 +3345,7 @@ function buySkinCosmetic(key) {
 
 function buyMiscCosmetic(key) {
   const cosmetic = miscCosmetics.find((entry) => entry.key === key);
-  if (!cosmetic || cosmetic.owned || !canAfford(cosmetic.cost)) {
+  if (!cosmetic || cosmetic.owned || cosmetic.unlockAchievement || !canAfford(cosmetic.cost)) {
     return;
   }
   spendCookies(cosmetic.cost);
@@ -3199,9 +3364,14 @@ function renderCosmeticCards(listEl, entries, activeKey, onSelect, onBuy, previe
   entries.filter((cosmetic) => !cosmetic.hidden).forEach((cosmetic) => {
     const item = document.createElement("div");
     const isActive = cosmetic.key === activeKey;
+    const isAchievementLocked = isAchievementLockedCosmetic(cosmetic);
+    const unlockAchievement = cosmetic.unlockAchievement ? findAchievementDefinition(cosmetic.unlockAchievement) : null;
     item.className = "cosmetic-card";
     if (cosmetic.owned) {
       item.classList.add("owned");
+    }
+    if (isAchievementLocked) {
+      item.classList.add("locked-achievement");
     }
     if (isActive) {
       item.classList.add("selected");
@@ -3214,11 +3384,16 @@ function renderCosmeticCards(listEl, entries, activeKey, onSelect, onBuy, previe
     title.textContent = cosmetic.name;
 
     const desc = document.createElement("p");
-    desc.textContent = cosmetic.owned
-      ? cosmetic.desc
-      : (state.devMode
+    if (cosmetic.owned) {
+      desc.textContent = cosmetic.desc;
+    } else if (cosmetic.unlockAchievement) {
+      const achievementLabel = unlockAchievement ? unlockAchievement.title : "passendes Achievement";
+      desc.textContent = `${cosmetic.desc} - Freischalten via: ${achievementLabel}`;
+    } else {
+      desc.textContent = state.devMode
         ? `${cosmetic.desc} - Kosten: Dev gratis (${format(cosmetic.cost)})`
-        : `${cosmetic.desc} - Kosten: ${format(cosmetic.cost)}`);
+        : `${cosmetic.desc} - Kosten: ${format(cosmetic.cost)}`;
+    }
 
     info.appendChild(title);
     info.appendChild(desc);
@@ -3226,6 +3401,9 @@ function renderCosmeticCards(listEl, entries, activeKey, onSelect, onBuy, previe
     const button = document.createElement("button");
     if (isActive) {
       button.textContent = "Aktiv";
+      button.disabled = true;
+    } else if (isAchievementLocked) {
+      button.textContent = "Gesperrt";
       button.disabled = true;
     } else if (cosmetic.owned) {
       button.textContent = "Auswaehlen";
@@ -3240,7 +3418,7 @@ function renderCosmeticCards(listEl, entries, activeKey, onSelect, onBuy, previe
     item.appendChild(info);
     item.appendChild(button);
 
-    if (!cosmetic.owned && !button.disabled) {
+    if (!cosmetic.owned && !button.disabled && !isAchievementLocked) {
       item.classList.add("affordable");
     }
 
@@ -4667,6 +4845,7 @@ buildRouletteWheel();
 setInterval(tick, 1000);
 loadState();
 updateStats();
+void hydrateAppVersion();
 updateAccountUi();
 void ensurePlayerIdentity();
 window.addEventListener("beforeunload", () => {

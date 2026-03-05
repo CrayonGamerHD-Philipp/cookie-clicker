@@ -56,8 +56,8 @@ function getDb() {
 
 export function normalizeAccountName(name: unknown): string {
   if (typeof name !== "string") return "";
-  const value = name.trim().slice(0, 24).toLowerCase();
-  if (!/^[a-z0-9._-]{3,24}$/.test(value)) {
+  const value = name.trim().slice(0, 24);
+  if (!/^[A-Za-z0-9._-]{3,24}$/.test(value)) {
     return "";
   }
   return value;
@@ -107,7 +107,11 @@ export type AccountSession = {
   token: string;
 };
 
-export async function registerAccount(usernameRaw: unknown, passwordRaw: unknown): Promise<{
+export async function registerAccount(
+  usernameRaw: unknown,
+  passwordRaw: unknown,
+  preferredPlayerNameRaw?: unknown
+): Promise<{
   ok: boolean;
   error?: string;
   token?: string;
@@ -118,7 +122,8 @@ export async function registerAccount(usernameRaw: unknown, passwordRaw: unknown
   if (!username) return { ok: false, error: "Invalid username" };
   if (!isValidPassword(passwordRaw)) return { ok: false, error: "Invalid password" };
 
-  const playerName = normalizePlayerName(username);
+  const preferredPlayerName = normalizePlayerName(preferredPlayerNameRaw);
+  const playerName = preferredPlayerName || normalizePlayerName(username);
   if (!playerName) return { ok: false, error: "Invalid player name" };
 
   const database = getDb();
@@ -126,6 +131,13 @@ export async function registerAccount(usernameRaw: unknown, passwordRaw: unknown
     .prepare("SELECT id FROM accounts WHERE username = ?")
     .get(username) as { id: number } | undefined;
   if (existing) return { ok: false, error: "Username already exists" };
+
+  const existingPlayerNameAccount = database
+    .prepare("SELECT id FROM accounts WHERE player_name = ?")
+    .get(playerName) as { id: number } | undefined;
+  if (existingPlayerNameAccount) {
+    return { ok: false, error: "Player name already linked to another account" };
+  }
 
   const now = nowIso();
   const passwordHash = hashPassword(passwordRaw);
