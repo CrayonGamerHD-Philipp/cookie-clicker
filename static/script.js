@@ -445,14 +445,14 @@ const state = {
   towerMultiplier: 0
 };
 
-const towerSteps = [0, 0.5, 1, 1.5, 2, 2.5, 3, 4];
-const towerChances = [0.78, 0.74, 0.7, 0.66, 0.62, 0.58, 0.55, 0.52];
+const towerSteps = [0, 1.1, 1.45, 1.9, 2.5, 3.3, 4.3, 5.6];
+const towerChances = [0.9, 0.84, 0.78, 0.72, 0.66, 0.6, 0.54, 0.48];
 const slotSymbols = [
-  { key: "CHERRY", icon: "\u{1F352}", weight: 30, multiplier: 2 },
-  { key: "LEMON", icon: "\u{1F34B}", weight: 26, multiplier: 1.5 },
-  { key: "COOKIE", icon: "\u{1F36A}", weight: 16, multiplier: 6 },
-  { key: "STAR", icon: "\u{2B50}", weight: 14, multiplier: 4 },
-  { key: "BELL", icon: "\u{1F514}", weight: 14, multiplier: 3 }
+  { key: "CHERRY", icon: "\u{1F352}", weight: 33, multiplier: 1.2 },
+  { key: "LEMON", icon: "\u{1F34B}", weight: 29, multiplier: 1 },
+  { key: "COOKIE", icon: "\u{1F36A}", weight: 12, multiplier: 3.2 },
+  { key: "STAR", icon: "\u{2B50}", weight: 13, multiplier: 2.2 },
+  { key: "BELL", icon: "\u{1F514}", weight: 13, multiplier: 1.7 }
 ];
 const rouletteOrder = [
   0, 32, 15, 19, 4, 21, 2, 25, 17, 34,
@@ -4469,7 +4469,7 @@ function spinSlots() {
       }
       const cookieCount = [a, b, c].filter((symbol) => symbol.key === "COOKIE").length;
       if (cookieCount === 2) {
-        totalMultiplier += 1.5;
+        totalMultiplier += 0.4;
       }
     });
     const payout = scalePayout(Math.floor(bet * totalMultiplier), bet);
@@ -4755,7 +4755,7 @@ function renderTower() {
   renderTowerVisual();
 
   if (!state.towerActive) {
-    towerStatus.textContent = "Setze einen Einsatz und starte. Ab x1.5 machst du Gewinn.";
+    towerStatus.textContent = "Setze einen Einsatz und starte. Ab x1.1 machst du Gewinn.";
   }
 }
 
