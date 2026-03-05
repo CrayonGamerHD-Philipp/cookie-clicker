@@ -1,4 +1,5 @@
 name: build-and-push
+run-name: build-and-push (${{ github.ref_name }})
 
 on:
   push:
