@@ -8,11 +8,11 @@ export type ModeResult = {
 };
 
 export const gameModes: Array<{ key: GameMode; title: string; description: string; minBet: number }> = [
-  { key: "tower", title: "Tower", description: "Steige hoch oder crashe.", minBet: 100 },
-  { key: "blackjack", title: "Blackjack", description: "Schlage den Dealer.", minBet: 200 },
-  { key: "slots", title: "Slots", description: "Drei gleiche bringen Multiplikator.", minBet: 150 },
-  { key: "roulette", title: "Roulette", description: "Setze auf Farbe oder Zahl.", minBet: 200 },
-  { key: "wheel", title: "Gluecksrad", description: "High risk, high reward.", minBet: 150 },
+  { key: "tower", title: "Tower", description: "Steige hoch oder crashe.", minBet: 1 },
+  { key: "blackjack", title: "Blackjack", description: "Schlage den Dealer.", minBet: 1_000_000 },
+  { key: "slots", title: "Slots", description: "Drei gleiche bringen Multiplikator.", minBet: 100_000_000 },
+  { key: "roulette", title: "Roulette", description: "Setze auf Farbe oder Zahl.", minBet: 10_000_000 },
+  { key: "wheel", title: "Gluecksrad", description: "High risk, high reward.", minBet: 25_000_000 },
   { key: "lootbox", title: "Lootbox", description: "Spezialbox mit schwankender Rendite.", minBet: 10_000_000 }
 ];
 

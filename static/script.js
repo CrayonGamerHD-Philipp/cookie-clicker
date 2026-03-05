@@ -479,6 +479,20 @@ const wheelSegments = [
   { label: "x0.5", multiplier: 0.5, weight: 28 },
   { label: "Niete", multiplier: 0, weight: 27 }
 ];
+const modeBetLimits = {
+  tower: { min: 1, max: 10_000_000 },
+  blackjack: { min: 1_000_000, max: 25_000_000 },
+  slots: { min: 100_000_000, max: 400_000_000 },
+  roulette: { min: 10_000_000, max: 200_000_000 },
+  wheel: { min: 25_000_000, max: 500_000_000 }
+};
+const modeDisplayNames = {
+  tower: "Tower",
+  blackjack: "Blackjack",
+  slots: "Slots",
+  roulette: "Roulette",
+  wheel: "Gluecksrad"
+};
 const boostRarities = [
   { key: "common", label: "Gewoehnlich", icon: "B", multiplier: 1.25, durationMs: 5 * 60_000, durationLabel: "5 Min", weight: 50 },
   { key: "rare", label: "Selten", icon: "S", multiplier: 1.5, durationMs: 10 * 60_000, durationLabel: "10 Min", weight: 28 },
@@ -1496,6 +1510,50 @@ function currentSaveKey() {
 
 function canAfford(amount) {
   return state.devMode || state.cookies >= amount;
+}
+
+function getBetLimits(mode) {
+  return modeBetLimits[mode] || { min: 1, max: Number.MAX_SAFE_INTEGER };
+}
+
+function setBetInputLimits() {
+  const bindings = [
+    { mode: "tower", input: towerBetInput },
+    { mode: "blackjack", input: blackjackBetInput },
+    { mode: "slots", input: slotsBetInput },
+    { mode: "roulette", input: rouletteBetInput },
+    { mode: "wheel", input: wheelBetInput }
+  ];
+  bindings.forEach(({ mode, input }) => {
+    if (!input) return;
+    const limits = getBetLimits(mode);
+    input.min = String(limits.min);
+    input.max = String(limits.max);
+    const current = Math.floor(Number(input.value) || 0);
+    if (current <= 0) {
+      input.value = String(limits.min);
+    }
+  });
+}
+
+function validateBet(mode, rawBet) {
+  const limits = getBetLimits(mode);
+  const label = modeDisplayNames[mode] || mode;
+  const bet = Math.floor(Number(rawBet) || 0);
+  const hasMinLimit = mode !== "tower";
+  if (bet <= 0) {
+    return { ok: false, reason: "min", bet: 0, message: `${label}: Einsatz muss groesser als 0 sein.` };
+  }
+  if (hasMinLimit && bet < limits.min) {
+    return { ok: false, reason: "min", bet: 0, message: `${label}: Mindesteinsatz ${format(limits.min)}.` };
+  }
+  if (bet > limits.max) {
+    return { ok: false, reason: "max", bet: 0, message: `${label}: Maximaleinsatz ${format(limits.max)}.` };
+  }
+  if (!canAfford(bet)) {
+    return { ok: false, reason: "funds", bet: 0, message: "Nicht genug Kekse fuer diesen Einsatz." };
+  }
+  return { ok: true, reason: "ok", bet, message: "" };
 }
 
 function spendCookies(amount) {
@@ -4031,9 +4089,12 @@ function showInfoToast(message) {
   }, 2600);
 }
 
-function setAllInBet(input, renderFn) {
+function setAllInBet(input, renderFn, mode = "") {
   if (!input) return;
-  input.value = String(Math.max(0, Math.floor(state.cookies)));
+  const caps = getBetLimits(mode);
+  const affordable = Math.max(0, Math.floor(state.cookies));
+  const capped = Math.min(affordable, caps.max);
+  input.value = String(capped);
   if (typeof renderFn === "function") {
     renderFn();
   }
@@ -4488,7 +4549,8 @@ function renderBlackjack() {
   renderHand(playerHandEl, playerHand, false);
   dealerTotalEl.textContent = dealerHand.length ? (hideDealer ? "Total: ?" : `Total: ${dealerTotal}`) : "";
   playerTotalEl.textContent = playerHand.length ? `Total: ${playerTotal}` : "";
-  blackjackDealButton.disabled = blackjackActive || !canAfford(Number(blackjackBetInput.value) || 0) || (Number(blackjackBetInput.value) || 0) <= 0;
+  const validation = validateBet("blackjack", blackjackBetInput.value);
+  blackjackDealButton.disabled = blackjackActive || !validation.ok;
   blackjackHitButton.disabled = !blackjackActive;
   blackjackStandButton.disabled = !blackjackActive;
 }
@@ -4532,11 +4594,12 @@ function resolveDealer() {
 }
 
 function dealBlackjack() {
-  const bet = Math.floor(Number(blackjackBetInput.value) || 0);
-  if (bet <= 0 || !canAfford(bet)) {
-    blackjackStatus.textContent = "Nicht genug Kekse fuer diesen Einsatz.";
+  const validation = validateBet("blackjack", blackjackBetInput.value);
+  if (!validation.ok) {
+    blackjackStatus.textContent = validation.message;
     return;
   }
+  const bet = validation.bet;
   spendCookies(bet);
   blackjackBet = bet;
   blackjackDeck = shuffle(createDeck());
@@ -4584,17 +4647,18 @@ function pickSlotSymbol() {
 }
 
 function renderSlots() {
-  const betValue = Number(slotsBetInput.value) || 0;
-  slotsSpinButton.disabled = slotsSpinning || betValue <= 0 || !canAfford(betValue);
+  const validation = validateBet("slots", slotsBetInput.value);
+  slotsSpinButton.disabled = slotsSpinning || !validation.ok;
 }
 
 function spinSlots() {
   if (slotsSpinning) return;
-  const bet = Math.floor(Number(slotsBetInput.value) || 0);
-  if (bet <= 0 || !canAfford(bet)) {
-    slotsStatus.textContent = "Nicht genug Kekse fuer diesen Einsatz.";
+  const validation = validateBet("slots", slotsBetInput.value);
+  if (!validation.ok) {
+    slotsStatus.textContent = validation.message;
     return;
   }
+  const bet = validation.bet;
   spendCookies(bet);
   slotsSpinning = true;
   slotsStatus.textContent = "Walzen drehen...";
@@ -4794,8 +4858,8 @@ function renderRouletteBoard() {
 }
 
 function renderRoulette() {
-  const betValue = Number(rouletteBetInput.value) || 0;
-  rouletteSpinButton.disabled = rouletteSpinning || betValue <= 0 || !canAfford(betValue);
+  const validation = validateBet("roulette", rouletteBetInput.value);
+  rouletteSpinButton.disabled = rouletteSpinning || !validation.ok;
   rouletteChips.forEach((chip) => {
     chip.classList.toggle("active", chip.dataset.bet === rouletteBetChoice);
   });
@@ -4805,11 +4869,12 @@ function renderRoulette() {
 
 function spinRoulette() {
   if (rouletteSpinning) return;
-  const bet = Math.floor(Number(rouletteBetInput.value) || 0);
-  if (bet <= 0 || !canAfford(bet)) {
-    rouletteStatus.textContent = "Nicht genug Kekse fuer diesen Einsatz.";
+  const validation = validateBet("roulette", rouletteBetInput.value);
+  if (!validation.ok) {
+    rouletteStatus.textContent = validation.message;
     return;
   }
+  const bet = validation.bet;
   spendCookies(bet);
   rouletteSpinning = true;
   rouletteStatus.textContent = "Rad dreht...";
@@ -4847,8 +4912,8 @@ function spinRoulette() {
 }
 
 function renderWheel() {
-  const betValue = Number(wheelBetInput.value) || 0;
-  wheelSpinButton.disabled = wheelSpinning || betValue <= 0 || !canAfford(betValue);
+  const validation = validateBet("wheel", wheelBetInput.value);
+  wheelSpinButton.disabled = wheelSpinning || !validation.ok;
 }
 
 function pickWheelIndex() {
@@ -4869,11 +4934,12 @@ function normalizeRotation(angle) {
 
 function spinWheel() {
   if (wheelSpinning) return;
-  const bet = Math.floor(Number(wheelBetInput.value) || 0);
-  if (bet <= 0 || !canAfford(bet)) {
-    wheelStatus.textContent = "Nicht genug Kekse fuer diesen Einsatz.";
+  const validation = validateBet("wheel", wheelBetInput.value);
+  if (!validation.ok) {
+    wheelStatus.textContent = validation.message;
     return;
   }
+  const bet = validation.bet;
   spendCookies(bet);
   wheelSpinning = true;
   wheelStatus.textContent = "Rad dreht...";
@@ -4912,24 +4978,26 @@ function renderTower() {
   towerMultiplierEl.textContent = `x${state.towerMultiplier}`;
   setDisplayValue(towerPayoutEl, payout);
 
-  const towerBetValue = Number(towerBetInput.value) || 0;
-  const canStart = !state.towerActive && towerBetValue > 0 && canAfford(towerBetValue);
+  const validation = validateBet("tower", towerBetInput.value);
+  const canStart = !state.towerActive && validation.ok;
   towerStartButton.disabled = !canStart;
   towerClimbButton.disabled = !state.towerActive;
   towerCashoutButton.disabled = !state.towerActive;
   renderTowerVisual();
 
   if (!state.towerActive) {
-    towerStatus.textContent = "Setze einen Einsatz und starte. Ab x1.1 machst du Gewinn.";
+    const limits = getBetLimits("tower");
+    towerStatus.textContent = `Setze einen Einsatz (max ${format(limits.max)}). Ab x1.1 machst du Gewinn.`;
   }
 }
 
 function startTower() {
-  const bet = Math.floor(Number(towerBetInput.value) || 0);
-  if (bet <= 0 || !canAfford(bet)) {
-    towerStatus.textContent = "Nicht genug Kekse fuer diesen Einsatz.";
+  const validation = validateBet("tower", towerBetInput.value);
+  if (!validation.ok) {
+    towerStatus.textContent = validation.message;
     return;
   }
+  const bet = validation.bet;
   towerVisual.classList.remove("tower-crash");
   spendCookies(bet);
   state.towerActive = true;
@@ -5007,7 +5075,7 @@ towerOpenButton.addEventListener("click", openTowerModal);
 towerCloseButton.addEventListener("click", closeTowerModal);
 towerCloseOverlay.addEventListener("click", closeTowerModal);
 towerBetInput.addEventListener("input", renderTower);
-towerAllInButton.addEventListener("click", () => setAllInBet(towerBetInput, renderTower));
+towerAllInButton.addEventListener("click", () => setAllInBet(towerBetInput, renderTower, "tower"));
 towerStartButton.addEventListener("click", startTower);
 towerClimbButton.addEventListener("click", climbTower);
 towerCashoutButton.addEventListener("click", cashoutTower);
@@ -5016,7 +5084,7 @@ blackjackOpenButton.addEventListener("click", openBlackjackModal);
 blackjackCloseButton.addEventListener("click", closeBlackjackModal);
 blackjackCloseOverlay.addEventListener("click", closeBlackjackModal);
 blackjackBetInput.addEventListener("input", renderBlackjack);
-blackjackAllInButton.addEventListener("click", () => setAllInBet(blackjackBetInput, renderBlackjack));
+blackjackAllInButton.addEventListener("click", () => setAllInBet(blackjackBetInput, renderBlackjack, "blackjack"));
 blackjackDealButton.addEventListener("click", dealBlackjack);
 blackjackHitButton.addEventListener("click", hitBlackjack);
 blackjackStandButton.addEventListener("click", standBlackjack);
@@ -5024,7 +5092,7 @@ blackjackBuyButton.addEventListener("click", () => buyGame("blackjack", "Blackja
 slotsOpenButton.addEventListener("click", openSlotsModal);
 slotsCloseButton.addEventListener("click", closeSlotsModal);
 slotsCloseOverlay.addEventListener("click", closeSlotsModal);
-slotsAllInButton.addEventListener("click", () => setAllInBet(slotsBetInput, renderSlots));
+slotsAllInButton.addEventListener("click", () => setAllInBet(slotsBetInput, renderSlots, "slots"));
 slotsSpinButton.addEventListener("click", spinSlots);
 slotsBetInput.addEventListener("input", renderSlots);
 slotsBuyButton.addEventListener("click", () => buyGame("slots", "Slots"));
@@ -5036,7 +5104,7 @@ lootboxBuyButton.addEventListener("click", () => buyGame("lootbox", "Lootboxes")
 rouletteOpenButton.addEventListener("click", openRouletteModal);
 rouletteCloseButton.addEventListener("click", closeRouletteModal);
 rouletteCloseOverlay.addEventListener("click", closeRouletteModal);
-rouletteAllInButton.addEventListener("click", () => setAllInBet(rouletteBetInput, renderRoulette));
+rouletteAllInButton.addEventListener("click", () => setAllInBet(rouletteBetInput, renderRoulette, "roulette"));
 rouletteSpinButton.addEventListener("click", spinRoulette);
 rouletteBetInput.addEventListener("input", renderRoulette);
 rouletteChips.forEach((chip) => {
@@ -5049,7 +5117,7 @@ rouletteBuyButton.addEventListener("click", () => buyGame("roulette", "Roulette"
 wheelOpenButton.addEventListener("click", openWheelModal);
 wheelCloseButton.addEventListener("click", closeWheelModal);
 wheelCloseOverlay.addEventListener("click", closeWheelModal);
-wheelAllInButton.addEventListener("click", () => setAllInBet(wheelBetInput, renderWheel));
+wheelAllInButton.addEventListener("click", () => setAllInBet(wheelBetInput, renderWheel, "wheel"));
 wheelSpinButton.addEventListener("click", spinWheel);
 if (levelButton) levelButton.addEventListener("click", levelUp);
 wheelBetInput.addEventListener("input", renderWheel);
@@ -5077,6 +5145,7 @@ resetCancelButton.addEventListener("click", closeResetModal);
 resetConfirmButton.addEventListener("click", resetAccount);
 
 buildRouletteWheel();
+setBetInputLimits();
 setInterval(tick, 1000);
 loadState();
 updateStats();
