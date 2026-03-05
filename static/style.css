@@ -1569,7 +1569,10 @@ h1 {
   gap: 14px;
   max-height: min(62vh, 640px);
   overflow: auto;
-  padding: 4px 8px 8px 0;
+  overflow-x: hidden;
+  align-content: start;
+  padding: 4px 8px 24px 0;
+  scroll-padding-bottom: 24px;
 }
 
 .cosmetic-card {
@@ -1678,6 +1681,7 @@ h1 {
   color: white;
   font-weight: 600;
   cursor: pointer;
+  margin-top: auto;
 }
 
 .cosmetic-card button:disabled {
