@@ -91,7 +91,7 @@ function parseTotalGames(game) {
 function renderEntries(entries) {
   const ownName = (nameInput?.value || safeLocalGet(PLAYER_NAME_KEY, "") || "").trim();
   if (!entries.length) {
-    rowsEl.innerHTML = '<tr><td colspan="5">Noch keine Eintraege vorhanden.</td></tr>';
+    rowsEl.innerHTML = '<tr><td colspan="6">Noch keine Eintraege vorhanden.</td></tr>';
     return;
   }
 
@@ -102,6 +102,7 @@ function renderEntries(entries) {
       return `<tr class="${isSelf ? "is-self" : ""}">
         <td>${index + 1}</td>
         <td>${entry.playerName}</td>
+        <td>${formatNumber(entry.bestLevel)}</td>
         <td>${formatNumber(entry.bestScore)}</td>
         <td>${formatNumber(entry.totalClicks)}</td>
         <td>${date.toLocaleString("de-DE")}</td>
@@ -114,7 +115,7 @@ async function refreshLeaderboard() {
   const response = await requestJson(`/api/leaderboard?range=${encodeURIComponent(activeRange)}`, { method: "GET" });
   if (!response.ok || !Array.isArray(response.leaderboard)) {
     setStatus("Konnte globales Leaderboard nicht laden.");
-    rowsEl.innerHTML = '<tr><td colspan="5">Fehler beim Laden der globalen Daten.</td></tr>';
+    rowsEl.innerHTML = '<tr><td colspan="6">Fehler beim Laden der globalen Daten.</td></tr>';
     return;
   }
   const resolvedRange = typeof response.range === "string" ? response.range : activeRange;
@@ -133,6 +134,7 @@ async function saveCurrentScore() {
   }
 
   const game = loadGameState();
+  const level = Math.max(1, Math.floor(Number(game.level) || 1));
   const score = Math.floor(Number(game.total) || 0);
   const clicks = Math.floor(Number(game.clicks) || 0);
   const totalGames = parseTotalGames(game);
@@ -150,6 +152,7 @@ async function saveCurrentScore() {
     method: "POST",
     body: JSON.stringify({
       playerName: name,
+      level,
       score,
       totalClicks: clicks,
       totalGames
@@ -168,7 +171,7 @@ async function saveCurrentScore() {
   if (!rowsEl || !nameInput) {
     return;
   }
-  rowsEl.innerHTML = '<tr><td colspan="5">Lade globales Leaderboard...</td></tr>';
+  rowsEl.innerHTML = '<tr><td colspan="6">Lade globales Leaderboard...</td></tr>';
 
   const lastName = safeLocalGet(PLAYER_NAME_KEY, "");
   if (lastName) {
@@ -201,7 +204,7 @@ async function saveCurrentScore() {
     button.addEventListener("click", () => {
       activeRange = button.dataset.range || "alltime";
       rangeButtons.forEach((item) => item.classList.toggle("active", item === button));
-      rowsEl.innerHTML = '<tr><td colspan="5">Lade globales Leaderboard...</td></tr>';
+      rowsEl.innerHTML = '<tr><td colspan="6">Lade globales Leaderboard...</td></tr>';
       void refreshLeaderboard();
     });
   });

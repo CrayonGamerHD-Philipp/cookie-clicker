@@ -21,6 +21,8 @@ export type GlobalStats = {
 };
 
 type PlayerRecord = {
+  bestLevel: number;
+  lastLevel: number;
   bestScore: number;
   lastScore: number;
   totalClicks: number;
@@ -36,6 +38,8 @@ type PersistedData = {
 
 export type LeaderboardEntry = {
   playerName: string;
+  bestLevel: number;
+  lastLevel: number;
   bestScore: number;
   lastScore: number;
   totalClicks: number;
@@ -85,6 +89,8 @@ function getDb() {
     CREATE TABLE IF NOT EXISTS players (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
+      best_level INTEGER NOT NULL DEFAULT 1,
+      last_level INTEGER NOT NULL DEFAULT 1,
       best_score INTEGER NOT NULL DEFAULT 0,
       last_score INTEGER NOT NULL DEFAULT 0,
       total_clicks INTEGER NOT NULL DEFAULT 0,
@@ -112,6 +118,7 @@ function getDb() {
     CREATE TABLE IF NOT EXISTS score_submissions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       player_id INTEGER NOT NULL,
+      level INTEGER NOT NULL DEFAULT 1,
       score INTEGER NOT NULL,
       total_clicks INTEGER NOT NULL,
       total_games INTEGER NOT NULL,
@@ -133,6 +140,16 @@ function getDb() {
   for (const mode of allowedModes) {
     modeStmt.run(mode);
   }
+
+  const ensureColumn = (table: "players" | "score_submissions", column: string, definition: string) => {
+    const columns = db!.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+    if (!columns.some((entry) => entry.name === column)) {
+      db!.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    }
+  };
+  ensureColumn("players", "best_level", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("players", "last_level", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("score_submissions", "level", "INTEGER NOT NULL DEFAULT 1");
 
   return db;
 }
@@ -208,8 +225,8 @@ export async function registerPlayer(playerName: string): Promise<{ ok: boolean;
   let created = false;
   if (!existing) {
     database.prepare(`
-      INSERT INTO players (name, best_score, last_score, total_clicks, total_games, first_seen_at, last_seen_at)
-      VALUES (?, 0, 0, 0, 0, ?, ?)
+      INSERT INTO players (name, best_level, last_level, best_score, last_score, total_clicks, total_games, first_seen_at, last_seen_at)
+      VALUES (?, 1, 1, 0, 0, 0, 0, ?, ?)
     `).run(playerName, now, now);
     created = true;
     refreshUniquePlayersCount();
@@ -267,7 +284,13 @@ export async function applyStatsDelta(playerName: string, delta: {
   return { ok: true, stats };
 }
 
-export async function updateLeaderboardScore(playerName: string, score: number, totalClicks: number, totalGames: number): Promise<{ ok: boolean; bestScore?: number }> {
+export async function updateLeaderboardScore(
+  playerName: string,
+  level: number,
+  score: number,
+  totalClicks: number,
+  totalGames: number
+): Promise<{ ok: boolean; bestScore?: number }> {
   const database = getDb();
   const now = nowIso();
   const player = database.prepare("SELECT id, best_score FROM players WHERE name = ?").get(playerName) as { id: number; best_score: number } | undefined;
@@ -278,18 +301,20 @@ export async function updateLeaderboardScore(playerName: string, score: number, 
   database.prepare(`
     UPDATE players
     SET
+      last_level = ?,
+      best_level = CASE WHEN best_level > ? THEN best_level ELSE ? END,
       last_score = ?,
       best_score = CASE WHEN best_score > ? THEN best_score ELSE ? END,
       total_clicks = CASE WHEN total_clicks > ? THEN total_clicks ELSE ? END,
       total_games = CASE WHEN total_games > ? THEN total_games ELSE ? END,
       last_seen_at = ?
     WHERE id = ?
-  `).run(score, score, score, totalClicks, totalClicks, totalGames, totalGames, now, player.id);
+  `).run(level, level, level, score, score, score, totalClicks, totalClicks, totalGames, totalGames, now, player.id);
 
   database.prepare(`
-    INSERT INTO score_submissions (player_id, score, total_clicks, total_games, created_at)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(player.id, score, totalClicks, totalGames, now);
+    INSERT INTO score_submissions (player_id, level, score, total_clicks, total_games, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(player.id, level, score, totalClicks, totalGames, now);
 
   touchGlobalStats();
   const updated = database.prepare("SELECT best_score AS bestScore FROM players WHERE id = ?").get(player.id) as { bestScore: number };
@@ -303,17 +328,21 @@ export async function getLeaderboard(range: LeaderboardRange, limit = 20): Promi
     const rows = database.prepare(`
       SELECT
         name AS playerName,
+        best_level AS bestLevel,
+        last_level AS lastLevel,
         best_score AS bestScore,
         last_score AS lastScore,
         total_clicks AS totalClicks,
         total_games AS totalGames,
         last_seen_at AS updatedAt
       FROM players
-      ORDER BY best_score DESC, last_seen_at ASC
+      ORDER BY best_level DESC, best_score DESC, last_seen_at ASC
       LIMIT ?
     `).all(safeLimit) as LeaderboardEntry[];
     return rows.map((row) => ({
       ...row,
+      bestLevel: Number(row.bestLevel) || 1,
+      lastLevel: Number(row.lastLevel) || 1,
       bestScore: Number(row.bestScore) || 0,
       lastScore: Number(row.lastScore) || 0,
       totalClicks: Number(row.totalClicks) || 0,
@@ -327,6 +356,14 @@ export async function getLeaderboard(range: LeaderboardRange, limit = 20): Promi
   const rows = database.prepare(`
     SELECT
       p.name AS playerName,
+      MAX(s.level) AS bestLevel,
+      (
+        SELECT s2.level
+        FROM score_submissions s2
+        WHERE s2.player_id = p.id AND s2.created_at >= ?
+        ORDER BY s2.created_at DESC, s2.id DESC
+        LIMIT 1
+      ) AS lastLevel,
       MAX(s.score) AS bestScore,
       (
         SELECT s2.score
@@ -342,12 +379,14 @@ export async function getLeaderboard(range: LeaderboardRange, limit = 20): Promi
     INNER JOIN score_submissions s ON s.player_id = p.id
     WHERE s.created_at >= ?
     GROUP BY p.id
-    ORDER BY bestScore DESC, updatedAt ASC
+    ORDER BY bestLevel DESC, bestScore DESC, updatedAt ASC
     LIMIT ?
-  `).all(start, start, safeLimit) as LeaderboardEntry[];
+  `).all(start, start, start, safeLimit) as LeaderboardEntry[];
 
   return rows.map((row) => ({
     ...row,
+    bestLevel: Number(row.bestLevel) || 1,
+    lastLevel: Number(row.lastLevel) || 1,
     bestScore: Number(row.bestScore) || 0,
     lastScore: Number(row.lastScore) || 0,
     totalClicks: Number(row.totalClicks) || 0,
@@ -373,6 +412,8 @@ export async function readData(): Promise<PersistedData> {
   const rows = database.prepare(`
     SELECT
       name,
+      best_level AS bestLevel,
+      last_level AS lastLevel,
       best_score AS bestScore,
       last_score AS lastScore,
       total_clicks AS totalClicks,
@@ -385,6 +426,8 @@ export async function readData(): Promise<PersistedData> {
   const players: Record<string, PlayerRecord> = {};
   for (const row of rows) {
     players[row.name] = {
+      bestLevel: Number(row.bestLevel) || 1,
+      lastLevel: Number(row.lastLevel) || 1,
       bestScore: Number(row.bestScore) || 0,
       lastScore: Number(row.lastScore) || 0,
       totalClicks: Number(row.totalClicks) || 0,

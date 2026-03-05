@@ -1378,6 +1378,7 @@ async function syncPlayerStats() {
     method: "POST",
     body: JSON.stringify({
       playerName,
+      level: Math.max(1, Math.floor(Number(state.level) || 1)),
       score: Math.floor(state.total),
       totalClicks: Math.floor(state.clicks),
       totalGames: Math.floor(totalGamesPlayed())
@@ -1451,28 +1452,47 @@ function updateSyncStatusBar() {
   syncStatusCountdownEl.textContent = formatCountdown(remainingSeconds);
 
   if (syncStatusRankEl) {
+    const myLevel = Math.max(1, Math.floor(Number(state.level) || 1));
     const myScore = Math.floor(Number(state.total) || 0);
     const others = leaderboardSnapshot
       .filter((entry) => entry && entry.playerName !== playerName)
-      .map((entry) => Number(entry.bestScore) || 0)
-      .sort((a, b) => b - a);
-    const rank = 1 + others.filter((score) => score > myScore).length;
-    const higherScores = others.filter((score) => score > myScore);
-    const nextHigher = higherScores.length ? Math.min(...higherScores) : null;
+      .map((entry) => ({
+        playerName: entry.playerName,
+        level: Math.max(1, Math.floor(Number(entry.bestLevel) || 1)),
+        score: Math.floor(Number(entry.bestScore) || 0)
+      }));
+    const isBetterThanMine = (entry) => entry.level > myLevel || (entry.level === myLevel && entry.score > myScore);
+    const rank = 1 + others.filter(isBetterThanMine).length;
+    const nextHigher = others
+      .filter(isBetterThanMine)
+      .sort((a, b) => (a.level - b.level) || (a.score - b.score))[0] || null;
     if (!others.length) {
       syncStatusRankEl.textContent = "Platz 1 • noch keine weiteren Spieler";
     } else if (nextHigher === null) {
       syncStatusRankEl.textContent = `Platz ${rank} • du bist aktuell vorne`;
+    } else if (nextHigher.level > myLevel) {
+      const deltaLevel = nextHigher.level - myLevel;
+      syncStatusRankEl.textContent = `Platz ${rank} • noch ${deltaLevel} Level bis Platz ${rank - 1}`;
     } else {
-      const delta = Math.max(0, nextHigher - myScore);
+      const delta = Math.max(0, nextHigher.score - myScore);
       syncStatusRankEl.textContent = `Platz ${rank} • noch ${format(delta)} bis Platz ${rank - 1}`;
     }
   }
 
+  const myLevel = Math.max(1, Math.floor(Number(state.level) || 1));
   const myScore = Math.floor(Number(state.total) || 0);
   const nextEntry = leaderboardSnapshot
-    .filter((entry) => entry && entry.playerName !== playerName && Number(entry.bestScore) > myScore)
-    .sort((a, b) => Number(a.bestScore) - Number(b.bestScore))[0];
+    .filter((entry) => {
+      if (!entry || entry.playerName === playerName) return false;
+      const entryLevel = Math.max(1, Math.floor(Number(entry.bestLevel) || 1));
+      const entryScore = Math.floor(Number(entry.bestScore) || 0);
+      return entryLevel > myLevel || (entryLevel === myLevel && entryScore > myScore);
+    })
+    .sort((a, b) => {
+      const levelDiff = (Math.max(1, Math.floor(Number(a.bestLevel) || 1)) - Math.max(1, Math.floor(Number(b.bestLevel) || 1)));
+      if (levelDiff !== 0) return levelDiff;
+      return Math.floor(Number(a.bestScore) || 0) - Math.floor(Number(b.bestScore) || 0);
+    })[0];
   if (!chaseBannerEl) {
     return;
   }
@@ -1481,17 +1501,21 @@ function updateSyncStatusBar() {
     return;
   }
 
-  const nextScore = Number(nextEntry.bestScore) || 0;
-  const inRange = nextScore <= myScore * 2;
-  if (!inRange) {
-    chaseBannerEl.classList.add("hidden");
-    return;
-  }
-
-  const delta = Math.max(0, nextScore - myScore);
+  const nextLevel = Math.max(1, Math.floor(Number(nextEntry.bestLevel) || 1));
+  const nextScore = Math.floor(Number(nextEntry.bestScore) || 0);
   const target = chaseBannerEl.querySelector("#chaseBannerDelta");
   if (target) {
-    target.textContent = `${format(delta)} (${nextEntry.playerName})`;
+    if (nextLevel > myLevel) {
+      target.textContent = `${nextLevel - myLevel} Level (${nextEntry.playerName})`;
+    } else {
+      const inRange = nextScore <= myScore * 2;
+      if (!inRange) {
+        chaseBannerEl.classList.add("hidden");
+        return;
+      }
+      const delta = Math.max(0, nextScore - myScore);
+      target.textContent = `${format(delta)} (${nextEntry.playerName})`;
+    }
   }
   chaseBannerEl.classList.remove("hidden");
 }

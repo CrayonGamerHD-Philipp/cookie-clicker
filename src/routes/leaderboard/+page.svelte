@@ -31,6 +31,7 @@
           <tr>
             <th>Platz</th>
             <th>Name</th>
+            <th>Level</th>
             <th>Score</th>
             <th>Klicks</th>
             <th>Gespeichert</th>
