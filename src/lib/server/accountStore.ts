@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import Database from "better-sqlite3";
-import { normalizePlayerName, registerPlayer } from "$lib/server/dataStore";
+import { normalizePlayerName, registerPlayer, renamePlayerName } from "$lib/server/dataStore";
 
 const dataDir = path.resolve("backend", "data");
 const dataFile = path.join(dataDir, "game-data.sqlite");
@@ -123,7 +123,7 @@ export async function registerAccount(
   if (!isValidPassword(passwordRaw)) return { ok: false, error: "Invalid password" };
 
   const preferredPlayerName = normalizePlayerName(preferredPlayerNameRaw);
-  const playerName = preferredPlayerName || normalizePlayerName(username);
+  const playerName = normalizePlayerName(username);
   if (!playerName) return { ok: false, error: "Invalid player name" };
 
   const database = getDb();
@@ -137,6 +137,13 @@ export async function registerAccount(
     .get(playerName) as { id: number } | undefined;
   if (existingPlayerNameAccount) {
     return { ok: false, error: "Player name already linked to another account" };
+  }
+
+  if (preferredPlayerName && preferredPlayerName !== playerName) {
+    const renameResult = await renamePlayerName(preferredPlayerName, playerName);
+    if (!renameResult.ok && renameResult.conflict) {
+      return { ok: false, error: "Username already exists on leaderboard" };
+    }
   }
 
   const now = nowIso();

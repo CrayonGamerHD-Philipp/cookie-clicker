@@ -244,6 +244,25 @@ export async function registerPlayer(playerName: string): Promise<{ ok: boolean;
   return { ok: true, created };
 }
 
+export async function renamePlayerName(
+  oldName: string,
+  newName: string
+): Promise<{ ok: boolean; renamed: boolean; conflict?: boolean }> {
+  const database = getDb();
+  const source = database.prepare("SELECT id FROM players WHERE name = ?").get(oldName) as { id: number } | undefined;
+  if (!source) {
+    return { ok: true, renamed: false };
+  }
+
+  const target = database.prepare("SELECT id FROM players WHERE name = ?").get(newName) as { id: number } | undefined;
+  if (target) {
+    return { ok: false, renamed: false, conflict: true };
+  }
+
+  database.prepare("UPDATE players SET name = ?, last_seen_at = ? WHERE id = ?").run(newName, nowIso(), source.id);
+  return { ok: true, renamed: true };
+}
+
 export async function applyStatsDelta(playerName: string, delta: {
   clicks: number;
   gamesPlayed: number;
