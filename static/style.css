@@ -1184,17 +1184,49 @@ h1 {
   justify-content: space-between;
   align-items: center;
   gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
 }
 
-.achievement-category-head h3 {
+.achievement-category-title {
   margin: 0;
   font-size: 0.92rem;
+  font-weight: 700;
 }
 
-.achievement-category-head span {
+.achievement-category-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.achievement-category-count {
   font-size: 0.76rem;
   color: rgba(43, 29, 18, 0.7);
   font-weight: 700;
+}
+
+.achievement-category-chevron {
+  font-size: 0.75rem;
+  color: rgba(43, 29, 18, 0.75);
+  transition: transform 0.2s ease;
+}
+
+.achievement-category.collapsed .achievement-category-chevron {
+  transform: rotate(-90deg);
+}
+
+.achievement-category-content {
+  display: grid;
+  gap: 8px;
+}
+
+.achievement-category.collapsed .achievement-category-content {
+  display: none;
 }
 
 .achievement-group {
