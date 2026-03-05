@@ -589,12 +589,14 @@ function createAchievementProgress() {
 }
 
 const achievementProgress = createAchievementProgress();
+let hasSavedAchievementGroupCollapseState = false;
 const collapsedAchievementGroups = (() => {
   try {
     const raw = localStorage.getItem(ACHIEVEMENT_GROUP_COLLAPSE_KEY);
     if (!raw) return new Set();
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return new Set();
+    hasSavedAchievementGroupCollapseState = true;
     return new Set(parsed.filter((entry) => typeof entry === "string" && entry.trim()));
   } catch (_error) {
     return new Set();
@@ -603,6 +605,7 @@ const collapsedAchievementGroups = (() => {
 
 function persistCollapsedAchievementGroups() {
   try {
+    hasSavedAchievementGroupCollapseState = true;
     localStorage.setItem(ACHIEVEMENT_GROUP_COLLAPSE_KEY, JSON.stringify([...collapsedAchievementGroups]));
   } catch (_error) {
     // Ignore storage failures.
@@ -836,7 +839,9 @@ function renderAchievements() {
       .filter((achievement) => achievement.group === group.group)
       .sort((a, b) => a.tier - b.tier);
     const unlockedTiers = defs.filter((achievement) => achievementProgress.unlocked[achievement.key]).length;
-    const isGroupCollapsed = collapsedAchievementGroups.has(group.group);
+    const isGroupCollapsed = hasSavedAchievementGroupCollapseState
+      ? collapsedAchievementGroups.has(group.group)
+      : true;
 
     const groupBlock = document.createElement("div");
     groupBlock.className = `achievement-group${isGroupCollapsed ? " collapsed" : ""}`;
