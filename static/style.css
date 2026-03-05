@@ -2114,23 +2114,87 @@ h1 {
   cursor: pointer;
 }
 
+.finance-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.finance-kpi {
+  display: grid;
+  gap: 4px;
+  background: linear-gradient(180deg, #fff5e7, #f8e1c3);
+  border: 1px solid #ebcfa9;
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.finance-kpi p {
+  margin: 0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8b5f3b;
+}
+
+.finance-kpi strong {
+  font-family: "Fraunces", "Georgia", serif;
+  font-size: 1.1rem;
+}
+
+.finance-kpi span {
+  font-size: 0.8rem;
+  color: #8b6d50;
+}
+
 .finance-grid {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.finance-section {
+  display: grid;
+  gap: 8px;
   background: #fbe8d2;
+  border: 1px solid #ebcfa9;
   border-radius: 16px;
   padding: 14px 16px;
+}
+
+.finance-section h3 {
+  margin: 0 0 2px;
   font-size: 0.95rem;
+  font-family: "Fraunces", "Georgia", serif;
+  color: #6c3f22;
 }
 
 .finance-row {
   display: flex;
   justify-content: space-between;
   gap: 12px;
+  font-size: 0.92rem;
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(140, 90, 50, 0.22);
+}
+
+.finance-row:last-child {
+  border-bottom: none;
 }
 
 .finance-row strong {
   font-family: "Fraunces", "Georgia", serif;
+}
+
+.finance-row strong.positive,
+.finance-kpi strong.positive {
+  color: #1f7a41;
+}
+
+.finance-row strong.negative,
+.finance-kpi strong.negative {
+  color: #a3382f;
 }
 
 .blackjack {
@@ -3051,6 +3115,11 @@ h1 {
   .upgrade-tab,
   .reset-open {
     min-height: 44px;
+  }
+
+  .finance-summary,
+  .finance-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .tower-visual {

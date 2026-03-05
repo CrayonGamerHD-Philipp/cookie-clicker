@@ -103,6 +103,12 @@ const financePerClickEl = document.getElementById("financePerClick");
 const financeCpsEl = document.getElementById("financeCps");
 const financeTotalEl = document.getElementById("financeTotal");
 const financeClicksEl = document.getElementById("financeClicks");
+const financeAvgPerClickEl = document.getElementById("financeAvgPerClick");
+const financeBankrollEl = document.getElementById("financeBankroll");
+const financeIncomeRateEl = document.getElementById("financeIncomeRate");
+const financeCasinoNetTotalEl = document.getElementById("financeCasinoNet");
+const financeBestModeEl = document.getElementById("financeBestMode");
+const financeWorstModeEl = document.getElementById("financeWorstMode");
 const financeTowerNetEl = document.getElementById("financeTowerNet");
 const financeBlackjackNetEl = document.getElementById("financeBlackjackNet");
 const financeSlotsNetEl = document.getElementById("financeSlotsNet");
@@ -3827,6 +3833,16 @@ function formatFullNet(value) {
   return `${sign}${formatFull(value)}`;
 }
 
+function setFinanceTone(element, value) {
+  if (!element) return;
+  element.classList.remove("positive", "negative");
+  if (value > 0) {
+    element.classList.add("positive");
+  } else if (value < 0) {
+    element.classList.add("negative");
+  }
+}
+
 function renderGameStats() {
   const overall = {
     wins: gameStats.tower.wins + gameStats.blackjack.wins + gameStats.slots.wins + gameStats.roulette.wins + gameStats.wheel.wins,
@@ -3846,18 +3862,58 @@ function renderGameStats() {
 
 function updateFinanceOverview() {
   if (!financeModal) return;
+  const financeModes = [
+    { label: "Tower", net: gameStats.tower.net },
+    { label: "Blackjack", net: gameStats.blackjack.net },
+    { label: "Slots", net: gameStats.slots.net },
+    { label: "Roulette", net: gameStats.roulette.net },
+    { label: "Gluecksrad", net: gameStats.wheel.net },
+    { label: "Lootboxes", net: gameStats.lootbox.net }
+  ];
+  const casinoNet = financeModes.reduce((sum, mode) => sum + mode.net, 0);
+  const bestMode = financeModes.reduce((best, mode) => (mode.net > best.net ? mode : best), financeModes[0]);
+  const worstMode = financeModes.reduce((worst, mode) => (mode.net < worst.net ? mode : worst), financeModes[0]);
+  const avgPerClick = state.clicks > 0 ? state.total / state.clicks : 0;
+
   financeCookiesEl.textContent = formatFull(state.cookies);
   financePerClickEl.textContent = formatFull(state.perClick);
   financeCpsEl.textContent = formatFull(state.cps);
   financeTotalEl.textContent = formatFull(state.total);
   financeClicksEl.textContent = formatFull(state.clicks);
+  if (financeAvgPerClickEl) {
+    financeAvgPerClickEl.textContent = formatFull(avgPerClick);
+  }
+  if (financeBankrollEl) {
+    financeBankrollEl.textContent = formatFull(state.cookies);
+  }
+  if (financeIncomeRateEl) {
+    financeIncomeRateEl.textContent = `${formatFull(state.cps)} / sek`;
+  }
+  if (financeCasinoNetTotalEl) {
+    financeCasinoNetTotalEl.textContent = formatFullNet(casinoNet);
+  }
+  if (financeBestModeEl) {
+    financeBestModeEl.textContent = `${bestMode.label} (${formatFullNet(bestMode.net)})`;
+    setFinanceTone(financeBestModeEl, bestMode.net);
+  }
+  if (financeWorstModeEl) {
+    financeWorstModeEl.textContent = `${worstMode.label} (${formatFullNet(worstMode.net)})`;
+    setFinanceTone(financeWorstModeEl, worstMode.net);
+  }
   financeTowerNetEl.textContent = formatFullNet(gameStats.tower.net);
   financeBlackjackNetEl.textContent = formatFullNet(gameStats.blackjack.net);
   financeSlotsNetEl.textContent = formatFullNet(gameStats.slots.net);
   financeRouletteNetEl.textContent = formatFullNet(gameStats.roulette.net);
   financeWheelNetEl.textContent = formatFullNet(gameStats.wheel.net);
+  setFinanceTone(financeCasinoNetTotalEl, casinoNet);
+  setFinanceTone(financeTowerNetEl, gameStats.tower.net);
+  setFinanceTone(financeBlackjackNetEl, gameStats.blackjack.net);
+  setFinanceTone(financeSlotsNetEl, gameStats.slots.net);
+  setFinanceTone(financeRouletteNetEl, gameStats.roulette.net);
+  setFinanceTone(financeWheelNetEl, gameStats.wheel.net);
   if (financeLootboxNetEl) {
     financeLootboxNetEl.textContent = formatFullNet(gameStats.lootbox.net);
+    setFinanceTone(financeLootboxNetEl, gameStats.lootbox.net);
   }
 }
 

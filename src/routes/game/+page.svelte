@@ -281,51 +281,86 @@
           <h2 id="financeTitle">Finanz-Uebersicht</h2>
           <p class="modal-sub">Deine exakten Werte auf einen Blick.</p>
         </div>
+        <div class="finance-summary">
+          <article class="finance-kpi">
+            <p>Bankroll</p>
+            <strong id="financeBankroll">0</strong>
+            <span>Aktuell verfuegbare Kekse</span>
+          </article>
+          <article class="finance-kpi">
+            <p>Cashflow</p>
+            <strong id="financeIncomeRate">0</strong>
+            <span>Passive Produktion pro Sekunde</span>
+          </article>
+          <article class="finance-kpi">
+            <p>Casino Netto</p>
+            <strong id="financeCasinoNet">0</strong>
+            <span>Gesamter Gewinn/Verlust aus Minigames</span>
+          </article>
+        </div>
         <div class="finance-grid">
-          <div class="finance-row">
-            <span>Aktuelle Kekse</span>
-            <strong id="financeCookies">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Pro Klick</span>
-            <strong id="financePerClick">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Pro Sekunde</span>
-            <strong id="financeCps">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Gesamt</span>
-            <strong id="financeTotal">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Klicks</span>
-            <strong id="financeClicks">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Tower (Netto)</span>
-            <strong id="financeTowerNet">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Blackjack (Netto)</span>
-            <strong id="financeBlackjackNet">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Slots (Netto)</span>
-            <strong id="financeSlotsNet">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Roulette (Netto)</span>
-            <strong id="financeRouletteNet">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Gluecksrad (Netto)</span>
-            <strong id="financeWheelNet">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Lootboxes (Netto)</span>
-            <strong id="financeLootboxNet">0</strong>
-          </div>
+          <section class="finance-section">
+            <h3>Core Kennzahlen</h3>
+            <div class="finance-row">
+              <span>Aktuelle Kekse</span>
+              <strong id="financeCookies">0</strong>
+            </div>
+            <div class="finance-row">
+              <span>Pro Klick</span>
+              <strong id="financePerClick">0</strong>
+            </div>
+            <div class="finance-row">
+              <span>Pro Sekunde</span>
+              <strong id="financeCps">0</strong>
+            </div>
+            <div class="finance-row">
+              <span>Gesamt produziert</span>
+              <strong id="financeTotal">0</strong>
+            </div>
+            <div class="finance-row">
+              <span>Klicks</span>
+              <strong id="financeClicks">0</strong>
+            </div>
+            <div class="finance-row">
+              <span>Durchschnitt pro Klick</span>
+              <strong id="financeAvgPerClick">0</strong>
+            </div>
+          </section>
+          <section class="finance-section">
+            <h3>Casino Analyse</h3>
+            <div class="finance-row">
+              <span>Bester Modus</span>
+              <strong id="financeBestMode">-</strong>
+            </div>
+            <div class="finance-row">
+              <span>Schwaechster Modus</span>
+              <strong id="financeWorstMode">-</strong>
+            </div>
+            <div class="finance-row">
+              <span>Tower (Netto)</span>
+              <strong id="financeTowerNet">0</strong>
+            </div>
+            <div class="finance-row">
+              <span>Blackjack (Netto)</span>
+              <strong id="financeBlackjackNet">0</strong>
+            </div>
+            <div class="finance-row">
+              <span>Slots (Netto)</span>
+              <strong id="financeSlotsNet">0</strong>
+            </div>
+            <div class="finance-row">
+              <span>Roulette (Netto)</span>
+              <strong id="financeRouletteNet">0</strong>
+            </div>
+            <div class="finance-row">
+              <span>Gluecksrad (Netto)</span>
+              <strong id="financeWheelNet">0</strong>
+            </div>
+            <div class="finance-row">
+              <span>Lootboxes (Netto)</span>
+              <strong id="financeLootboxNet">0</strong>
+            </div>
+          </section>
         </div>
       </div>
     </div>
