@@ -418,6 +418,7 @@ let syncStatusCountdownEl = null;
 let syncStatusRankEl = null;
 let chaseBannerEl = null;
 let statsSyncCursor = null;
+let accountSaveUpdatedAt = null;
 
 const gameStats = {
   tower: { wins: 0, losses: 0, net: 0 },
@@ -1709,18 +1710,220 @@ function extractSavePower(save) {
   return { level, total };
 }
 
-function shouldApplyCloudSave(localSave, cloudSave) {
-  if (!cloudSave) return false;
-  if (!localSave) return true;
-  const local = extractSavePower(localSave);
-  const cloud = extractSavePower(cloudSave);
-  if (cloud.level !== local.level) {
-    return cloud.level > local.level;
-  }
-  return cloud.total > local.total;
+function toNonNegativeNumber(value) {
+  return Math.max(0, Number(value) || 0);
 }
 
-async function syncAccountSave() {
+function toNonNegativeInt(value) {
+  return Math.max(0, Math.floor(Number(value) || 0));
+}
+
+function mergeNumberByMax(a, b, integer = false) {
+  const left = integer ? toNonNegativeInt(a) : toNonNegativeNumber(a);
+  const right = integer ? toNonNegativeInt(b) : toNonNegativeNumber(b);
+  return Math.max(left, right);
+}
+
+function mergeUpgradeCounts(localUpgrades, cloudUpgrades) {
+  const local = Array.isArray(localUpgrades) ? localUpgrades : [];
+  const cloud = Array.isArray(cloudUpgrades) ? cloudUpgrades : [];
+  const size = Math.max(local.length, cloud.length, upgrades.length);
+  const merged = [];
+  for (let i = 0; i < size; i += 1) {
+    merged.push(mergeNumberByMax(local[i], cloud[i], true));
+  }
+  return merged;
+}
+
+function mergeBoostInventory(localInventory, cloudInventory) {
+  const merged = {};
+  boostRarities.forEach((rarity) => {
+    merged[rarity.key] = mergeNumberByMax(localInventory?.[rarity.key], cloudInventory?.[rarity.key], true);
+  });
+  return merged;
+}
+
+function normalizeBoost(boost) {
+  if (!boost || typeof boost !== "object") return null;
+  const expiresAt = Number(boost.expiresAt) || 0;
+  if (expiresAt <= Date.now()) return null;
+  const id = typeof boost.id === "string" && boost.id ? boost.id : `${expiresAt}-${Math.random().toString(36).slice(2, 8)}`;
+  return {
+    id,
+    rarity: typeof boost.rarity === "string" ? boost.rarity : "common",
+    label: typeof boost.label === "string" ? boost.label : "Gewoehnlich",
+    multiplier: Number(boost.multiplier) || 1,
+    expiresAt
+  };
+}
+
+function mergeActiveBoosts(localBoosts, cloudBoosts) {
+  const mergedMap = new Map();
+  const ingest = (list) => {
+    (Array.isArray(list) ? list : []).forEach((entry) => {
+      const boost = normalizeBoost(entry);
+      if (!boost) return;
+      const existing = mergedMap.get(boost.id);
+      if (!existing || boost.expiresAt > existing.expiresAt) {
+        mergedMap.set(boost.id, boost);
+      }
+    });
+  };
+  ingest(localBoosts);
+  ingest(cloudBoosts);
+  return Array.from(mergedMap.values());
+}
+
+function mergeOwnedKeys(localOwned, cloudOwned, allowedKeys) {
+  const allowed = new Set(allowedKeys);
+  const merged = new Set();
+  (Array.isArray(localOwned) ? localOwned : []).forEach((key) => {
+    if (typeof key === "string" && allowed.has(key)) merged.add(key);
+  });
+  (Array.isArray(cloudOwned) ? cloudOwned : []).forEach((key) => {
+    if (typeof key === "string" && allowed.has(key)) merged.add(key);
+  });
+  return Array.from(merged);
+}
+
+function pickActiveOwnedKey(localActive, cloudActive, ownedSet, fallbackKey) {
+  if (typeof localActive === "string" && ownedSet.has(localActive)) return localActive;
+  if (typeof cloudActive === "string" && ownedSet.has(cloudActive)) return cloudActive;
+  return fallbackKey;
+}
+
+function mergeCosmetics(localCosmetics, cloudCosmetics) {
+  const local = localCosmetics && typeof localCosmetics === "object" ? localCosmetics : {};
+  const cloud = cloudCosmetics && typeof cloudCosmetics === "object" ? cloudCosmetics : {};
+
+  const colorOwned = mergeOwnedKeys(local.colors?.owned, cloud.colors?.owned, colorCosmetics.map((entry) => entry.key));
+  const accessoryOwned = mergeOwnedKeys(local.accessories?.owned, cloud.accessories?.owned, accessoryCosmetics.filter((entry) => !entry.hidden).map((entry) => entry.key));
+  const skinOwned = mergeOwnedKeys(local.skins?.owned, cloud.skins?.owned, skinCosmetics.map((entry) => entry.key));
+  const miscOwned = mergeOwnedKeys(local.miscs?.owned, cloud.miscs?.owned, miscCosmetics.map((entry) => entry.key));
+
+  const colorOwnedSet = new Set(colorOwned);
+  const accessoryOwnedSet = new Set(accessoryOwned);
+  const skinOwnedSet = new Set(skinOwned);
+  const miscOwnedSet = new Set(miscOwned);
+
+  return {
+    colors: {
+      active: pickActiveOwnedKey(local.colors?.active, cloud.colors?.active, colorOwnedSet, "classic"),
+      owned: colorOwned
+    },
+    accessories: {
+      active: pickActiveOwnedKey(local.accessories?.active, cloud.accessories?.active, accessoryOwnedSet, "none"),
+      owned: accessoryOwned
+    },
+    skins: {
+      active: pickActiveOwnedKey(local.skins?.active, cloud.skins?.active, skinOwnedSet, "none"),
+      owned: skinOwned
+    },
+    miscs: {
+      active: pickActiveOwnedKey(local.miscs?.active, cloud.miscs?.active, miscOwnedSet, "none"),
+      owned: miscOwned
+    }
+  };
+}
+
+function mergeModeStats(localStats, cloudStats, mode) {
+  return {
+    wins: mergeNumberByMax(localStats?.[mode]?.wins, cloudStats?.[mode]?.wins, true),
+    losses: mergeNumberByMax(localStats?.[mode]?.losses, cloudStats?.[mode]?.losses, true),
+    net: mergeNumberByMax(localStats?.[mode]?.net, cloudStats?.[mode]?.net)
+  };
+}
+
+function mergeStats(localStats, cloudStats) {
+  return {
+    tower: mergeModeStats(localStats, cloudStats, "tower"),
+    blackjack: mergeModeStats(localStats, cloudStats, "blackjack"),
+    slots: mergeModeStats(localStats, cloudStats, "slots"),
+    roulette: mergeModeStats(localStats, cloudStats, "roulette"),
+    wheel: mergeModeStats(localStats, cloudStats, "wheel"),
+    lootbox: {
+      opens: mergeNumberByMax(localStats?.lootbox?.opens, cloudStats?.lootbox?.opens, true),
+      net: mergeNumberByMax(localStats?.lootbox?.net, cloudStats?.lootbox?.net)
+    }
+  };
+}
+
+function mergeGamesByMode(localModes, cloudModes) {
+  return {
+    tower: mergeNumberByMax(localModes?.tower, cloudModes?.tower, true),
+    blackjack: mergeNumberByMax(localModes?.blackjack, cloudModes?.blackjack, true),
+    slots: mergeNumberByMax(localModes?.slots, cloudModes?.slots, true),
+    roulette: mergeNumberByMax(localModes?.roulette, cloudModes?.roulette, true),
+    wheel: mergeNumberByMax(localModes?.wheel, cloudModes?.wheel, true),
+    lootbox: mergeNumberByMax(localModes?.lootbox, cloudModes?.lootbox, true)
+  };
+}
+
+function mergeStatsCursor(localCursor, cloudCursor) {
+  return {
+    clicks: mergeNumberByMax(localCursor?.clicks, cloudCursor?.clicks, true),
+    gamesPlayed: mergeNumberByMax(localCursor?.gamesPlayed, cloudCursor?.gamesPlayed, true),
+    lootboxesOpened: mergeNumberByMax(localCursor?.lootboxesOpened, cloudCursor?.lootboxesOpened, true),
+    cookiesGenerated: mergeNumberByMax(localCursor?.cookiesGenerated, cloudCursor?.cookiesGenerated, true),
+    gamesByMode: mergeGamesByMode(localCursor?.gamesByMode, cloudCursor?.gamesByMode)
+  };
+}
+
+function mergeUnlocks(localUnlocks, cloudUnlocks) {
+  const merged = {};
+  Object.keys(gameUnlocks).forEach((key) => {
+    merged[key] = Boolean(localUnlocks?.[key]) || Boolean(cloudUnlocks?.[key]);
+  });
+  return merged;
+}
+
+function isObject(value) {
+  return Boolean(value) && typeof value === "object";
+}
+
+function mergeAccountSaves(localSave, cloudSave) {
+  const local = isObject(localSave) ? localSave : null;
+  const cloud = isObject(cloudSave) ? cloudSave : null;
+  if (!local && !cloud) return null;
+  if (!local) return cloud;
+  if (!cloud) return local;
+
+  return {
+    cookies: mergeNumberByMax(local.cookies, cloud.cookies),
+    total: mergeNumberByMax(local.total, cloud.total),
+    clicks: mergeNumberByMax(local.clicks, cloud.clicks, true),
+    level: Math.max(1, mergeNumberByMax(local.level, cloud.level, true)),
+    boostInventory: mergeBoostInventory(local.boostInventory, cloud.boostInventory),
+    boosts: mergeActiveBoosts(local.boosts, cloud.boosts),
+    lastBonusAt: mergeNumberByMax(local.lastBonusAt, cloud.lastBonusAt, true),
+    upgrades: mergeUpgradeCounts(local.upgrades, cloud.upgrades),
+    cosmetics: mergeCosmetics(local.cosmetics, cloud.cosmetics),
+    stats: mergeStats(local.stats, cloud.stats),
+    statsSyncCursor: mergeStatsCursor(local.statsSyncCursor, cloud.statsSyncCursor),
+    unlocks: mergeUnlocks(local.unlocks, cloud.unlocks)
+  };
+}
+
+function areSavesEqual(left, right) {
+  try {
+    return JSON.stringify(left) === JSON.stringify(right);
+  } catch (_error) {
+    return false;
+  }
+}
+
+function writeLocalSaveAndApply(save) {
+  if (!save || typeof save !== "object") return;
+  try {
+    localStorage.setItem(currentSaveKey(), JSON.stringify(save));
+    loadState(state.devMode);
+    updateStats();
+  } catch (error) {
+    // Ignore storage failures.
+  }
+}
+
+async function syncAccountSave(attempt = 0) {
   if (!accountToken || isGuestMode) {
     return { ok: false };
   }
@@ -1728,11 +1931,36 @@ async function syncAccountSave() {
   if (!save) {
     return { ok: true };
   }
-  return requestJson("/game/api/auth/save", {
+  const response = await requestJson("/game/api/auth/save", {
     method: "POST",
     authToken: accountToken,
-    body: JSON.stringify({ save })
+    body: JSON.stringify({
+      save,
+      expectedUpdatedAt: accountSaveUpdatedAt
+    })
   });
+  if (response.ok) {
+    accountSaveUpdatedAt = typeof response.updatedAt === "string" ? response.updatedAt : accountSaveUpdatedAt;
+    return response;
+  }
+
+  if (response.status === 409 && attempt < 1) {
+    accountSaveUpdatedAt = typeof response.updatedAt === "string" ? response.updatedAt : null;
+    const mergedSave = mergeAccountSaves(save, response.save);
+    if (mergedSave) {
+      const changed = !areSavesEqual(save, mergedSave);
+      if (changed) {
+        writeLocalSaveAndApply(mergedSave);
+      }
+      const retry = await syncAccountSave(attempt + 1);
+      if (retry.ok && changed) {
+        showInfoToast("Spielstand-Konflikt automatisch zusammengefuehrt.");
+      }
+      return retry;
+    }
+  }
+
+  return response;
 }
 
 function setAccountSession(token, username, resolvedPlayerName) {
@@ -1745,6 +1973,7 @@ function setAccountSession(token, username, resolvedPlayerName) {
   }
   accountToken = token;
   accountName = username;
+  accountSaveUpdatedAt = null;
   playerName = resolvedPlayerName;
   isGuestMode = false;
   try {
@@ -1787,20 +2016,20 @@ async function restoreCloudSave() {
   if (!response.ok) {
     return;
   }
+  accountSaveUpdatedAt = typeof response.updatedAt === "string" ? response.updatedAt : null;
   const localSave = getCurrentLocalSaveObject();
   const cloudSave = response.save;
-  if (shouldApplyCloudSave(localSave, cloudSave)) {
-    try {
-      localStorage.setItem(currentSaveKey(), JSON.stringify(cloudSave));
-      loadState(state.devMode);
-      updateStats();
-      showInfoToast("Cloud-Spielstand geladen.");
-    } catch (error) {
-      // Ignore storage failures.
-    }
+  const mergedSave = mergeAccountSaves(localSave, cloudSave);
+  if (!mergedSave) {
     return;
   }
-  if (localSave) {
+  const changedLocal = !areSavesEqual(localSave, mergedSave);
+  const differsFromCloud = !areSavesEqual(cloudSave, mergedSave);
+  if (changedLocal) {
+    writeLocalSaveAndApply(mergedSave);
+    showInfoToast("Cloud-Spielstand geladen.");
+  }
+  if (differsFromCloud) {
     await syncAccountSave();
   }
 }
@@ -1808,6 +2037,7 @@ async function restoreCloudSave() {
 function clearAccountSession() {
   accountToken = "";
   accountName = "";
+  accountSaveUpdatedAt = null;
   try {
     localStorage.removeItem(ACCOUNT_TOKEN_KEY);
     localStorage.removeItem(ACCOUNT_NAME_KEY);

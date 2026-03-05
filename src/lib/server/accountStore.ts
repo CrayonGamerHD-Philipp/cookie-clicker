@@ -198,7 +198,19 @@ export async function logoutSession(tokenRaw: unknown): Promise<void> {
   getDb().prepare("DELETE FROM account_sessions WHERE token = ?").run(token);
 }
 
-export async function saveAccountProgress(accountId: number, payload: unknown): Promise<{ ok: boolean; error?: string }> {
+function parseSavePayload(raw: string): unknown | null {
+  try {
+    return JSON.parse(raw);
+  } catch (_error) {
+    return null;
+  }
+}
+
+export async function saveAccountProgress(
+  accountId: number,
+  payload: unknown,
+  expectedUpdatedAtRaw?: unknown
+): Promise<{ ok: boolean; error?: string; conflict?: boolean; save?: unknown | null; updatedAt?: string | null }> {
   if (typeof payload !== "object" || payload === null) {
     return { ok: false, error: "Invalid payload" };
   }
@@ -206,14 +218,36 @@ export async function saveAccountProgress(accountId: number, payload: unknown): 
   if (jsonPayload.length > MAX_SAVE_SIZE) {
     return { ok: false, error: "Payload too large" };
   }
+
   const database = getDb();
+  const expectedUpdatedAt = typeof expectedUpdatedAtRaw === "string" && expectedUpdatedAtRaw.trim()
+    ? expectedUpdatedAtRaw.trim()
+    : null;
+  const existing = database.prepare(`
+    SELECT payload, updated_at AS updatedAt
+    FROM account_saves
+    WHERE account_id = ?
+  `).get(accountId) as { payload: string; updatedAt: string } | undefined;
+  const currentUpdatedAt = existing?.updatedAt || null;
+
+  if (expectedUpdatedAt !== currentUpdatedAt) {
+    return {
+      ok: false,
+      conflict: true,
+      error: "Save conflict",
+      save: existing ? parseSavePayload(existing.payload) : null,
+      updatedAt: currentUpdatedAt
+    };
+  }
+
+  const updatedAt = nowIso();
   database.prepare(`
     INSERT INTO account_saves (account_id, payload, updated_at)
     VALUES (?, ?, ?)
     ON CONFLICT(account_id)
     DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at
-  `).run(accountId, jsonPayload, nowIso());
-  return { ok: true };
+  `).run(accountId, jsonPayload, updatedAt);
+  return { ok: true, updatedAt };
 }
 
 export async function loadAccountProgress(accountId: number): Promise<{ ok: boolean; save: unknown | null; updatedAt: string | null }> {

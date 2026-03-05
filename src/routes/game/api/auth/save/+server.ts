@@ -21,9 +21,20 @@ export async function POST({ request }) {
     return json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
   const body = await request.json().catch(() => ({}));
-  const store = await saveAccountProgress(result.session.accountId, body?.save);
+  const store = await saveAccountProgress(result.session.accountId, body?.save, body?.expectedUpdatedAt);
+  if (store.conflict) {
+    return json(
+      {
+        ok: false,
+        error: "Save conflict",
+        save: store.save ?? null,
+        updatedAt: store.updatedAt ?? null
+      },
+      { status: 409 }
+    );
+  }
   if (!store.ok) {
     return json({ ok: false, error: store.error || "Save failed" }, { status: 400 });
   }
-  return json({ ok: true });
+  return json({ ok: true, updatedAt: store.updatedAt ?? null });
 }
