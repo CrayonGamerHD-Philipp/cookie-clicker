@@ -1524,7 +1524,7 @@ h1 {
 
 .cosmetics-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1.75fr) minmax(280px, 0.65fr);
+  grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.75fr);
   grid-template-areas:
     "tabs stage"
     "browser stage";
@@ -1565,7 +1565,7 @@ h1 {
 
 .cosmetics-catalog {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   gap: 14px;
   max-height: min(62vh, 640px);
   overflow: auto;
@@ -1574,7 +1574,8 @@ h1 {
 
 .cosmetic-card {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr auto;
   gap: 12px;
   align-items: start;
   border-radius: 18px;
@@ -1660,7 +1661,13 @@ h1 {
 .cosmetic-card p {
   margin: 0;
   font-size: 0.85rem;
+  line-height: 1.35;
   opacity: 0.75;
+  overflow-wrap: anywhere;
+}
+
+.cosmetics-stage-copy p {
+  overflow-wrap: anywhere;
 }
 
 .cosmetic-card button {
@@ -1779,6 +1786,24 @@ h1 {
 
   .cosmetics-preview-cookie {
     width: min(260px, 100%);
+  }
+}
+
+@media (max-width: 640px) {
+  .modal-card.modal-cosmetics {
+    width: calc(100vw - 12px);
+    padding: 18px;
+  }
+
+  .cosmetics-catalog {
+    grid-template-columns: minmax(0, 1fr);
+    max-height: min(58vh, 520px);
+    padding-right: 0;
+  }
+
+  .cosmetic-card {
+    padding: 12px 14px;
+    border-radius: 14px;
   }
 }
 
