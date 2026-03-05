@@ -667,6 +667,7 @@ let toastTimer = null;
 let saveTimer = null;
 let lastSaveAt = 0;
 let statsUpdateQueued = false;
+let exitSyncTriggered = false;
 
 function createEmptyBoostInventory() {
   return Object.fromEntries(boostRarities.map((rarity) => [rarity.key, 0]));
@@ -2001,6 +2002,14 @@ async function syncPlayerStats() {
   if (!playerName || isGuestMode) {
     return { ok: false };
   }
+  const payload = buildLeaderboardSyncPayload();
+  return requestJson("/game/api/leaderboard", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+function buildLeaderboardSyncPayload() {
   const unlockedAchievements = Object.keys(achievementProgress.unlocked || {}).length;
   const profileSnapshot = {
     stats: {
@@ -2032,18 +2041,71 @@ async function syncPlayerStats() {
       colorTheme: { ...(activeColorCosmetic().theme || {}) }
     }
   };
-  return requestJson("/game/api/leaderboard", {
-    method: "POST",
-    body: JSON.stringify({
-      playerName,
-      level: Math.max(1, Math.floor(Number(state.level) || 1)),
-      score: Math.floor(state.total),
-      totalClicks: Math.floor(state.clicks),
-      currentCookies: Math.floor(state.cookies),
-      profileSnapshot,
-      totalGames: Math.floor(totalGamesPlayed())
-    })
-  });
+  return {
+    playerName,
+    level: Math.max(1, Math.floor(Number(state.level) || 1)),
+    score: Math.floor(state.total),
+    totalClicks: Math.floor(state.clicks),
+    currentCookies: Math.floor(state.cookies),
+    profileSnapshot,
+    totalGames: Math.floor(totalGamesPlayed())
+  };
+}
+
+function postJsonKeepalive(path, payload, authTokenValue = "") {
+  const body = JSON.stringify(payload);
+  if (!authTokenValue && typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+    try {
+      const blob = new Blob([body], { type: "application/json" });
+      if (navigator.sendBeacon(path, blob)) {
+        return true;
+      }
+    } catch (_error) {
+      // Fallback to keepalive fetch below.
+    }
+  }
+  const headers = {
+    "Content-Type": "application/json"
+  };
+  if (authTokenValue) {
+    headers.Authorization = `Bearer ${authTokenValue}`;
+  }
+  try {
+    void fetch(path, {
+      method: "POST",
+      headers,
+      body,
+      keepalive: true
+    });
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
+function syncOnExitBestEffort() {
+  if (!playerName || isGuestMode) {
+    return;
+  }
+  const leaderboardPayload = buildLeaderboardSyncPayload();
+  postJsonKeepalive("/game/api/leaderboard", leaderboardPayload);
+
+  const save = getCurrentLocalSaveObject();
+  if (accountToken && save) {
+    postJsonKeepalive("/game/api/auth/save", {
+      save,
+      expectedUpdatedAt: accountSaveUpdatedAt
+    }, accountToken);
+  }
+}
+
+function triggerExitPersistenceAndSync() {
+  flushSaveState();
+  if (exitSyncTriggered) {
+    return;
+  }
+  exitSyncTriggered = true;
+  syncOnExitBestEffort();
 }
 
 async function syncGlobalStats() {
@@ -5022,9 +5084,19 @@ void hydrateAppVersion();
 updateAccountUi();
 void ensurePlayerIdentity();
 window.addEventListener("beforeunload", () => {
-  flushSaveState();
-  void syncPlayerStats();
-  void syncAccountSave();
+  triggerExitPersistenceAndSync();
+});
+
+window.addEventListener("pagehide", () => {
+  triggerExitPersistenceAndSync();
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    triggerExitPersistenceAndSync();
+    return;
+  }
+  exitSyncTriggered = false;
 });
 
 
