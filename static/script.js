@@ -103,6 +103,12 @@ const financePerClickEl = document.getElementById("financePerClick");
 const financeCpsEl = document.getElementById("financeCps");
 const financeTotalEl = document.getElementById("financeTotal");
 const financeClicksEl = document.getElementById("financeClicks");
+const financeAvgPerClickEl = document.getElementById("financeAvgPerClick");
+const financeBankrollEl = document.getElementById("financeBankroll");
+const financeIncomeRateEl = document.getElementById("financeIncomeRate");
+const financeCasinoNetTotalEl = document.getElementById("financeCasinoNet");
+const financeBestModeEl = document.getElementById("financeBestMode");
+const financeWorstModeEl = document.getElementById("financeWorstMode");
 const financeTowerNetEl = document.getElementById("financeTowerNet");
 const financeBlackjackNetEl = document.getElementById("financeBlackjackNet");
 const financeSlotsNetEl = document.getElementById("financeSlotsNet");
@@ -178,6 +184,7 @@ const RELEASES_BASE_URL = "https://github.com/CrayonGamerHD-Philipp/cookie-click
 const RELEASES_API_URL = "https://api.github.com/repos/CrayonGamerHD-Philipp/cookie-clicker/releases/latest";
 const LOOTBOX_COST = 10_000_000;
 const SERVER_SYNC_INTERVAL_MS = 30_000;
+const SAVE_THROTTLE_MS = 5_000;
 
 const upgrades = [
   { name: "Sprinkles", type: "click", power: 1, baseCost: 20, desc: "+1 pro Klick" },
@@ -445,14 +452,14 @@ const state = {
   towerMultiplier: 0
 };
 
-const towerSteps = [0, 0.5, 1, 1.5, 2, 2.5, 3, 4];
-const towerChances = [0.78, 0.74, 0.7, 0.66, 0.62, 0.58, 0.55, 0.52];
+const towerSteps = [0, 1.1, 1.45, 1.9, 2.5, 3.3, 4.3, 5.6];
+const towerChances = [0.9, 0.84, 0.78, 0.72, 0.66, 0.6, 0.54, 0.48];
 const slotSymbols = [
-  { key: "CHERRY", icon: "\u{1F352}", weight: 30, multiplier: 2 },
-  { key: "LEMON", icon: "\u{1F34B}", weight: 26, multiplier: 1.5 },
-  { key: "COOKIE", icon: "\u{1F36A}", weight: 16, multiplier: 6 },
-  { key: "STAR", icon: "\u{2B50}", weight: 14, multiplier: 4 },
-  { key: "BELL", icon: "\u{1F514}", weight: 14, multiplier: 3 }
+  { key: "CHERRY", icon: "\u{1F352}", weight: 33, multiplier: 1.2 },
+  { key: "LEMON", icon: "\u{1F34B}", weight: 29, multiplier: 1 },
+  { key: "COOKIE", icon: "\u{1F36A}", weight: 12, multiplier: 3.2 },
+  { key: "STAR", icon: "\u{2B50}", weight: 13, multiplier: 2.2 },
+  { key: "BELL", icon: "\u{1F514}", weight: 13, multiplier: 1.7 }
 ];
 const rouletteOrder = [
   0, 32, 15, 19, 4, 21, 2, 25, 17, 34,
@@ -657,6 +664,9 @@ const achievementDefinitions = achievementGroups.flatMap((group) =>
 );
 
 let toastTimer = null;
+let saveTimer = null;
+let lastSaveAt = 0;
+let statsUpdateQueued = false;
 
 function createEmptyBoostInventory() {
   return Object.fromEntries(boostRarities.map((rarity) => [rarity.key, 0]));
@@ -828,11 +838,19 @@ function evaluateAchievements(silent = false) {
   }
 }
 
-function renderAchievements() {
-  if (!achievementSummaryEl || !achievementListEl) return;
+function isModalVisible(modal) {
+  return Boolean(modal && !modal.classList.contains("hidden"));
+}
+
+function renderAchievements({ forceList = false } = {}) {
+  if (!achievementSummaryEl) return;
 
   const unlockedCount = achievementDefinitions.filter((achievement) => achievementProgress.unlocked[achievement.key]).length;
   achievementSummaryEl.textContent = `${unlockedCount} / ${achievementDefinitions.length}`;
+  if (!achievementListEl) return;
+  if (!forceList && !isModalVisible(achievementModal)) {
+    return;
+  }
   achievementListEl.innerHTML = "";
   achievementGroups.forEach((group) => {
     const defs = achievementDefinitions
@@ -1835,6 +1853,30 @@ function saveState() {
   }
 }
 
+function flushSaveState() {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  saveState();
+  lastSaveAt = Date.now();
+}
+
+function scheduleSaveState() {
+  const now = Date.now();
+  const elapsed = now - lastSaveAt;
+  if (elapsed >= SAVE_THROTTLE_MS) {
+    flushSaveState();
+    return;
+  }
+  if (saveTimer) {
+    return;
+  }
+  saveTimer = setTimeout(() => {
+    flushSaveState();
+  }, SAVE_THROTTLE_MS - elapsed);
+}
+
 function totalGamesPlayed() {
   return (
     gameStats.tower.wins + gameStats.tower.losses +
@@ -2032,7 +2074,7 @@ async function syncGlobalStats() {
 
   if (response.ok) {
     statsSyncCursor = snapshot;
-    saveState();
+    flushSaveState();
   }
   return response;
 }
@@ -3213,7 +3255,7 @@ async function hydrateAppVersion() {
 
 function toggleDevMode() {
   const nextMode = !state.devMode;
-  saveState();
+  flushSaveState();
   state.devMode = nextMode;
   try {
     localStorage.setItem(DEV_MODE_KEY, String(state.devMode));
@@ -3697,7 +3739,7 @@ function renderCosmetics() {
   );
 }
 
-function updateStats() {
+function performStatsUpdate() {
   if (removeExpiredBoosts()) {
     recalculateProduction();
   }
@@ -3712,19 +3754,30 @@ function updateStats() {
   setDisplayValue(rateEl, state.cps, " / sek");
   renderLevelProgress();
   renderBoosts();
-  renderLootboxes();
   renderUpgrades();
-  renderCosmetics();
   renderUnlocks();
-  renderTower();
-  renderBlackjack();
-  renderSlots();
-  renderWheel();
-  renderRoulette();
+  if (isModalVisible(lootboxModal)) renderLootboxes();
+  if (isModalVisible(cosmeticsModal)) renderCosmetics();
+  if (isModalVisible(towerModal)) renderTower();
+  if (isModalVisible(blackjackModal)) renderBlackjack();
+  if (isModalVisible(slotsModal)) renderSlots();
+  if (isModalVisible(wheelModal)) renderWheel();
+  if (isModalVisible(rouletteModal)) renderRoulette();
   renderGameStats();
   renderAchievements();
   updateFinanceOverview();
-  saveState();
+  scheduleSaveState();
+}
+
+function updateStats() {
+  if (statsUpdateQueued) {
+    return;
+  }
+  statsUpdateQueued = true;
+  requestAnimationFrame(() => {
+    statsUpdateQueued = false;
+    performStatsUpdate();
+  });
 }
 
 function renderUnlocks() {
@@ -3780,6 +3833,16 @@ function formatFullNet(value) {
   return `${sign}${formatFull(value)}`;
 }
 
+function setFinanceTone(element, value) {
+  if (!element) return;
+  element.classList.remove("positive", "negative");
+  if (value > 0) {
+    element.classList.add("positive");
+  } else if (value < 0) {
+    element.classList.add("negative");
+  }
+}
+
 function renderGameStats() {
   const overall = {
     wins: gameStats.tower.wins + gameStats.blackjack.wins + gameStats.slots.wins + gameStats.roulette.wins + gameStats.wheel.wins,
@@ -3799,18 +3862,58 @@ function renderGameStats() {
 
 function updateFinanceOverview() {
   if (!financeModal) return;
+  const financeModes = [
+    { label: "Tower", net: gameStats.tower.net },
+    { label: "Blackjack", net: gameStats.blackjack.net },
+    { label: "Slots", net: gameStats.slots.net },
+    { label: "Roulette", net: gameStats.roulette.net },
+    { label: "Gluecksrad", net: gameStats.wheel.net },
+    { label: "Lootboxes", net: gameStats.lootbox.net }
+  ];
+  const casinoNet = financeModes.reduce((sum, mode) => sum + mode.net, 0);
+  const bestMode = financeModes.reduce((best, mode) => (mode.net > best.net ? mode : best), financeModes[0]);
+  const worstMode = financeModes.reduce((worst, mode) => (mode.net < worst.net ? mode : worst), financeModes[0]);
+  const avgPerClick = state.clicks > 0 ? state.total / state.clicks : 0;
+
   financeCookiesEl.textContent = formatFull(state.cookies);
   financePerClickEl.textContent = formatFull(state.perClick);
   financeCpsEl.textContent = formatFull(state.cps);
   financeTotalEl.textContent = formatFull(state.total);
   financeClicksEl.textContent = formatFull(state.clicks);
+  if (financeAvgPerClickEl) {
+    financeAvgPerClickEl.textContent = formatFull(avgPerClick);
+  }
+  if (financeBankrollEl) {
+    financeBankrollEl.textContent = formatFull(state.cookies);
+  }
+  if (financeIncomeRateEl) {
+    financeIncomeRateEl.textContent = `${formatFull(state.cps)} / sek`;
+  }
+  if (financeCasinoNetTotalEl) {
+    financeCasinoNetTotalEl.textContent = formatFullNet(casinoNet);
+  }
+  if (financeBestModeEl) {
+    financeBestModeEl.textContent = `${bestMode.label} (${formatFullNet(bestMode.net)})`;
+    setFinanceTone(financeBestModeEl, bestMode.net);
+  }
+  if (financeWorstModeEl) {
+    financeWorstModeEl.textContent = `${worstMode.label} (${formatFullNet(worstMode.net)})`;
+    setFinanceTone(financeWorstModeEl, worstMode.net);
+  }
   financeTowerNetEl.textContent = formatFullNet(gameStats.tower.net);
   financeBlackjackNetEl.textContent = formatFullNet(gameStats.blackjack.net);
   financeSlotsNetEl.textContent = formatFullNet(gameStats.slots.net);
   financeRouletteNetEl.textContent = formatFullNet(gameStats.roulette.net);
   financeWheelNetEl.textContent = formatFullNet(gameStats.wheel.net);
+  setFinanceTone(financeCasinoNetTotalEl, casinoNet);
+  setFinanceTone(financeTowerNetEl, gameStats.tower.net);
+  setFinanceTone(financeBlackjackNetEl, gameStats.blackjack.net);
+  setFinanceTone(financeSlotsNetEl, gameStats.slots.net);
+  setFinanceTone(financeRouletteNetEl, gameStats.roulette.net);
+  setFinanceTone(financeWheelNetEl, gameStats.wheel.net);
   if (financeLootboxNetEl) {
     financeLootboxNetEl.textContent = formatFullNet(gameStats.lootbox.net);
+    setFinanceTone(financeLootboxNetEl, gameStats.lootbox.net);
   }
 }
 
@@ -4128,9 +4231,9 @@ function closeWheelModal() {
 
 function openAchievementModal() {
   if (!achievementModal) return;
-  renderAchievements();
   achievementModal.classList.remove("hidden");
   achievementModal.setAttribute("aria-hidden", "false");
+  renderAchievements({ forceList: true });
 }
 
 function closeAchievementModal() {
@@ -4469,7 +4572,7 @@ function spinSlots() {
       }
       const cookieCount = [a, b, c].filter((symbol) => symbol.key === "COOKIE").length;
       if (cookieCount === 2) {
-        totalMultiplier += 1.5;
+        totalMultiplier += 0.4;
       }
     });
     const payout = scalePayout(Math.floor(bet * totalMultiplier), bet);
@@ -4755,7 +4858,7 @@ function renderTower() {
   renderTowerVisual();
 
   if (!state.towerActive) {
-    towerStatus.textContent = "Setze einen Einsatz und starte. Ab x1.5 machst du Gewinn.";
+    towerStatus.textContent = "Setze einen Einsatz und starte. Ab x1.1 machst du Gewinn.";
   }
 }
 
@@ -4919,6 +5022,7 @@ void hydrateAppVersion();
 updateAccountUi();
 void ensurePlayerIdentity();
 window.addEventListener("beforeunload", () => {
+  flushSaveState();
   void syncPlayerStats();
   void syncAccountSave();
 });

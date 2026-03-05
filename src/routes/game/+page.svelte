@@ -274,58 +274,93 @@
 
     <div id="financeModal" class="modal hidden" aria-hidden="true">
       <div class="modal-overlay" id="financeCloseOverlay"></div>
-      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="financeTitle">
+      <div class="modal-card modal-finance" role="dialog" aria-modal="true" aria-labelledby="financeTitle">
         <button id="financeClose" class="modal-close" aria-label="Schliessen">x</button>
         <div class="modal-head">
           <p class="eyebrow">Finanzen</p>
           <h2 id="financeTitle">Finanz-Uebersicht</h2>
           <p class="modal-sub">Deine exakten Werte auf einen Blick.</p>
         </div>
+        <div class="finance-summary">
+          <article class="finance-kpi">
+            <p><i class="bi bi-wallet2" aria-hidden="true"></i> Bankroll</p>
+            <strong id="financeBankroll">0</strong>
+            <span>Aktuell verfuegbare Kekse</span>
+          </article>
+          <article class="finance-kpi">
+            <p><i class="bi bi-graph-up-arrow" aria-hidden="true"></i> Cashflow</p>
+            <strong id="financeIncomeRate">0</strong>
+            <span>Passive Produktion pro Sekunde</span>
+          </article>
+          <article class="finance-kpi finance-kpi-wide">
+            <p><i class="bi bi-dice-5" aria-hidden="true"></i> Casino Netto</p>
+            <strong id="financeCasinoNet">0</strong>
+            <span>Gesamter Gewinn/Verlust aus Minigames</span>
+          </article>
+        </div>
         <div class="finance-grid">
-          <div class="finance-row">
-            <span>Aktuelle Kekse</span>
-            <strong id="financeCookies">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Pro Klick</span>
-            <strong id="financePerClick">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Pro Sekunde</span>
-            <strong id="financeCps">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Gesamt</span>
-            <strong id="financeTotal">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Klicks</span>
-            <strong id="financeClicks">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Tower (Netto)</span>
-            <strong id="financeTowerNet">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Blackjack (Netto)</span>
-            <strong id="financeBlackjackNet">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Slots (Netto)</span>
-            <strong id="financeSlotsNet">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Roulette (Netto)</span>
-            <strong id="financeRouletteNet">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Gluecksrad (Netto)</span>
-            <strong id="financeWheelNet">0</strong>
-          </div>
-          <div class="finance-row">
-            <span>Lootboxes (Netto)</span>
-            <strong id="financeLootboxNet">0</strong>
-          </div>
+          <section class="finance-section">
+            <h3><i class="bi bi-bar-chart-line" aria-hidden="true"></i> Core Kennzahlen</h3>
+            <div class="finance-row">
+              <span class="finance-label"><i class="bi bi-cookie" aria-hidden="true"></i> Aktuelle Kekse</span>
+              <strong id="financeCookies">0</strong>
+            </div>
+            <div class="finance-row">
+              <span class="finance-label"><i class="bi bi-mouse" aria-hidden="true"></i> Pro Klick</span>
+              <strong id="financePerClick">0</strong>
+            </div>
+            <div class="finance-row">
+              <span class="finance-label"><i class="bi bi-lightning-charge" aria-hidden="true"></i> Pro Sekunde</span>
+              <strong id="financeCps">0</strong>
+            </div>
+            <div class="finance-row">
+              <span class="finance-label"><i class="bi bi-archive" aria-hidden="true"></i> Gesamt produziert</span>
+              <strong id="financeTotal">0</strong>
+            </div>
+            <div class="finance-row">
+              <span class="finance-label"><i class="bi bi-hand-index-thumb" aria-hidden="true"></i> Klicks</span>
+              <strong id="financeClicks">0</strong>
+            </div>
+            <div class="finance-row">
+              <span class="finance-label"><i class="bi bi-calculator" aria-hidden="true"></i> Durchschnitt pro Klick</span>
+              <strong id="financeAvgPerClick">0</strong>
+            </div>
+          </section>
+          <section class="finance-section">
+            <h3><i class="bi bi-pie-chart" aria-hidden="true"></i> Casino Analyse</h3>
+            <div class="finance-row">
+              <span class="finance-label"><i class="bi bi-trophy" aria-hidden="true"></i> Bester Modus</span>
+              <strong id="financeBestMode">-</strong>
+            </div>
+            <div class="finance-row">
+              <span class="finance-label"><i class="bi bi-emoji-frown" aria-hidden="true"></i> Schwaechster Modus</span>
+              <strong id="financeWorstMode">-</strong>
+            </div>
+            <div class="finance-row">
+              <span class="finance-label"><i class="bi bi-building" aria-hidden="true"></i> Tower (Netto)</span>
+              <strong id="financeTowerNet">0</strong>
+            </div>
+            <div class="finance-row">
+              <span class="finance-label"><i class="bi bi-suit-spade" aria-hidden="true"></i> Blackjack (Netto)</span>
+              <strong id="financeBlackjackNet">0</strong>
+            </div>
+            <div class="finance-row">
+              <span class="finance-label"><i class="bi bi-dice-6" aria-hidden="true"></i> Slots (Netto)</span>
+              <strong id="financeSlotsNet">0</strong>
+            </div>
+            <div class="finance-row">
+              <span class="finance-label"><i class="bi bi-circle-half" aria-hidden="true"></i> Roulette (Netto)</span>
+              <strong id="financeRouletteNet">0</strong>
+            </div>
+            <div class="finance-row">
+              <span class="finance-label"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Gluecksrad (Netto)</span>
+              <strong id="financeWheelNet">0</strong>
+            </div>
+            <div class="finance-row">
+              <span class="finance-label"><i class="bi bi-gift" aria-hidden="true"></i> Lootboxes (Netto)</span>
+              <strong id="financeLootboxNet">0</strong>
+            </div>
+          </section>
         </div>
       </div>
     </div>
