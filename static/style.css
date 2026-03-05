@@ -70,7 +70,7 @@ h1 {
 .grid {
   display: grid;
   gap: 24px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
 
@@ -81,6 +81,9 @@ h1 {
   box-shadow: 0 18px 40px var(--shadow);
   position: relative;
   overflow: hidden;
+  display: grid;
+  gap: 14px;
+  align-content: start;
   animation: rise 900ms ease-out 120ms both;
 }
 
@@ -89,7 +92,7 @@ h1 {
   flex-direction: column;
   gap: 4px;
   align-items: center;
-  margin-bottom: 18px;
+  margin-bottom: 0;
 }
 
 .meter .value {
@@ -105,7 +108,7 @@ h1 {
 .cookie {
   width: min(280px, 80%);
   aspect-ratio: 1;
-  margin: 8px auto 24px;
+  margin: 6px auto 4px;
   border: none;
   border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, var(--cookie-top), var(--cookie-bottom) 70%);
@@ -1027,6 +1030,9 @@ h1 {
   border-radius: 24px;
   padding: 24px;
   box-shadow: 0 18px 40px var(--shadow);
+  display: grid;
+  gap: 14px;
+  align-content: start;
   animation: rise 900ms ease-out 220ms both;
 }
 
@@ -1046,7 +1052,7 @@ h1 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 4px;
 }
 
 .upgrade-tab {
@@ -1069,6 +1075,37 @@ h1 {
 .upgrade-list {
   display: grid;
   gap: 12px;
+}
+
+@media (min-width: 981px) {
+  .grid {
+    grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
+  }
+
+  .shop {
+    position: sticky;
+    top: 18px;
+    max-height: calc(100vh - 36px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable both-edges;
+  }
+
+  .shop-header {
+    position: sticky;
+    top: -24px;
+    z-index: 3;
+    background: #fff;
+    padding-top: 24px;
+  }
+
+  .upgrade-tabs {
+    position: sticky;
+    top: 76px;
+    z-index: 3;
+    background: #fff;
+    padding-bottom: 8px;
+  }
 }
 
 .cosmetics-entry {
@@ -2504,6 +2541,16 @@ h1 {
     padding: 32px 16px 24px;
   }
 
+  .hero {
+    margin-bottom: 24px;
+  }
+
+  .cookie-panel,
+  .shop {
+    padding: 18px;
+    border-radius: 20px;
+  }
+
   .level-panel {
     grid-template-columns: 1fr;
     justify-items: center;
@@ -2519,7 +2566,21 @@ h1 {
   }
 
   .cookie {
-    width: 90%;
+    width: min(280px, 88%);
+  }
+
+  .utility-buttons {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .finance-open,
+  .leaderboard-link,
+  .cosmetics-open,
+  .tower-open,
+  .tower-buy,
+  .upgrade-tab,
+  .reset-open {
+    min-height: 44px;
   }
 
   .modal-card.modal-cosmetics {
@@ -2573,8 +2634,23 @@ h1 {
 
 .utility-buttons {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-top: 6px;
+}
+
+@media (max-width: 480px) {
+  .utility-buttons {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stats {
+    gap: 10px;
+  }
+
+  .stat {
+    padding: 10px 12px;
+  }
 }
 
 .leaderboard-link {

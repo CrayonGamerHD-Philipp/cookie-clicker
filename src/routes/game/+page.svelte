@@ -13,18 +13,6 @@
 
       <main class="grid">
         <section class="cookie-panel">
-          <div class="boost-panel boost-panel-active">
-            <div class="boost-head">
-              <div class="boost-title-block">
-                <span class="label">Aktive Boosts</span>
-              </div>
-              <span id="activeBoostTotal" class="boost-total">x1</span>
-            </div>
-            <div id="activeBoostList" class="boost-list">
-              <p class="boost-empty">Keine aktiven Boosts.</p>
-            </div>
-          </div>
-
           <div class="meter">
             <span class="label">Kekse</span>
             <span id="cookieCount" class="value">0</span>
@@ -76,6 +64,23 @@
             </div>
           </div>
 
+          <div class="utility-buttons">
+            <button id="financeOpen" class="finance-open">Finanz-Uebersicht</button>
+            <a href="/game/leaderboard" data-sveltekit-reload class="finance-open leaderboard-link">Leaderboard</a>
+          </div>
+
+          <div class="boost-panel boost-panel-active">
+            <div class="boost-head">
+              <div class="boost-title-block">
+                <span class="label">Aktive Boosts</span>
+              </div>
+              <span id="activeBoostTotal" class="boost-total">x1</span>
+            </div>
+            <div id="activeBoostList" class="boost-list">
+              <p class="boost-empty">Keine aktiven Boosts.</p>
+            </div>
+          </div>
+
           <div class="boost-panel boost-panel-inventory">
             <div class="boost-head">
               <div class="boost-title-block">
@@ -123,11 +128,6 @@
               <span>Lootboxes</span>
               <span id="statsLootbox">0</span>
             </div>
-          </div>
-
-          <div class="utility-buttons">
-            <button id="financeOpen" class="finance-open">Finanz-Uebersicht</button>
-            <a href="/game/leaderboard" data-sveltekit-reload class="finance-open leaderboard-link">Leaderboard</a>
           </div>
         </section>
 
