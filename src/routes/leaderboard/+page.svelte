@@ -24,6 +24,10 @@
       <button type="button" class="leaderboard-range-button" data-range="monthly">Monthly</button>
       <button type="button" class="leaderboard-range-button" data-range="alltime">All-time</button>
     </div>
+    <p class="leaderboard-muted">
+      Auswertung: Hoeheres <strong>Level</strong> ist besser. Bei gleichem Level entscheidet der hoehere
+      <strong>Score</strong>. Bei komplettem Gleichstand steht der frueher gespeicherte Eintrag vorne.
+    </p>
 
     <div class="leaderboard-table-wrap">
       <table class="leaderboard-table" aria-label="Globales Leaderboard">
