@@ -169,7 +169,6 @@ const GUEST_NAME_KEY = "hethey-guest-player-name";
 const GUEST_MODE_KEY = "hethey-guest-mode";
 const ACCOUNT_TOKEN_KEY = "hethey-account-token";
 const ACCOUNT_NAME_KEY = "hethey-account-name";
-const ACHIEVEMENT_CATEGORY_COLLAPSE_KEY = "hethey-achievement-category-collapse-v1";
 const ACHIEVEMENT_GROUP_COLLAPSE_KEY = "hethey-achievement-group-collapse-v1";
 const LEVEL_UP_BASE_COST = 250_000_000;
 const LEVEL_UP_SCALE = 2;
@@ -590,17 +589,6 @@ function createAchievementProgress() {
 }
 
 const achievementProgress = createAchievementProgress();
-const collapsedAchievementCategories = (() => {
-  try {
-    const raw = localStorage.getItem(ACHIEVEMENT_CATEGORY_COLLAPSE_KEY);
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return new Set();
-    return new Set(parsed.filter((entry) => typeof entry === "string" && entry.trim()));
-  } catch (_error) {
-    return new Set();
-  }
-})();
 const collapsedAchievementGroups = (() => {
   try {
     const raw = localStorage.getItem(ACHIEVEMENT_GROUP_COLLAPSE_KEY);
@@ -612,14 +600,6 @@ const collapsedAchievementGroups = (() => {
     return new Set();
   }
 })();
-
-function persistCollapsedAchievementCategories() {
-  try {
-    localStorage.setItem(ACHIEVEMENT_CATEGORY_COLLAPSE_KEY, JSON.stringify([...collapsedAchievementCategories]));
-  } catch (_error) {
-    // Ignore storage failures.
-  }
-}
 
 function persistCollapsedAchievementGroups() {
   try {
@@ -851,108 +831,70 @@ function renderAchievements() {
   const unlockedCount = achievementDefinitions.filter((achievement) => achievementProgress.unlocked[achievement.key]).length;
   achievementSummaryEl.textContent = `${unlockedCount} / ${achievementDefinitions.length}`;
   achievementListEl.innerHTML = "";
-  const categories = [...new Set(achievementGroups.map((group) => group.category))];
-  categories.forEach((categoryName) => {
-    const groupsInCategory = achievementGroups.filter((group) => group.category === categoryName);
-    const categoryDefs = achievementDefinitions.filter((achievement) => groupsInCategory.some((group) => group.group === achievement.group));
-    const categoryUnlocked = categoryDefs.filter((achievement) => achievementProgress.unlocked[achievement.key]).length;
-    const isCollapsed = collapsedAchievementCategories.has(categoryName);
+  achievementGroups.forEach((group) => {
+    const defs = achievementDefinitions
+      .filter((achievement) => achievement.group === group.group)
+      .sort((a, b) => a.tier - b.tier);
+    const unlockedTiers = defs.filter((achievement) => achievementProgress.unlocked[achievement.key]).length;
+    const isGroupCollapsed = collapsedAchievementGroups.has(group.group);
 
-    const categoryBlock = document.createElement("section");
-    categoryBlock.className = `achievement-category${isCollapsed ? " collapsed" : ""}`;
-    categoryBlock.innerHTML = `
-      <button type="button" class="achievement-category-head" data-category-name="${categoryName}" aria-expanded="${String(!isCollapsed)}">
-        <span class="achievement-category-title">${categoryName}</span>
-        <span class="achievement-category-meta">
-          <span class="achievement-category-count">${categoryUnlocked} / ${categoryDefs.length}</span>
-          <i class="bi bi-chevron-down achievement-category-chevron" aria-hidden="true"></i>
-        </span>
+    const groupBlock = document.createElement("div");
+    groupBlock.className = `achievement-group${isGroupCollapsed ? " collapsed" : ""}`;
+    groupBlock.innerHTML = `
+      <button type="button" class="achievement-group-head" aria-expanded="${String(!isGroupCollapsed)}">
+        <span class="achievement-icon" aria-hidden="true"><i class="bi ${group.icon || "bi-award"}"></i></span>
+        <div class="achievement-group-meta">
+          <strong>${group.title}</strong>
+          <span>${unlockedTiers} / ${defs.length} Stufen</span>
+        </div>
+        <i class="bi bi-chevron-down achievement-group-chevron" aria-hidden="true"></i>
       </button>
-      <div class="achievement-category-content"></div>
+      <div class="achievement-group-content"></div>
     `;
-    const categoryContent = categoryBlock.querySelector(".achievement-category-content");
-    const categoryToggle = categoryBlock.querySelector(".achievement-category-head");
-    if (categoryToggle) {
-      categoryToggle.addEventListener("click", () => {
-        const nextCollapsed = !categoryBlock.classList.contains("collapsed");
-        categoryBlock.classList.toggle("collapsed", nextCollapsed);
-        categoryToggle.setAttribute("aria-expanded", String(!nextCollapsed));
+    const groupContent = groupBlock.querySelector(".achievement-group-content");
+    const groupToggle = groupBlock.querySelector(".achievement-group-head");
+    if (groupToggle) {
+      groupToggle.addEventListener("click", () => {
+        const nextCollapsed = !groupBlock.classList.contains("collapsed");
+        groupBlock.classList.toggle("collapsed", nextCollapsed);
+        groupToggle.setAttribute("aria-expanded", String(!nextCollapsed));
         if (nextCollapsed) {
-          collapsedAchievementCategories.add(categoryName);
+          collapsedAchievementGroups.add(group.group);
         } else {
-          collapsedAchievementCategories.delete(categoryName);
+          collapsedAchievementGroups.delete(group.group);
         }
-        persistCollapsedAchievementCategories();
+        persistCollapsedAchievementGroups();
       });
     }
 
-    groupsInCategory.forEach((group) => {
-      const defs = achievementDefinitions
-        .filter((achievement) => achievement.group === group.group)
-        .sort((a, b) => a.tier - b.tier);
-      const unlockedTiers = defs.filter((achievement) => achievementProgress.unlocked[achievement.key]).length;
-      const isGroupCollapsed = collapsedAchievementGroups.has(group.group);
-
-      const groupBlock = document.createElement("div");
-      groupBlock.className = `achievement-group${isGroupCollapsed ? " collapsed" : ""}`;
-      groupBlock.innerHTML = `
-        <button type="button" class="achievement-group-head" aria-expanded="${String(!isGroupCollapsed)}">
-          <span class="achievement-icon" aria-hidden="true"><i class="bi ${group.icon || "bi-award"}"></i></span>
-          <div class="achievement-group-meta">
-            <strong>${group.title}</strong>
-            <span>${unlockedTiers} / ${defs.length} Stufen</span>
-          </div>
-          <i class="bi bi-chevron-down achievement-group-chevron" aria-hidden="true"></i>
-        </button>
-        <div class="achievement-group-content"></div>
-      `;
-      const groupContent = groupBlock.querySelector(".achievement-group-content");
-      const groupToggle = groupBlock.querySelector(".achievement-group-head");
-      if (groupToggle) {
-        groupToggle.addEventListener("click", () => {
-          const nextCollapsed = !groupBlock.classList.contains("collapsed");
-          groupBlock.classList.toggle("collapsed", nextCollapsed);
-          groupToggle.setAttribute("aria-expanded", String(!nextCollapsed));
-          if (nextCollapsed) {
-            collapsedAchievementGroups.add(group.group);
-          } else {
-            collapsedAchievementGroups.delete(group.group);
-          }
-          persistCollapsedAchievementGroups();
-        });
-      }
-
-      defs.forEach((achievement) => {
-        const unlocked = Boolean(achievementProgress.unlocked[achievement.key]);
-        const current = getAchievementValue(achievement);
-        const ratio = Math.max(0, Math.min(1, achievement.target > 0 ? current / achievement.target : 0));
-        const item = document.createElement("div");
-        item.className = `achievement-item${unlocked ? " unlocked" : ""}`;
-        const doneLabel = unlocked
-          ? `<span class="achievement-state-check" aria-hidden="true"><i class="bi bi-check2-circle"></i></span> Erledigt`
-          : "In Arbeit";
-        item.innerHTML = `
-          <div class="achievement-row">
-            <div class="achievement-copy">
-              <p class="achievement-title">${achievement.title}</p>
-              <p class="achievement-desc">${achievement.desc}</p>
-              <div class="achievement-progress-row">
-                <span class="achievement-progress">${formatAchievementNumber(Math.min(current, achievement.target))} / ${formatAchievementNumber(achievement.target)}</span>
-                <span class="achievement-state${unlocked ? " unlocked" : ""}">${doneLabel}</span>
-              </div>
-              <div class="achievement-progress-track" aria-hidden="true">
-                <span class="achievement-progress-fill${unlocked ? " unlocked" : ""}" style="width:${Math.round(ratio * 100)}%"></span>
-              </div>
+    defs.forEach((achievement) => {
+      const unlocked = Boolean(achievementProgress.unlocked[achievement.key]);
+      const current = getAchievementValue(achievement);
+      const ratio = Math.max(0, Math.min(1, achievement.target > 0 ? current / achievement.target : 0));
+      const item = document.createElement("div");
+      item.className = `achievement-item${unlocked ? " unlocked" : ""}`;
+      const doneLabel = unlocked
+        ? `<span class="achievement-state-check" aria-hidden="true"><i class="bi bi-check2-circle"></i></span> Erledigt`
+        : "In Arbeit";
+      item.innerHTML = `
+        <div class="achievement-row">
+          <div class="achievement-copy">
+            <p class="achievement-title">${achievement.title}</p>
+            <p class="achievement-desc">${achievement.desc}</p>
+            <div class="achievement-progress-row">
+              <span class="achievement-progress">${formatAchievementNumber(Math.min(current, achievement.target))} / ${formatAchievementNumber(achievement.target)}</span>
+              <span class="achievement-state${unlocked ? " unlocked" : ""}">${doneLabel}</span>
+            </div>
+            <div class="achievement-progress-track" aria-hidden="true">
+              <span class="achievement-progress-fill${unlocked ? " unlocked" : ""}" style="width:${Math.round(ratio * 100)}%"></span>
             </div>
           </div>
-        `;
-        groupContent?.appendChild(item);
-      });
-
-      categoryContent?.appendChild(groupBlock);
+        </div>
+      `;
+      groupContent?.appendChild(item);
     });
 
-    achievementListEl.appendChild(categoryBlock);
+    achievementListEl.appendChild(groupBlock);
   });
 }
 
