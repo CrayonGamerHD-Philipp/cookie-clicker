@@ -134,8 +134,16 @@ function renderEntries(entries) {
       const date = new Date(entry.updatedAt || Date.now());
       const isSelf = ownName && entry.playerName === ownName;
       const profilePath = `/game/leaderboard/${encodeURIComponent(entry.playerName)}`;
+      const rankClass = index === 0 ? " is-top1" : index === 1 ? " is-top2" : index === 2 ? " is-top3" : "";
+      const rankIcon = index === 0
+        ? '<i class="bi bi-trophy-fill" aria-hidden="true"></i> '
+        : index === 1
+          ? '<i class="bi bi-award-fill" aria-hidden="true"></i> '
+          : index === 2
+            ? '<i class="bi bi-award" aria-hidden="true"></i> '
+            : "";
       return `<tr class="${isSelf ? "is-self" : ""}">
-        <td>${index + 1}</td>
+        <td><span class="leaderboard-rank-badge${rankClass}">${rankIcon}${index + 1}</span></td>
         <td><a href="${profilePath}" data-sveltekit-reload>${entry.playerName}</a></td>
         <td>${formatNumber(entry.bestLevel)}</td>
         <td title="${formatNumber(entry.totalClicks)}">${formatCompactNumber(entry.totalClicks)}</td>

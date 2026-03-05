@@ -3116,10 +3116,37 @@ h1 {
   min-height: 100vh;
 }
 
+.leaderboard-hero h1 {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.leaderboard-meta-chips {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.leaderboard-meta-chips span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #edd8c1;
+  border-radius: 999px;
+  background: rgba(255, 250, 245, 0.75);
+  padding: 6px 11px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
 .leaderboard-shell {
-  max-width: 720px;
+  max-width: 980px;
   margin: 0 auto;
-  background: var(--cream);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 196, 139, 0.4), transparent 32%),
+    linear-gradient(180deg, #fff7ef, #fff1e1);
   border-radius: 24px;
   padding: clamp(18px, 3vw, 28px);
   box-shadow: 0 18px 40px var(--shadow);
@@ -3127,19 +3154,47 @@ h1 {
   gap: 16px;
 }
 
+.leaderboard-panel {
+  border: 1px solid #edd8c1;
+  border-radius: 18px;
+  background: rgba(255, 250, 245, 0.72);
+  padding: 12px;
+}
+
 .leaderboard-toolbar {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  align-items: center;
+}
+
+.leaderboard-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 2px solid #edd8c1;
+  background: #fffdf9;
+  padding: 0 12px;
+  flex: 1 1 240px;
+  min-width: min(280px, 100%);
+}
+
+.leaderboard-input-wrap i {
+  color: #8b4a23;
 }
 
 .leaderboard-input {
-  border-radius: 999px;
-  border: 2px solid #edd8c1;
-  padding: 10px 14px;
+  border: 0;
+  background: transparent;
+  padding: 10px 0;
   font-size: 0.95rem;
-  min-width: min(240px, 100%);
-  flex: 1 1 220px;
+  min-width: 0;
+  width: 100%;
+}
+
+.leaderboard-input:focus {
+  outline: none;
 }
 
 .leaderboard-button {
@@ -3159,16 +3214,28 @@ h1 {
 .leaderboard-table {
   width: 100%;
   border-collapse: collapse;
-  background: #fffaf5;
+  background: #fffdf9;
   border-radius: 16px;
   overflow: hidden;
 }
 
 .leaderboard-table th,
 .leaderboard-table td {
-  padding: 10px 12px;
+  padding: 11px 12px;
   text-align: left;
   border-bottom: 1px solid #f2e3d3;
+}
+
+.leaderboard-table th {
+  font-size: 0.83rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #704226;
+  background: #fff6ea;
+}
+
+.leaderboard-table th i {
+  margin-right: 4px;
 }
 
 .leaderboard-table tr:last-child td {
@@ -3180,6 +3247,30 @@ h1 {
   font-weight: 700;
 }
 
+.leaderboard-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: #f2e3d3;
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.leaderboard-rank-badge.is-top1 {
+  background: linear-gradient(180deg, #ffd766, #e3a92f);
+}
+
+.leaderboard-rank-badge.is-top2 {
+  background: linear-gradient(180deg, #dce3ec, #a9b4c2);
+}
+
+.leaderboard-rank-badge.is-top3 {
+  background: linear-gradient(180deg, #edc798, #bf8345);
+}
+
 .leaderboard-ranges {
   display: flex;
   flex-wrap: wrap;
@@ -3187,26 +3278,31 @@ h1 {
 }
 
 .leaderboard-range-button {
-  border: 1px solid #edd8c1;
-  background: #fffaf5;
+  border: 1px solid #e4c8ad;
+  background: #fffdf9;
   color: #6a3a1c;
   border-radius: 999px;
-  padding: 8px 12px;
+  padding: 8px 13px;
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .leaderboard-range-button.active {
   border-color: #d55a2a;
-  background: #d55a2a;
+  background: linear-gradient(180deg, #e6763f, #d55a2a);
   color: #fff;
+  box-shadow: 0 8px 18px rgba(213, 90, 42, 0.25);
 }
 
 .leaderboard-muted {
   margin: 0;
   font-size: 0.9rem;
   opacity: 0.8;
+  line-height: 1.45;
 }
 
 .leaderboard-legend {
@@ -3234,6 +3330,9 @@ h1 {
 .leaderboard-player-card h2 {
   margin: 0 0 10px;
   font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 }
 
 .leaderboard-player-card p {
@@ -3258,12 +3357,27 @@ h1 {
 }
 
 .leaderboard-table td a {
-  color: inherit;
+  color: #5d3219;
   text-decoration: underline;
   text-underline-offset: 2px;
+  font-weight: 700;
+}
+
+.leaderboard-back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 }
 
 @media (max-width: 900px) {
+  .leaderboard-shell {
+    max-width: 100%;
+  }
+
+  .leaderboard-input-wrap {
+    min-width: 100%;
+  }
+
   .leaderboard-player-grid {
     grid-template-columns: minmax(0, 1fr);
   }

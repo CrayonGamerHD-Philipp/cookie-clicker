@@ -33,21 +33,25 @@
 
 <div class="grain"></div>
 <div class="scene leaderboard-page">
-  <header class="hero">
+  <header class="hero leaderboard-hero">
     <p class="eyebrow">Spielerprofil</p>
-    <h1>{data.profile.playerName}</h1>
+    <h1><i class="bi bi-person-circle" aria-hidden="true"></i> {data.profile.playerName}</h1>
     <p class="tagline">Komplettansicht mit Progress, Achievements und aktivem Cookie-Look.</p>
   </header>
 
   <main class="leaderboard-shell leaderboard-player-shell">
-    <div class="leaderboard-toolbar">
-      <a href="/game/leaderboard" data-sveltekit-reload class="reset-open">Zurueck zum Leaderboard</a>
-      <a href="/game" data-sveltekit-reload class="reset-open">Zum Spiel</a>
-    </div>
+    <section class="leaderboard-panel leaderboard-toolbar">
+      <a href="/game/leaderboard" data-sveltekit-reload class="reset-open leaderboard-back-button">
+        <i class="bi bi-arrow-left-circle" aria-hidden="true"></i> Zurueck zum Leaderboard
+      </a>
+      <a href="/game" data-sveltekit-reload class="reset-open leaderboard-back-button">
+        <i class="bi bi-controller" aria-hidden="true"></i> Zum Spiel
+      </a>
+    </section>
 
     <section class="leaderboard-player-grid">
-      <article class="leaderboard-player-card">
-        <h2>Live Werte</h2>
+      <article class="leaderboard-player-card leaderboard-panel">
+        <h2><i class="bi bi-graph-up-arrow" aria-hidden="true"></i> Live Werte</h2>
         <p><strong>Level:</strong> {format(data.profile.level)}</p>
         <p><strong>Klicks:</strong> {format(data.profile.clicks)}</p>
         <p><strong>Cookies:</strong> {format(data.profile.cookies)}</p>
@@ -55,15 +59,15 @@
         <p><strong>Zuletzt gesehen:</strong> {updatedAt.toLocaleString("de-DE")}</p>
       </article>
 
-      <article class="leaderboard-player-card">
-        <h2>Achievements</h2>
+      <article class="leaderboard-player-card leaderboard-panel">
+        <h2><i class="bi bi-trophy" aria-hidden="true"></i> Achievements</h2>
         <p>
           <strong>Freigeschaltet:</strong> {format(data.profile.achievementsUnlocked)} / {format(data.profile.achievementsTotal)}
         </p>
       </article>
 
-      <article class="leaderboard-player-card">
-        <h2>Spiele-Stats</h2>
+      <article class="leaderboard-player-card leaderboard-panel">
+        <h2><i class="bi bi-joystick" aria-hidden="true"></i> Spiele-Stats</h2>
         <p><strong>Tower:</strong> {format(data.profile.gamesByMode?.tower || 0)}</p>
         <p><strong>Blackjack:</strong> {format(data.profile.gamesByMode?.blackjack || 0)}</p>
         <p><strong>Slots:</strong> {format(data.profile.gamesByMode?.slots || 0)}</p>
@@ -73,8 +77,8 @@
       </article>
     </section>
 
-    <section class="leaderboard-player-card">
-      <h2>Aktueller Cookie-Look</h2>
+    <section class="leaderboard-player-card leaderboard-panel">
+      <h2><i class="bi bi-palette2" aria-hidden="true"></i> Aktueller Cookie-Look</h2>
       <div class="leaderboard-look">
         <div
           class="cosmetics-preview-cookie leaderboard-cookie-look"
