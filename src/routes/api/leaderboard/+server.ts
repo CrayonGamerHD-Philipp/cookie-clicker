@@ -2,7 +2,7 @@ import { json } from "@sveltejs/kit";
 import { getLeaderboard, normalizePlayerName, sanitizePositiveInt, updateLeaderboardScore, type LeaderboardRange } from "$lib/server/dataStore";
 
 const validRanges = new Set<LeaderboardRange>(["daily", "weekly", "monthly", "alltime"]);
-const MAX_SAFE_SCORE = Number.MAX_SAFE_INTEGER;
+const SQLITE_INT_MAX = 9_223_372_036_854_775_807;
 
 export async function GET({ url }) {
   const rangeParam = String(url.searchParams.get("range") || "alltime").toLowerCase();
@@ -25,8 +25,8 @@ export async function POST({ request }) {
   }
 
   const level = sanitizePositiveInt(body?.level, 1_000_000);
-  const score = sanitizePositiveInt(body?.score, MAX_SAFE_SCORE);
-  const totalClicks = sanitizePositiveInt(body?.totalClicks, MAX_SAFE_SCORE);
+  const score = sanitizePositiveInt(body?.score, SQLITE_INT_MAX);
+  const totalClicks = sanitizePositiveInt(body?.totalClicks, SQLITE_INT_MAX);
   const totalGames = sanitizePositiveInt(body?.totalGames, 10_000_000);
 
   const result = await updateLeaderboardScore(playerName, level, score, totalClicks, totalGames);

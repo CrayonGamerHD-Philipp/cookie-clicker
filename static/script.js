@@ -1636,6 +1636,42 @@ function format(num) {
   });
 }
 
+function formatCompact(num) {
+  const value = Number.isInteger(num) ? num : roundValue(num);
+  const abs = Math.abs(value);
+  if (abs < 1_000) {
+    return value.toLocaleString("de-DE", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: Number.isInteger(value) ? 0 : 2
+    });
+  }
+
+  const units = [
+    { value: 1e30, suffix: "no" },
+    { value: 1e27, suffix: "oc" },
+    { value: 1e24, suffix: "sp" },
+    { value: 1e21, suffix: "sx" },
+    { value: 1e18, suffix: "qi" },
+    { value: 1e15, suffix: "qa" },
+    { value: 1e12, suffix: "t" },
+    { value: 1e9, suffix: "b" },
+    { value: 1e6, suffix: "m" },
+    { value: 1e3, suffix: "k" }
+  ];
+
+  const unit = units.find((entry) => abs >= entry.value);
+  if (!unit) {
+    return format(value);
+  }
+
+  const scaled = value / unit.value;
+  const digits = abs >= unit.value * 100 ? 0 : abs >= unit.value * 10 ? 1 : 2;
+  return `${scaled.toLocaleString("de-DE", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: digits
+  })}${unit.suffix}`;
+}
+
 function formatFull(num) {
   const value = Number.isInteger(num) ? num : roundValue(num);
   return value.toLocaleString("de-DE", {
@@ -2167,7 +2203,7 @@ function updateStats() {
   updateVersionLink();
   setDisplayValue(cookieCountEl, state.cookies);
   setDisplayValue(perClickEl, state.perClick);
-  setDisplayValue(totalEl, state.total);
+  setDisplayValue(totalEl, state.total, "", formatCompact, formatFull);
   setDisplayValue(clickCountEl, state.clicks);
   setDisplayValue(rateEl, state.cps, " / sek");
   renderLevelProgress();
