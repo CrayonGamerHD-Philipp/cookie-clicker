@@ -56,7 +56,7 @@ export type PlayerProfileSnapshot = {
     gamesByMode?: Partial<Record<GameMode, number>>;
   };
   achievements?: {
-    unlocked?: number;
+    unlocked?: number | Record<string, unknown>;
     total?: number;
   };
   look?: {
@@ -71,6 +71,7 @@ export type PlayerProfileSnapshot = {
 };
 
 let db: Database.Database | null = null;
+const FALLBACK_ACHIEVEMENT_TOTAL = 131;
 
 function nowIso() {
   return new Date().toISOString();
@@ -544,9 +545,41 @@ export async function getLeaderboardPlayerProfile(playerName: string): Promise<{
     ? unlockedRaw
     : (unlockedRaw && typeof unlockedRaw === "object" ? Object.keys(unlockedRaw).length : 0);
   const totalRaw = snapshot.achievements?.total;
-  const totalCount = typeof totalRaw === "number"
+  let totalCount = typeof totalRaw === "number"
     ? totalRaw
     : 0;
+
+  let fallbackUnlockedFromSave = 0;
+  try {
+    const saveRow = database.prepare(`
+      SELECT s.payload AS payload
+      FROM accounts a
+      INNER JOIN account_saves s ON s.account_id = a.id
+      WHERE a.player_name = ?
+      LIMIT 1
+    `).get(playerName) as { payload: string } | undefined;
+
+    if (saveRow?.payload) {
+      const parsed = JSON.parse(saveRow.payload) as {
+        achievements?: {
+          unlocked?: Record<string, unknown> | number;
+        };
+      };
+      const unlockedFromSave = parsed?.achievements?.unlocked;
+      if (typeof unlockedFromSave === "number") {
+        fallbackUnlockedFromSave = Math.max(0, Math.floor(unlockedFromSave));
+      } else if (unlockedFromSave && typeof unlockedFromSave === "object") {
+        fallbackUnlockedFromSave = Object.keys(unlockedFromSave).length;
+      }
+    }
+  } catch (_error) {
+    // Ignore optional fallback source parsing errors.
+  }
+
+  const resolvedUnlocked = Math.max(0, unlockedCount || fallbackUnlockedFromSave || 0);
+  if (totalCount <= 0) {
+    totalCount = FALLBACK_ACHIEVEMENT_TOTAL;
+  }
 
   return {
     ok: true,
@@ -558,7 +591,7 @@ export async function getLeaderboardPlayerProfile(playerName: string): Promise<{
       cookies: Math.max(0, Number(snapshot.stats?.cookies) || Number(row.cookies) || 0),
       totalGames: Math.max(0, Number(snapshot.stats?.gamesPlayed) || Number(row.totalGames) || 0),
       updatedAt: row.updatedAt || nowIso(),
-      achievementsUnlocked: Math.max(0, Number(unlockedCount) || 0),
+      achievementsUnlocked: resolvedUnlocked,
       achievementsTotal: Math.max(0, Number(totalCount) || 0),
       gamesByMode: snapshot.stats?.gamesByMode || {},
       look: {

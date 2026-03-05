@@ -3312,6 +3312,9 @@ h1 {
 
 .leaderboard-player-shell {
   max-width: 920px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 200, 147, 0.45), transparent 36%),
+    linear-gradient(180deg, #fffaf4, #ffefdc);
 }
 
 .leaderboard-player-kpis {
@@ -3323,13 +3326,16 @@ h1 {
 .leaderboard-kpi-tile {
   display: grid;
   gap: 4px;
+  border-color: #e7ccb0;
+  background: #fffdf9;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
 }
 
 .leaderboard-kpi-icon {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 999px;
-  background: #f7dfc5;
+  background: linear-gradient(180deg, #f8e2c9, #ebcaa6);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3356,8 +3362,9 @@ h1 {
 .leaderboard-player-card {
   border: 1px solid #ecd8c4;
   border-radius: 16px;
-  background: #fffaf5;
+  background: #fffdfa;
   padding: 14px;
+  box-shadow: 0 10px 20px rgba(80, 42, 16, 0.06);
 }
 
 .leaderboard-player-card h2 {
@@ -3386,7 +3393,19 @@ h1 {
 
 .leaderboard-look-meta {
   display: grid;
-  gap: 4px;
+  gap: 6px;
+}
+
+.leaderboard-look-meta p {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.leaderboard-look-meta strong {
+  color: #714022;
 }
 
 .leaderboard-mode-list {
@@ -3410,7 +3429,7 @@ h1 {
 .leaderboard-achievement-track {
   margin-top: 8px;
   width: 100%;
-  height: 9px;
+  height: 10px;
   border-radius: 999px;
   background: #ecd7c1;
   overflow: hidden;
@@ -3420,7 +3439,7 @@ h1 {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #d55a2a, #f0b663);
+  background: linear-gradient(90deg, #d55a2a, #f0b663, #ffd385);
 }
 
 .leaderboard-table td a {

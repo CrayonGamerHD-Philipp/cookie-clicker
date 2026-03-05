@@ -1,6 +1,7 @@
 <svelte:head>
   <title>Leaderboard - Cookie Klicker</title>
   <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
   <script src="/leaderboard.js" defer></script>
 </svelte:head>
 
