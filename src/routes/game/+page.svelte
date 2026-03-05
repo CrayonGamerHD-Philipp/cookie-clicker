@@ -238,9 +238,12 @@
         <p>Tipp: Halte den Klick-Rhythmus, dann erscheinen goldene Kruemel.</p>
         <p class="footer-version">Version: <a id="appVersionLink" href="#" target="_blank" rel="noreferrer"><span id="appVersion">lokal</span></a></p>
         <div class="footer-actions">
+          <button id="accountAuthOpen" class="reset-open">Account anmelden</button>
+          <button id="accountLogout" class="reset-open hidden">Logout</button>
           <button id="devModeExit" class="reset-open hidden">Dev-Modus verlassen</button>
           <button id="resetOpen" class="reset-open">Account zuruecksetzen</button>
         </div>
+        <p id="accountState" class="sync-status-subtle">Gastmodus aktiv</p>
         <p id="devModeState" class="dev-mode-state hidden">Dev-Modus aktiv: Kauefe und Einsaetze sind gratis.</p>
       </footer>
     </div>

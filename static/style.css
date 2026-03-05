@@ -2725,6 +2725,37 @@ h1 {
   gap: 10px;
 }
 
+.player-gate-auth-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.player-gate-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.player-gate-tab {
+  border: 1px solid #edd8c1;
+  border-radius: 999px;
+  padding: 9px 12px;
+  background: #fffaf5;
+  color: #6a3a1c;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.player-gate-tab.active {
+  border-color: #d55a2a;
+  background: #d55a2a;
+  color: #fff;
+}
+
+.player-gate-actions {
+  display: grid;
+  gap: 10px;
+}
+
 .player-gate-input {
   border-radius: 999px;
   border: 2px solid #edd8c1;
@@ -2745,6 +2776,15 @@ h1 {
 .player-gate-button:disabled {
   background: #c9b5a2;
   cursor: not-allowed;
+}
+
+.player-gate-secondary {
+  background: #bb4e24;
+}
+
+.player-gate-ghost {
+  background: #f0d2b2;
+  color: var(--ink);
 }
 
 .player-gate-status {

@@ -134,6 +134,9 @@ const resetCloseOverlay = document.getElementById("resetCloseOverlay");
 const resetConfirmButton = document.getElementById("resetConfirm");
 const resetCancelButton = document.getElementById("resetCancel");
 const resetCosmeticsToggle = document.getElementById("resetCosmeticsToggle");
+const accountAuthOpenButton = document.getElementById("accountAuthOpen");
+const accountLogoutButton = document.getElementById("accountLogout");
+const accountStateEl = document.getElementById("accountState");
 const wheelModal = document.getElementById("wheelModal");
 const wheelOpenButton = document.getElementById("wheelOpen");
 const wheelBuyButton = document.getElementById("wheelBuy");
@@ -156,6 +159,10 @@ const STORAGE_KEY = "hethey-cookie-clicker-v1";
 const DEV_STORAGE_KEY = "hethey-cookie-clicker-dev-v1";
 const DEV_MODE_KEY = "hethey-cookie-clicker-dev-mode";
 const PLAYER_NAME_KEY = "hethey-player-name";
+const GUEST_NAME_KEY = "hethey-guest-player-name";
+const GUEST_MODE_KEY = "hethey-guest-mode";
+const ACCOUNT_TOKEN_KEY = "hethey-account-token";
+const ACCOUNT_NAME_KEY = "hethey-account-name";
 const LEVEL_UP_BASE_COST = 250_000_000;
 const LEVEL_UP_SCALE = 2;
 const LEVEL_GAIN_STEP = 0.5;
@@ -400,6 +407,9 @@ let wheelRotation = 0;
 let activeUpgradeTab = "click";
 let activeCosmeticsCategory = "colors";
 let playerName = "";
+let accountToken = "";
+let accountName = "";
+let isGuestMode = false;
 let serverSyncTimer = null;
 let syncCountdownTimer = null;
 let nextServerSyncAt = 0;
@@ -1415,12 +1425,22 @@ function computeStatsDelta(current, baseline) {
 }
 
 async function requestJson(path, options = {}) {
+  const authTokenValue = typeof options.authToken === "string" ? options.authToken : "";
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {})
+  };
+  if (authTokenValue) {
+    headers.Authorization = `Bearer ${authTokenValue}`;
+  }
+  const requestOptions = {
+    ...options,
+    headers
+  };
+  delete requestOptions.authToken;
   try {
     const response = await fetch(path, {
-      headers: {
-        "Content-Type": "application/json"
-      },
-      ...options
+      ...requestOptions
     });
     const data = await response.json().catch(() => ({}));
     return {
@@ -1455,7 +1475,7 @@ async function registerPlayer(name) {
 }
 
 async function syncPlayerStats() {
-  if (!playerName) {
+  if (!playerName || isGuestMode) {
     return { ok: false };
   }
   return requestJson("/game/api/leaderboard", {
@@ -1471,7 +1491,7 @@ async function syncPlayerStats() {
 }
 
 async function syncGlobalStats() {
-  if (!playerName) {
+  if (!playerName || isGuestMode) {
     return { ok: false };
   }
   const snapshot = currentStatsSnapshot();
@@ -1504,6 +1524,9 @@ async function syncGlobalStats() {
 }
 
 async function loadLeaderboardSnapshot() {
+  if (!playerName || isGuestMode) {
+    return;
+  }
   const response = await requestJson("/game/api/leaderboard", { method: "GET" });
   if (!response.ok || !Array.isArray(response.leaderboard)) {
     return;
@@ -1649,12 +1672,13 @@ async function runServerSyncCycle() {
   updateSyncStatusBar();
   await syncGlobalStats();
   await syncPlayerStats();
+  await syncAccountSave();
   await loadLeaderboardSnapshot();
   updateSyncStatusBar();
 }
 
 function startServerSync() {
-  if (!playerName) {
+  if (!playerName || isGuestMode) {
     return;
   }
   if (serverSyncTimer) {
@@ -1669,76 +1693,613 @@ function startServerSync() {
   }, SERVER_SYNC_INTERVAL_MS);
 }
 
-function createPlayerNameGate() {
-  const overlay = document.createElement("div");
-  overlay.className = "player-gate";
-  overlay.innerHTML = `
-    <div class="player-gate-card" role="dialog" aria-modal="true" aria-labelledby="playerGateTitle">
-      <p class="eyebrow">Willkommen</p>
-      <h2 id="playerGateTitle">Playername festlegen</h2>
-      <p class="player-gate-copy">Bitte einmalig einen Namen waehlen. Unter diesem Namen wird dein Stand alle 30 Sekunden synchronisiert.</p>
-      <div class="player-gate-row">
-        <input id="playerGateInput" class="player-gate-input" type="text" maxlength="24" placeholder="Dein Name" />
-        <button id="playerGateSave" class="player-gate-button" type="button">Speichern</button>
-      </div>
-      <p id="playerGateStatus" class="player-gate-status">Nur Buchstaben, Zahlen, Leerzeichen, Punkt, Unterstrich und Bindestrich.</p>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-  const input = overlay.querySelector("#playerGateInput");
-  const button = overlay.querySelector("#playerGateSave");
-  const status = overlay.querySelector("#playerGateStatus");
-  return { overlay, input, button, status };
+function getCurrentLocalSaveObject() {
+  try {
+    const raw = localStorage.getItem(currentSaveKey());
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (error) {
+    return null;
+  }
 }
 
-async function ensurePlayerIdentity() {
-  let savedName = "";
-  try {
-    savedName = localStorage.getItem(PLAYER_NAME_KEY) || "";
-  } catch (error) {
-    savedName = "";
-  }
+function extractSavePower(save) {
+  const level = Math.max(1, Number(save?.level) || 1);
+  const total = Math.max(0, Number(save?.total) || 0);
+  return { level, total };
+}
 
-  if (savedName) {
-    const restored = await registerPlayer(savedName);
-    if (restored.ok) {
-      startServerSync();
-      return;
+function shouldApplyCloudSave(localSave, cloudSave) {
+  if (!cloudSave) return false;
+  if (!localSave) return true;
+  const local = extractSavePower(localSave);
+  const cloud = extractSavePower(cloudSave);
+  if (cloud.level !== local.level) {
+    return cloud.level > local.level;
+  }
+  return cloud.total > local.total;
+}
+
+async function syncAccountSave() {
+  if (!accountToken || isGuestMode) {
+    return { ok: false };
+  }
+  const save = getCurrentLocalSaveObject();
+  if (!save) {
+    return { ok: true };
+  }
+  return requestJson("/game/api/auth/save", {
+    method: "POST",
+    authToken: accountToken,
+    body: JSON.stringify({ save })
+  });
+}
+
+function setAccountSession(token, username, resolvedPlayerName) {
+  if (isGuestMode && playerName) {
+    try {
+      localStorage.setItem(GUEST_NAME_KEY, playerName);
+    } catch (error) {
+      // Ignore storage failures.
     }
   }
+  accountToken = token;
+  accountName = username;
+  playerName = resolvedPlayerName;
+  isGuestMode = false;
+  try {
+    localStorage.setItem(ACCOUNT_TOKEN_KEY, token);
+    localStorage.setItem(ACCOUNT_NAME_KEY, username);
+    localStorage.setItem(PLAYER_NAME_KEY, resolvedPlayerName);
+    localStorage.setItem(GUEST_MODE_KEY, "false");
+  } catch (error) {
+    // Ignore storage failures.
+  }
+}
 
+function readStoredGuestName() {
+  try {
+    return (localStorage.getItem(GUEST_NAME_KEY) || "").trim();
+  } catch (error) {
+    return "";
+  }
+}
+
+function writeStoredGuestName(name) {
+  const value = String(name || "").trim();
+  if (!value) return;
+  try {
+    localStorage.setItem(GUEST_NAME_KEY, value);
+    localStorage.setItem(PLAYER_NAME_KEY, value);
+  } catch (error) {
+    // Ignore storage failures.
+  }
+}
+
+async function restoreCloudSave() {
+  if (!accountToken) {
+    return;
+  }
+  const response = await requestJson("/game/api/auth/save", {
+    method: "GET",
+    authToken: accountToken
+  });
+  if (!response.ok) {
+    return;
+  }
+  const localSave = getCurrentLocalSaveObject();
+  const cloudSave = response.save;
+  if (shouldApplyCloudSave(localSave, cloudSave)) {
+    try {
+      localStorage.setItem(currentSaveKey(), JSON.stringify(cloudSave));
+      loadState(state.devMode);
+      updateStats();
+      showInfoToast("Cloud-Spielstand geladen.");
+    } catch (error) {
+      // Ignore storage failures.
+    }
+    return;
+  }
+  if (localSave) {
+    await syncAccountSave();
+  }
+}
+
+function clearAccountSession() {
+  accountToken = "";
+  accountName = "";
+  try {
+    localStorage.removeItem(ACCOUNT_TOKEN_KEY);
+    localStorage.removeItem(ACCOUNT_NAME_KEY);
+  } catch (error) {
+    // Ignore storage failures.
+  }
+}
+
+function stopServerSync() {
+  if (serverSyncTimer) {
+    clearInterval(serverSyncTimer);
+    serverSyncTimer = null;
+  }
+  if (syncCountdownTimer) {
+    clearInterval(syncCountdownTimer);
+    syncCountdownTimer = null;
+  }
+  nextServerSyncAt = 0;
+  leaderboardSnapshot = [];
+  if (syncStatusCountdownEl) {
+    syncStatusCountdownEl.textContent = "-";
+  }
+  if (syncStatusRankEl) {
+    syncStatusRankEl.textContent = "Platz wird berechnet...";
+  }
+  if (chaseBannerEl) {
+    chaseBannerEl.classList.add("hidden");
+  }
+}
+
+function updateAccountUi() {
+  if (!accountAuthOpenButton || !accountLogoutButton || !accountStateEl) {
+    return;
+  }
+  const loggedIn = Boolean(accountToken && accountName && !isGuestMode);
+  accountAuthOpenButton.classList.toggle("hidden", loggedIn);
+  accountLogoutButton.classList.toggle("hidden", !loggedIn);
+  if (loggedIn) {
+    accountStateEl.textContent = `Eingeloggt als ${accountName}`;
+    return;
+  }
+  if (playerName) {
+    accountStateEl.textContent = `Gastmodus aktiv (${playerName})`;
+    return;
+  }
+  accountStateEl.textContent = "Kein Spielername gesetzt";
+}
+
+function openGuestNameModal() {
   if (document.querySelector(".player-gate")) {
     return;
   }
-  const gate = createPlayerNameGate();
+  const overlay = document.createElement("div");
+  overlay.className = "player-gate";
+  overlay.innerHTML = `
+    <div class="player-gate-card" role="dialog" aria-modal="true" aria-labelledby="guestNameTitle">
+      <p class="eyebrow">Gastmodus</p>
+      <h2 id="guestNameTitle">Neuen Spielernamen waehlen</h2>
+      <p class="player-gate-copy">Du bist ausgeloggt. Bitte gib jetzt einen neuen Spielernamen ein.</p>
+      <div class="player-gate-row player-gate-auth-row">
+        <input id="guestNameInput" class="player-gate-input" type="text" maxlength="24" placeholder="Neuer Spielername">
+      </div>
+      <div class="player-gate-actions">
+        <button id="guestNameSave" class="player-gate-button" type="button">Speichern</button>
+      </div>
+      <p id="guestNameStatus" class="player-gate-status">Nur Buchstaben, Zahlen, Leerzeichen, Punkt, Unterstrich und Bindestrich.</p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const input = overlay.querySelector("#guestNameInput");
+  const button = overlay.querySelector("#guestNameSave");
+  const status = overlay.querySelector("#guestNameStatus");
+
   const submit = async () => {
-    const value = gate.input.value.trim();
+    const value = input.value.trim();
     if (!value) {
-      gate.status.textContent = "Bitte einen gueltigen Namen eingeben.";
+      status.textContent = "Bitte einen gueltigen Namen eingeben.";
       return;
     }
-    gate.button.disabled = true;
-    gate.status.textContent = "Pruefe Namen...";
+    button.disabled = true;
+    input.disabled = true;
+    status.textContent = "Speichere Namen...";
     const result = await registerPlayer(value);
-    gate.button.disabled = false;
     if (!result.ok) {
-      gate.status.textContent = "Name ungueltig oder Server nicht erreichbar.";
+      button.disabled = false;
+      input.disabled = false;
+      status.textContent = "Name konnte nicht registriert werden. Bitte pruefen.";
       return;
     }
-    gate.overlay.remove();
-    startServerSync();
+    isGuestMode = true;
+    writeStoredGuestName(value);
+    updateAccountUi();
+    overlay.remove();
+    showInfoToast("Gastname gespeichert.");
   };
 
-  gate.button.addEventListener("click", () => {
+  button.addEventListener("click", () => {
     void submit();
   });
-  gate.input.addEventListener("keydown", (event) => {
+  input.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
       void submit();
     }
   });
-  gate.input.focus();
+  input.focus();
+}
+
+function openIdentityBootstrapModal() {
+  if (document.querySelector(".player-gate")) {
+    return;
+  }
+  const overlay = document.createElement("div");
+  overlay.className = "player-gate";
+  overlay.innerHTML = `
+    <div class="player-gate-card" role="dialog" aria-modal="true" aria-labelledby="identityBootstrapTitle">
+      <p class="eyebrow">Willkommen</p>
+      <h2 id="identityBootstrapTitle">Spielername oder Login</h2>
+      <p class="player-gate-copy">Bitte waehle: Gastname setzen oder mit Account einloggen.</p>
+      <div class="player-gate-row player-gate-auth-row">
+        <input id="identityGuestInput" class="player-gate-input" type="text" maxlength="24" placeholder="Dein Gastname">
+      </div>
+      <div class="player-gate-actions">
+        <button id="identityGuestSave" class="player-gate-button" type="button">Gastname setzen</button>
+        <button id="identityAccountOpen" class="player-gate-button player-gate-secondary" type="button">Account Login / Registrierung</button>
+      </div>
+      <p id="identityBootstrapStatus" class="player-gate-status">Ohne Gastname oder Account geht es nicht weiter.</p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const input = overlay.querySelector("#identityGuestInput");
+  const guestSaveButton = overlay.querySelector("#identityGuestSave");
+  const accountOpenButton = overlay.querySelector("#identityAccountOpen");
+  const status = overlay.querySelector("#identityBootstrapStatus");
+
+  const saveGuest = async () => {
+    const value = input.value.trim();
+    if (!value) {
+      status.textContent = "Bitte einen gueltigen Namen eingeben.";
+      return;
+    }
+    guestSaveButton.disabled = true;
+    accountOpenButton.disabled = true;
+    input.disabled = true;
+    status.textContent = "Speichere Gastnamen...";
+    const result = await registerPlayer(value);
+    if (!result.ok) {
+      guestSaveButton.disabled = false;
+      accountOpenButton.disabled = false;
+      input.disabled = false;
+      status.textContent = "Name konnte nicht registriert werden.";
+      return;
+    }
+    isGuestMode = true;
+    writeStoredGuestName(value);
+    updateAccountUi();
+    overlay.remove();
+    showInfoToast("Gastname gespeichert.");
+  };
+
+  guestSaveButton.addEventListener("click", () => {
+    void saveGuest();
+  });
+  accountOpenButton.addEventListener("click", () => {
+    overlay.remove();
+    openAccountAuthModal();
+  });
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void saveGuest();
+    }
+  });
+  input.focus();
+}
+
+function enforcePlayerIdentityGate() {
+  if (playerName) {
+    return;
+  }
+  if (document.querySelector(".player-gate")) {
+    return;
+  }
+  openIdentityBootstrapModal();
+}
+
+function createAccountAuthModal() {
+  const overlay = document.createElement("div");
+  overlay.className = "player-gate";
+  overlay.innerHTML = `
+    <div class="player-gate-card player-gate-account" role="dialog" aria-modal="true" aria-labelledby="playerGateTitle">
+      <p class="eyebrow">Account</p>
+      <h2 id="playerGateTitle">Login oder Registrierung</h2>
+      <p class="player-gate-copy">Optional: Mit Account wird dein Spielstand ueber mehrere Geraete synchronisiert.</p>
+      <div class="player-gate-tabs" role="tablist" aria-label="Account Modus">
+        <button id="playerGateTabLogin" class="player-gate-tab active" type="button" role="tab" aria-selected="true">Login</button>
+        <button id="playerGateTabRegister" class="player-gate-tab" type="button" role="tab" aria-selected="false">Registrieren</button>
+      </div>
+      <div class="player-gate-row player-gate-auth-row">
+        <input id="playerGateUser" class="player-gate-input" type="text" maxlength="24" placeholder="Username (a-z, 0-9, ._-)">
+        <input id="playerGatePassword" class="player-gate-input" type="password" maxlength="128" placeholder="Passwort (mind. 8 Zeichen)">
+        <input id="playerGatePasswordConfirm" class="player-gate-input hidden" type="password" maxlength="128" placeholder="Passwort bestaetigen">
+      </div>
+      <div class="player-gate-actions">
+        <button id="playerGateSubmit" class="player-gate-button" type="button">Login</button>
+        <button id="playerGateGuest" class="player-gate-button player-gate-ghost" type="button">Zurueck zum Gastmodus</button>
+      </div>
+      <p id="playerGateStatus" class="player-gate-status">Gastmodus bleibt Standard, Login ist optional.</p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const tabLogin = overlay.querySelector("#playerGateTabLogin");
+  const tabRegister = overlay.querySelector("#playerGateTabRegister");
+  const userInput = overlay.querySelector("#playerGateUser");
+  const passwordInput = overlay.querySelector("#playerGatePassword");
+  const passwordConfirmInput = overlay.querySelector("#playerGatePasswordConfirm");
+  const submitButton = overlay.querySelector("#playerGateSubmit");
+  const guestButton = overlay.querySelector("#playerGateGuest");
+  const status = overlay.querySelector("#playerGateStatus");
+  return {
+    overlay,
+    tabLogin,
+    tabRegister,
+    userInput,
+    passwordInput,
+    passwordConfirmInput,
+    submitButton,
+    guestButton,
+    status
+  };
+}
+
+function openAccountAuthModal() {
+  if (document.querySelector(".player-gate")) {
+    return;
+  }
+  const gate = createAccountAuthModal();
+  let mode = "login";
+
+  const setMode = (nextMode) => {
+    mode = nextMode === "register" ? "register" : "login";
+    const isRegister = mode === "register";
+    gate.tabLogin.classList.toggle("active", !isRegister);
+    gate.tabRegister.classList.toggle("active", isRegister);
+    gate.tabLogin.setAttribute("aria-selected", String(!isRegister));
+    gate.tabRegister.setAttribute("aria-selected", String(isRegister));
+    gate.submitButton.textContent = isRegister ? "Registrieren" : "Login";
+    gate.passwordConfirmInput.classList.toggle("hidden", !isRegister);
+    if (!isRegister) {
+      gate.passwordConfirmInput.value = "";
+    }
+  };
+
+  const setPending = (pending, message) => {
+    gate.tabLogin.disabled = pending;
+    gate.tabRegister.disabled = pending;
+    gate.submitButton.disabled = pending;
+    gate.guestButton.disabled = pending;
+    gate.userInput.disabled = pending;
+    gate.passwordInput.disabled = pending;
+    gate.passwordConfirmInput.disabled = pending;
+    gate.status.textContent = message;
+  };
+
+  const submitAuth = async (mode) => {
+    const username = gate.userInput.value.trim();
+    const password = gate.passwordInput.value;
+    const passwordConfirm = gate.passwordConfirmInput.value;
+    if (!username || !password) {
+      gate.status.textContent = "Username und Passwort ausfuellen.";
+      return;
+    }
+    if (mode === "register") {
+      if (!passwordConfirm) {
+        gate.status.textContent = "Bitte Passwort bestaetigen.";
+        return;
+      }
+      if (password !== passwordConfirm) {
+        gate.status.textContent = "Passwoerter stimmen nicht ueberein.";
+        return;
+      }
+    }
+    setPending(true, mode === "login" ? "Login laeuft..." : "Registrierung laeuft...");
+    const endpoint = mode === "login" ? "/game/api/auth/login" : "/game/api/auth/register";
+    const result = await requestJson(endpoint, {
+      method: "POST",
+      body: JSON.stringify({ username, password })
+    });
+    setPending(false, "Gast: nur lokal. Account: Cloud-Save + geraeteuebergreifend.");
+    if (!result.ok) {
+      if (result.status === 0) {
+        gate.status.textContent = "Server nicht erreichbar. Bitte erneut versuchen.";
+        return;
+      }
+      if (mode === "login") {
+        gate.status.textContent = "Falscher Username oder Passwort.";
+      } else {
+        gate.status.textContent = result.error || "Registrierung fehlgeschlagen.";
+      }
+      return;
+    }
+    if (!result.token || !result.username || !result.playerName) {
+      gate.status.textContent = "Unerwartete Serverantwort. Bitte erneut versuchen.";
+      return;
+    }
+
+    // Treat successful auth response as success even if optional follow-up sync steps fail.
+    setAccountSession(result.token, result.username, result.playerName);
+    const registerResult = await registerPlayer(result.playerName);
+    if (!registerResult.ok) {
+      gate.status.textContent = "Login erfolgreich, aber Player-Sync fehlgeschlagen.";
+    }
+    try {
+      await restoreCloudSave();
+    } catch (_error) {
+      // Ignore cloud restore errors to avoid blocking login.
+    }
+    try {
+      stopServerSync();
+      startServerSync();
+    } catch (_error) {
+      // Ignore sync timer boot errors; user is still logged in.
+    }
+    updateAccountUi();
+    if (gate.overlay && gate.overlay.parentNode) {
+      gate.overlay.remove();
+    }
+    if (mode === "login") {
+      showInfoToast("Login erfolgreich.");
+    } else {
+      showInfoToast("Registrierung erfolgreich. Du bist jetzt eingeloggt.");
+    }
+  };
+
+  gate.tabLogin.addEventListener("click", () => {
+    setMode("login");
+  });
+  gate.tabRegister.addEventListener("click", () => {
+    setMode("register");
+  });
+  gate.submitButton.addEventListener("click", () => {
+    void submitAuth(mode);
+  });
+  gate.guestButton.addEventListener("click", () => {
+    isGuestMode = true;
+    gate.overlay.remove();
+    const guestName = readStoredGuestName();
+    playerName = guestName || "";
+    try {
+      localStorage.setItem(GUEST_MODE_KEY, "true");
+      if (guestName) {
+        localStorage.setItem(PLAYER_NAME_KEY, guestName);
+      } else {
+        localStorage.removeItem(PLAYER_NAME_KEY);
+      }
+    } catch (error) {
+      // Ignore storage failures.
+    }
+    updateAccountUi();
+    enforcePlayerIdentityGate();
+  });
+  gate.passwordInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void submitAuth(mode);
+    }
+  });
+  gate.passwordConfirmInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void submitAuth(mode);
+    }
+  });
+  setMode("login");
+  gate.userInput.focus();
+}
+
+async function logoutAccount() {
+  const tokenToRevoke = accountToken;
+
+  // Hard local reset on logout: clear both normal and dev save slots.
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(DEV_STORAGE_KEY);
+    localStorage.setItem(DEV_MODE_KEY, "false");
+  } catch (error) {
+    // Ignore storage failures.
+  }
+  loadState(false);
+  updateStats();
+
+  clearAccountSession();
+  const storedGuestName = readStoredGuestName();
+  playerName = storedGuestName || "";
+  isGuestMode = true;
+  stopServerSync();
+  updateAccountUi();
+  const openGate = document.querySelector(".player-gate");
+  if (openGate && openGate.parentNode) {
+    openGate.remove();
+  }
+  try {
+    localStorage.setItem(GUEST_MODE_KEY, "true");
+    if (storedGuestName) {
+      localStorage.setItem(PLAYER_NAME_KEY, storedGuestName);
+    } else {
+      localStorage.removeItem(PLAYER_NAME_KEY);
+    }
+  } catch (error) {
+    // Ignore storage failures.
+  }
+  if (tokenToRevoke) {
+    void requestJson("/game/api/auth/logout", {
+      method: "POST",
+      authToken: tokenToRevoke
+    });
+  }
+  if (storedGuestName) {
+    void registerPlayer(storedGuestName);
+  } else {
+    openIdentityBootstrapModal();
+  }
+  showInfoToast("Abgemeldet. Lokaler Spielstand wurde zurueckgesetzt.");
+}
+
+async function ensurePlayerIdentity() {
+  let savedToken = "";
+  let savedPlayerName = "";
+  let savedGuestName = "";
+  try {
+    savedToken = localStorage.getItem(ACCOUNT_TOKEN_KEY) || "";
+    accountName = localStorage.getItem(ACCOUNT_NAME_KEY) || "";
+    savedPlayerName = localStorage.getItem(PLAYER_NAME_KEY) || "";
+    savedGuestName = localStorage.getItem(GUEST_NAME_KEY) || "";
+  } catch (error) {
+    savedToken = "";
+    accountName = "";
+    savedPlayerName = "";
+    savedGuestName = "";
+  }
+
+  if (savedToken) {
+    const session = await requestJson("/game/api/auth/session", {
+      method: "GET",
+      authToken: savedToken
+    });
+    if (session.ok && session.playerName && session.username) {
+      setAccountSession(savedToken, session.username, session.playerName);
+      await registerPlayer(session.playerName);
+      await restoreCloudSave();
+      startServerSync();
+      updateAccountUi();
+      return;
+    }
+    // Keep login data locally unless server explicitly says token is invalid.
+    if (session.status === 401 || session.status === 403) {
+      clearAccountSession();
+    } else {
+      accountToken = savedToken;
+      accountName = accountName || "Account";
+      isGuestMode = false;
+      if (savedPlayerName) {
+        playerName = savedPlayerName.trim();
+      }
+      updateAccountUi();
+      return;
+    }
+  }
+
+  isGuestMode = true;
+  playerName = (savedPlayerName || savedGuestName || "").trim();
+  stopServerSync();
+  updateAccountUi();
+  try {
+    localStorage.setItem(GUEST_MODE_KEY, "true");
+    if (playerName) {
+      localStorage.setItem(PLAYER_NAME_KEY, playerName);
+      localStorage.setItem(GUEST_NAME_KEY, playerName);
+    }
+  } catch (error) {
+    // Ignore storage failures.
+  }
+  if (playerName) {
+    await registerPlayer(playerName);
+  }
+  if (!playerName) {
+    openIdentityBootstrapModal();
+    return;
+  }
+  enforcePlayerIdentityGate();
 }
 
 function format(num) {
@@ -2585,16 +3146,12 @@ async function resetAccount() {
   }
   nextServerSyncAt = 0;
   leaderboardSnapshot = [];
+  const hadAccountSession = Boolean(accountToken);
+  const activeAccountToken = accountToken;
+  const activeAccountName = accountName;
+  const activePlayerName = playerName;
   playerName = "";
-  if (syncStatusCountdownEl) {
-    syncStatusCountdownEl.textContent = "-";
-  }
-  if (syncStatusRankEl) {
-    syncStatusRankEl.textContent = "Platz wird berechnet...";
-  }
-  if (chaseBannerEl) {
-    chaseBannerEl.classList.add("hidden");
-  }
+  isGuestMode = false;
   try {
     localStorage.removeItem(PLAYER_NAME_KEY);
   } catch (error) {
@@ -2603,8 +3160,23 @@ async function resetAccount() {
 
   closeResetModal();
   updateStats();
-  showInfoToast("Account und Leaderboard-Eintrag wurden zurueckgesetzt.");
-  void ensurePlayerIdentity();
+  if (hadAccountSession && activePlayerName) {
+    setAccountSession(activeAccountToken, activeAccountName, activePlayerName);
+    await registerPlayer(activePlayerName);
+    await syncAccountSave();
+    showInfoToast("Spielstand wurde zurueckgesetzt.");
+    startServerSync();
+    updateAccountUi();
+    return;
+  }
+  showInfoToast("Fortschritt wurde lokal zurueckgesetzt.");
+  isGuestMode = true;
+  updateAccountUi();
+  try {
+    localStorage.setItem(GUEST_MODE_KEY, "true");
+  } catch (error) {
+    // Ignore storage failures.
+  }
 }
 
 function currentTowerChance() {
@@ -3470,6 +4042,14 @@ upgradeTabs.forEach((tab) => {
   });
 });
 resetOpenButton.addEventListener("click", openResetModal);
+if (accountAuthOpenButton) {
+  accountAuthOpenButton.addEventListener("click", openAccountAuthModal);
+}
+if (accountLogoutButton) {
+  accountLogoutButton.addEventListener("click", () => {
+    void logoutAccount();
+  });
+}
 if (devModeExitButton) devModeExitButton.addEventListener("click", toggleDevMode);
 if (devModeToggleButton) devModeToggleButton.addEventListener("click", toggleDevMode);
 resetCloseButton.addEventListener("click", closeResetModal);
@@ -3481,9 +4061,11 @@ buildRouletteWheel();
 setInterval(tick, 1000);
 loadState();
 updateStats();
+updateAccountUi();
 void ensurePlayerIdentity();
 window.addEventListener("beforeunload", () => {
   void syncPlayerStats();
+  void syncAccountSave();
 });
 
 
