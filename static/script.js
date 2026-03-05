@@ -407,6 +407,7 @@ let leaderboardSnapshot = [];
 let syncStatusCountdownEl = null;
 let syncStatusRankEl = null;
 let chaseBannerEl = null;
+let statsSyncCursor = null;
 
 const gameStats = {
   tower: { wins: 0, losses: 0, net: 0 },
@@ -1164,6 +1165,7 @@ function resetProgressState() {
   wheelRotation = 0;
   rouletteBetChoice = "red";
   rouletteBetNumber = 7;
+  statsSyncCursor = null;
   recalculateProduction();
   applyCosmeticTheme();
 }
@@ -1180,6 +1182,7 @@ function loadState(forceDevMode = null) {
   try {
     const raw = localStorage.getItem(currentSaveKey());
     if (!raw) {
+      statsSyncCursor = initialStatsCursor();
       applyCosmeticTheme();
       return;
     }
@@ -1217,6 +1220,23 @@ function loadState(forceDevMode = null) {
       const lootboxEntry = saved.stats.lootbox || {};
       gameStats.lootbox.opens = Number(lootboxEntry.opens) || 0;
       gameStats.lootbox.net = Number(lootboxEntry.net) || 0;
+    }
+    if (saved.statsSyncCursor && typeof saved.statsSyncCursor === "object") {
+      const cursor = saved.statsSyncCursor;
+      statsSyncCursor = {
+        clicks: Math.max(0, Math.floor(Number(cursor.clicks) || 0)),
+        gamesPlayed: Math.max(0, Math.floor(Number(cursor.gamesPlayed) || 0)),
+        lootboxesOpened: Math.max(0, Math.floor(Number(cursor.lootboxesOpened) || 0)),
+        cookiesGenerated: Math.max(0, Math.floor(Number(cursor.cookiesGenerated) || 0)),
+        gamesByMode: {
+          tower: Math.max(0, Math.floor(Number(cursor.gamesByMode?.tower) || 0)),
+          blackjack: Math.max(0, Math.floor(Number(cursor.gamesByMode?.blackjack) || 0)),
+          slots: Math.max(0, Math.floor(Number(cursor.gamesByMode?.slots) || 0)),
+          roulette: Math.max(0, Math.floor(Number(cursor.gamesByMode?.roulette) || 0)),
+          wheel: Math.max(0, Math.floor(Number(cursor.gamesByMode?.wheel) || 0)),
+          lootbox: Math.max(0, Math.floor(Number(cursor.gamesByMode?.lootbox) || 0))
+        }
+      };
     }
     if (saved.unlocks) {
       Object.keys(gameUnlocks).forEach((key) => {
@@ -1276,6 +1296,9 @@ function loadState(forceDevMode = null) {
   } catch (error) {
     resetProgressState();
   }
+  if (!statsSyncCursor) {
+    statsSyncCursor = initialStatsCursor();
+  }
   applyCosmeticTheme();
 }
 
@@ -1308,6 +1331,7 @@ function saveState() {
       }
     },
     stats: gameStats,
+    statsSyncCursor: statsSyncCursor || initialStatsCursor(),
     unlocks: Object.fromEntries(
       Object.entries(gameUnlocks).map(([key, entry]) => [key, entry.unlocked])
     )
@@ -1329,6 +1353,65 @@ function totalGamesPlayed() {
     gameStats.wheel.wins + gameStats.wheel.losses +
     gameStats.lootbox.opens
   );
+}
+
+function gamesByModeSnapshot() {
+  return {
+    tower: gameStats.tower.wins + gameStats.tower.losses,
+    blackjack: gameStats.blackjack.wins + gameStats.blackjack.losses,
+    slots: gameStats.slots.wins + gameStats.slots.losses,
+    roulette: gameStats.roulette.wins + gameStats.roulette.losses,
+    wheel: gameStats.wheel.wins + gameStats.wheel.losses,
+    lootbox: gameStats.lootbox.opens
+  };
+}
+
+function currentStatsSnapshot() {
+  return {
+    clicks: Math.max(0, Math.floor(Number(state.clicks) || 0)),
+    gamesPlayed: Math.max(0, Math.floor(totalGamesPlayed())),
+    lootboxesOpened: Math.max(0, Math.floor(gameStats.lootbox.opens || 0)),
+    cookiesGenerated: Math.max(0, Math.floor(Number(state.total) || 0)),
+    gamesByMode: gamesByModeSnapshot()
+  };
+}
+
+function initialStatsCursor() {
+  // Keep existing click/game totals as baseline to avoid duplicate historic sync.
+  // Lootboxes/cookies start at zero so previously missing values can backfill once.
+  const byMode = gamesByModeSnapshot();
+  return {
+    clicks: Math.max(0, Math.floor(Number(state.clicks) || 0)),
+    gamesPlayed: Math.max(0, Math.floor(totalGamesPlayed())),
+    lootboxesOpened: 0,
+    cookiesGenerated: 0,
+    gamesByMode: {
+      tower: byMode.tower,
+      blackjack: byMode.blackjack,
+      slots: byMode.slots,
+      roulette: byMode.roulette,
+      wheel: byMode.wheel,
+      lootbox: byMode.lootbox
+    }
+  };
+}
+
+function computeStatsDelta(current, baseline) {
+  const base = baseline || initialStatsCursor();
+  const modeDelta = {};
+  Object.keys(current.gamesByMode).forEach((mode) => {
+    const now = Math.max(0, Math.floor(Number(current.gamesByMode[mode]) || 0));
+    const before = Math.max(0, Math.floor(Number(base.gamesByMode?.[mode]) || 0));
+    modeDelta[mode] = Math.max(0, now - before);
+  });
+
+  return {
+    clicks: Math.max(0, current.clicks - Math.max(0, Math.floor(Number(base.clicks) || 0))),
+    gamesPlayed: Math.max(0, current.gamesPlayed - Math.max(0, Math.floor(Number(base.gamesPlayed) || 0))),
+    lootboxesOpened: Math.max(0, current.lootboxesOpened - Math.max(0, Math.floor(Number(base.lootboxesOpened) || 0))),
+    cookiesGenerated: Math.max(0, current.cookiesGenerated - Math.max(0, Math.floor(Number(base.cookiesGenerated) || 0))),
+    gamesByMode: modeDelta
+  };
 }
 
 async function requestJson(path, options = {}) {
@@ -1385,6 +1468,39 @@ async function syncPlayerStats() {
       totalGames: Math.floor(totalGamesPlayed())
     })
   });
+}
+
+async function syncGlobalStats() {
+  if (!playerName) {
+    return { ok: false };
+  }
+  const snapshot = currentStatsSnapshot();
+  const delta = computeStatsDelta(snapshot, statsSyncCursor);
+
+  const hasChanges =
+    delta.clicks > 0 ||
+    delta.gamesPlayed > 0 ||
+    delta.lootboxesOpened > 0 ||
+    delta.cookiesGenerated > 0 ||
+    Object.values(delta.gamesByMode).some((value) => Number(value) > 0);
+
+  if (!hasChanges) {
+    return { ok: true };
+  }
+
+  const response = await requestJson("/game/api/stats/event", {
+    method: "POST",
+    body: JSON.stringify({
+      playerName,
+      delta
+    })
+  });
+
+  if (response.ok) {
+    statsSyncCursor = snapshot;
+    saveState();
+  }
+  return response;
 }
 
 async function loadLeaderboardSnapshot() {
@@ -1531,6 +1647,7 @@ function startSyncStatusCountdown() {
 async function runServerSyncCycle() {
   nextServerSyncAt = Date.now() + SERVER_SYNC_INTERVAL_MS;
   updateSyncStatusBar();
+  await syncGlobalStats();
   await syncPlayerStats();
   await loadLeaderboardSnapshot();
   updateSyncStatusBar();

@@ -196,6 +196,12 @@ export async function getGlobalStats(): Promise<GlobalStats> {
     FROM global_stats
     WHERE id = 1
   `).get() as Omit<GlobalStats, "gamesByMode">;
+  const playerTotals = database.prepare(`
+    SELECT
+      COALESCE(SUM(total_clicks), 0) AS totalClicks,
+      COALESCE(SUM(total_games), 0) AS totalGames
+    FROM players
+  `).get() as { totalClicks: number; totalGames: number };
 
   const modeRows = database.prepare("SELECT mode, count FROM global_mode_stats").all() as Array<{ mode: GameMode; count: number }>;
   const gamesByMode = Object.fromEntries(allowedModes.map((mode) => [mode, 0])) as Record<GameMode, number>;
@@ -208,8 +214,8 @@ export async function getGlobalStats(): Promise<GlobalStats> {
   return {
     uniquePlayers: Number(stats?.uniquePlayers) || 0,
     totalSessions: Number(stats?.totalSessions) || 0,
-    totalClicks: Number(stats?.totalClicks) || 0,
-    totalGamesPlayed: Number(stats?.totalGamesPlayed) || 0,
+    totalClicks: Math.max(Number(stats?.totalClicks) || 0, Number(playerTotals?.totalClicks) || 0),
+    totalGamesPlayed: Math.max(Number(stats?.totalGamesPlayed) || 0, Number(playerTotals?.totalGames) || 0),
     totalLootboxesOpened: Number(stats?.totalLootboxesOpened) || 0,
     totalCookiesGenerated: Number(stats?.totalCookiesGenerated) || 0,
     gamesByMode,
@@ -293,7 +299,11 @@ export async function updateLeaderboardScore(
 ): Promise<{ ok: boolean; bestScore?: number }> {
   const database = getDb();
   const now = nowIso();
-  const player = database.prepare("SELECT id, best_score FROM players WHERE name = ?").get(playerName) as { id: number; best_score: number } | undefined;
+  const player = database.prepare(`
+    SELECT id, best_score, total_clicks, total_games
+    FROM players
+    WHERE name = ?
+  `).get(playerName) as { id: number; best_score: number; total_clicks: number; total_games: number } | undefined;
   if (!player) {
     return { ok: false };
   }
@@ -316,7 +326,17 @@ export async function updateLeaderboardScore(
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(player.id, level, score, totalClicks, totalGames, now);
 
-  touchGlobalStats();
+  const clickDelta = Math.max(0, totalClicks - (Number(player.total_clicks) || 0));
+  const gameDelta = Math.max(0, totalGames - (Number(player.total_games) || 0));
+  database.prepare(`
+    UPDATE global_stats
+    SET
+      total_clicks = total_clicks + ?,
+      total_games_played = total_games_played + ?,
+      last_updated_at = ?
+    WHERE id = 1
+  `).run(clickDelta, gameDelta, now);
+
   const updated = database.prepare("SELECT best_score AS bestScore FROM players WHERE id = ?").get(player.id) as { bestScore: number };
   return { ok: true, bestScore: Number(updated.bestScore) || 0 };
 }
