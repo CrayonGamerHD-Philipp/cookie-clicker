@@ -1,13 +1,9 @@
-﻿<!doctype html>
-<html lang="de">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Cookie Klicker - HETHEY</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <div class="grain"></div>
+<svelte:head>
+  <title>Cookie Klicker - HETHEY</title>
+  <link rel="stylesheet" href="/style.css" />
+  <script src="/script.js" defer></script>
+</svelte:head>
+<div class="grain"></div>
     <div class="scene">
       <header class="hero">
         <p class="eyebrow">HETHEY Backstube</p>
@@ -129,7 +125,10 @@
             </div>
           </div>
 
-          <button id="financeOpen" class="finance-open">Finanz-Uebersicht</button>
+          <div class="utility-buttons">
+            <button id="financeOpen" class="finance-open">Finanz-Uebersicht</button>
+            <a href="/leaderboard" data-sveltekit-reload class="finance-open leaderboard-link">Leaderboard</a>
+          </div>
         </section>
 
         <aside class="shop">
@@ -627,10 +626,3 @@
         </div>
       </div>
     </div>
-
-    <script src="script.js"></script>
-  </body>
-</html>
-
-
-

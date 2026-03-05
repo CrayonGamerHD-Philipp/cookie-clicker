@@ -1,39 +1,45 @@
-# Cookie Klicker
+# HETHEY Cookie Clicker (SvelteKit)
 
-Eine Cookie-Klicker Website mit Casino-Modi (Tower, Blackjack, Slots, Roulette).
+Kompletter Refactor auf **SvelteKit + TailwindCSS** mit komponentenbasierter UI, serverseitiger API und globalem Leaderboard.
 
-## Docker Compose
+## Features
 
-```yaml
-services:
-  cookie-clicker:
-    image: ghcr.io/crayongamerhd-philipp/cookie-clicker:latest
-    ports:
-      - "8080:80"
-```
+- SvelteKit-Frontend mit wiederverwendbaren Components
+- TailwindCSS-Designsystem
+- Pflicht-Playername beim ersten Start (lokal gespeichert)
+- Serverseitige API-Endpunkte in `src/routes/api/*`
+- Persistente globale Statistiken + Leaderboard in `backend/data/game-data.json`
 
-Starten:
+## Lokal starten
 
 ```bash
-docker compose up -d
+npm install
+npm run dev
 ```
 
-## Docker Compose mit Traefik
+App läuft dann standardmäßig auf `http://localhost:5173`.
 
-```yaml
-services:
-  cookie-clicker:
-    image: ghcr.io/crayongamerhd-philipp/cookie-clicker:latest
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.cookie-clicker.rule=Host(`cookie.example.com`)"
-      - "traefik.http.routers.cookie-clicker.entrypoints=websecure"
-      - "traefik.http.routers.cookie-clicker.tls=true"
-      - "traefik.http.services.cookie-clicker.loadbalancer.server.port=80"
-    networks:
-      - traefik
+## Build / Production
 
-networks:
-  traefik:
-    external: true
+```bash
+npm run build
+npm start
 ```
+
+## API Endpoints
+
+- `POST /api/player/register`
+  - Body: `{ "playerName": "..." }`
+- `GET /api/stats`
+- `POST /api/stats/event`
+  - Body: `{ "playerName": "...", "delta": { clicks, gamesPlayed, lootboxesOpened, cookiesGenerated, gamesByMode } }`
+- `GET /api/leaderboard`
+- `POST /api/leaderboard`
+  - Body: `{ "playerName": "...", "score": number, "totalClicks": number, "totalGames": number }`
+
+## Wichtige Pfade
+
+- `src/routes/+page.svelte`: Hauptoberfläche
+- `src/lib/components/*`: UI-Komponenten
+- `src/lib/game/modes.ts`: Modus-Logik
+- `src/lib/server/dataStore.ts`: persistente Server-Datenhaltung

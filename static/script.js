@@ -1,4 +1,4 @@
-﻿const cookieCountEl = document.getElementById("cookieCount");
+const cookieCountEl = document.getElementById("cookieCount");
 const perClickEl = document.getElementById("perClick");
 const clickCountEl = document.getElementById("clickCount");
 const totalEl = document.getElementById("total");
@@ -155,12 +155,14 @@ const towerPayoutEl = document.getElementById("towerPayout");
 const STORAGE_KEY = "hethey-cookie-clicker-v1";
 const DEV_STORAGE_KEY = "hethey-cookie-clicker-dev-v1";
 const DEV_MODE_KEY = "hethey-cookie-clicker-dev-mode";
+const PLAYER_NAME_KEY = "hethey-player-name";
 const LEVEL_UP_BASE_COST = 250_000_000;
 const LEVEL_UP_SCALE = 2;
 const LEVEL_GAIN_STEP = 0.5;
 const UPGRADE_LEVEL_COST_SCALE = 1.35;
 const RELEASES_BASE_URL = "https://github.com/CrayonGamerHD-Philipp/cookie-clicker/releases";
 const LOOTBOX_COST = 10_000_000;
+const SERVER_SYNC_INTERVAL_MS = 30_000;
 
 const upgrades = [
   { name: "Sprinkles", type: "click", power: 1, baseCost: 20, desc: "+1 pro Klick" },
@@ -397,6 +399,14 @@ let wheelSpinning = false;
 let wheelRotation = 0;
 let activeUpgradeTab = "click";
 let activeCosmeticsCategory = "colors";
+let playerName = "";
+let serverSyncTimer = null;
+let syncCountdownTimer = null;
+let nextServerSyncAt = 0;
+let leaderboardSnapshot = [];
+let syncStatusCountdownEl = null;
+let syncStatusRankEl = null;
+let chaseBannerEl = null;
 
 const gameStats = {
   tower: { wins: 0, losses: 0, net: 0 },
@@ -1309,6 +1319,286 @@ function saveState() {
   }
 }
 
+function totalGamesPlayed() {
+  return (
+    gameStats.tower.wins + gameStats.tower.losses +
+    gameStats.blackjack.wins + gameStats.blackjack.losses +
+    gameStats.slots.wins + gameStats.slots.losses +
+    gameStats.roulette.wins + gameStats.roulette.losses +
+    gameStats.wheel.wins + gameStats.wheel.losses +
+    gameStats.lootbox.opens
+  );
+}
+
+async function requestJson(path, options = {}) {
+  try {
+    const response = await fetch(path, {
+      headers: {
+        "Content-Type": "application/json"
+      },
+      ...options
+    });
+    const data = await response.json().catch(() => ({}));
+    return {
+      ok: response.ok,
+      status: response.status,
+      ...data
+    };
+  } catch (error) {
+    return { ok: false, status: 0 };
+  }
+}
+
+async function registerPlayer(name) {
+  const normalized = String(name || "").trim().slice(0, 24);
+  if (!normalized) {
+    return { ok: false };
+  }
+  const response = await requestJson("/api/player/register", {
+    method: "POST",
+    body: JSON.stringify({ playerName: normalized })
+  });
+  if (!response.ok) {
+    return { ok: false };
+  }
+  playerName = normalized;
+  try {
+    localStorage.setItem(PLAYER_NAME_KEY, playerName);
+  } catch (error) {
+    // Ignore storage failures.
+  }
+  return { ok: true };
+}
+
+async function syncPlayerStats() {
+  if (!playerName) {
+    return { ok: false };
+  }
+  return requestJson("/api/leaderboard", {
+    method: "POST",
+    body: JSON.stringify({
+      playerName,
+      score: Math.floor(state.total),
+      totalClicks: Math.floor(state.clicks),
+      totalGames: Math.floor(totalGamesPlayed())
+    })
+  });
+}
+
+async function loadLeaderboardSnapshot() {
+  const response = await requestJson("/api/leaderboard", { method: "GET" });
+  if (!response.ok || !Array.isArray(response.leaderboard)) {
+    return;
+  }
+  leaderboardSnapshot = response.leaderboard;
+}
+
+function formatCountdown(seconds) {
+  const safe = Math.max(0, Math.floor(seconds));
+  const minutes = Math.floor(safe / 60);
+  const rest = safe % 60;
+  return `${minutes}:${String(rest).padStart(2, "0")}`;
+}
+
+function renderSyncStatusBar() {
+  if (syncStatusCountdownEl) {
+    return;
+  }
+  const footerEl = document.querySelector(".footer");
+  if (!footerEl) {
+    return;
+  }
+  const line = document.createElement("p");
+  line.className = "sync-status-subtle";
+  line.innerHTML = `Auto-Sync in <strong id="syncStatusCountdown">-</strong>`;
+  footerEl.appendChild(line);
+  syncStatusCountdownEl = line.querySelector("#syncStatusCountdown");
+
+  const rankLine = document.createElement("p");
+  rankLine.className = "sync-status-subtle";
+  rankLine.innerHTML = `<span id="syncStatusRank">Platz wird berechnet...</span>`;
+  footerEl.appendChild(rankLine);
+  syncStatusRankEl = rankLine.querySelector("#syncStatusRank");
+}
+
+function renderChaseBanner() {
+  if (chaseBannerEl) {
+    return;
+  }
+  const scene = document.querySelector(".scene");
+  if (!scene) {
+    return;
+  }
+  const banner = document.createElement("div");
+  banner.className = "chase-banner hidden";
+  banner.innerHTML = `Naechster Spieler in <strong id="chaseBannerDelta">-</strong>`;
+  const hero = scene.querySelector(".hero");
+  if (hero && hero.parentNode) {
+    hero.parentNode.insertBefore(banner, hero.nextSibling);
+  } else {
+    scene.prepend(banner);
+  }
+  chaseBannerEl = banner;
+}
+
+function updateSyncStatusBar() {
+  if (!syncStatusCountdownEl) {
+    return;
+  }
+  const remainingSeconds = nextServerSyncAt
+    ? Math.max(0, Math.ceil((nextServerSyncAt - Date.now()) / 1000))
+    : 0;
+  syncStatusCountdownEl.textContent = formatCountdown(remainingSeconds);
+
+  if (syncStatusRankEl) {
+    const myScore = Math.floor(Number(state.total) || 0);
+    const others = leaderboardSnapshot
+      .filter((entry) => entry && entry.playerName !== playerName)
+      .map((entry) => Number(entry.bestScore) || 0)
+      .sort((a, b) => b - a);
+    const rank = 1 + others.filter((score) => score > myScore).length;
+    const higherScores = others.filter((score) => score > myScore);
+    const nextHigher = higherScores.length ? Math.min(...higherScores) : null;
+    if (!others.length) {
+      syncStatusRankEl.textContent = "Platz 1 • noch keine weiteren Spieler";
+    } else if (nextHigher === null) {
+      syncStatusRankEl.textContent = `Platz ${rank} • du bist aktuell vorne`;
+    } else {
+      const delta = Math.max(0, nextHigher - myScore);
+      syncStatusRankEl.textContent = `Platz ${rank} • noch ${format(delta)} bis Platz ${rank - 1}`;
+    }
+  }
+
+  const myScore = Math.floor(Number(state.total) || 0);
+  const nextEntry = leaderboardSnapshot
+    .filter((entry) => entry && entry.playerName !== playerName && Number(entry.bestScore) > myScore)
+    .sort((a, b) => Number(a.bestScore) - Number(b.bestScore))[0];
+  if (!chaseBannerEl) {
+    return;
+  }
+  if (!nextEntry || myScore <= 0) {
+    chaseBannerEl.classList.add("hidden");
+    return;
+  }
+
+  const nextScore = Number(nextEntry.bestScore) || 0;
+  const inRange = nextScore <= myScore * 2;
+  if (!inRange) {
+    chaseBannerEl.classList.add("hidden");
+    return;
+  }
+
+  const delta = Math.max(0, nextScore - myScore);
+  const target = chaseBannerEl.querySelector("#chaseBannerDelta");
+  if (target) {
+    target.textContent = `${format(delta)} (${nextEntry.playerName})`;
+  }
+  chaseBannerEl.classList.remove("hidden");
+}
+
+function startSyncStatusCountdown() {
+  if (syncCountdownTimer) {
+    clearInterval(syncCountdownTimer);
+  }
+  syncCountdownTimer = setInterval(updateSyncStatusBar, 1000);
+}
+
+async function runServerSyncCycle() {
+  nextServerSyncAt = Date.now() + SERVER_SYNC_INTERVAL_MS;
+  updateSyncStatusBar();
+  await syncPlayerStats();
+  await loadLeaderboardSnapshot();
+  updateSyncStatusBar();
+}
+
+function startServerSync() {
+  if (!playerName) {
+    return;
+  }
+  if (serverSyncTimer) {
+    clearInterval(serverSyncTimer);
+  }
+  renderSyncStatusBar();
+  renderChaseBanner();
+  startSyncStatusCountdown();
+  void runServerSyncCycle();
+  serverSyncTimer = setInterval(() => {
+    void runServerSyncCycle();
+  }, SERVER_SYNC_INTERVAL_MS);
+}
+
+function createPlayerNameGate() {
+  const overlay = document.createElement("div");
+  overlay.className = "player-gate";
+  overlay.innerHTML = `
+    <div class="player-gate-card" role="dialog" aria-modal="true" aria-labelledby="playerGateTitle">
+      <p class="eyebrow">Willkommen</p>
+      <h2 id="playerGateTitle">Playername festlegen</h2>
+      <p class="player-gate-copy">Bitte einmalig einen Namen waehlen. Unter diesem Namen wird dein Stand alle 30 Sekunden synchronisiert.</p>
+      <div class="player-gate-row">
+        <input id="playerGateInput" class="player-gate-input" type="text" maxlength="24" placeholder="Dein Name" />
+        <button id="playerGateSave" class="player-gate-button" type="button">Speichern</button>
+      </div>
+      <p id="playerGateStatus" class="player-gate-status">Nur Buchstaben, Zahlen, Leerzeichen, Punkt, Unterstrich und Bindestrich.</p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const input = overlay.querySelector("#playerGateInput");
+  const button = overlay.querySelector("#playerGateSave");
+  const status = overlay.querySelector("#playerGateStatus");
+  return { overlay, input, button, status };
+}
+
+async function ensurePlayerIdentity() {
+  let savedName = "";
+  try {
+    savedName = localStorage.getItem(PLAYER_NAME_KEY) || "";
+  } catch (error) {
+    savedName = "";
+  }
+
+  if (savedName) {
+    const restored = await registerPlayer(savedName);
+    if (restored.ok) {
+      startServerSync();
+      return;
+    }
+  }
+
+  if (document.querySelector(".player-gate")) {
+    return;
+  }
+  const gate = createPlayerNameGate();
+  const submit = async () => {
+    const value = gate.input.value.trim();
+    if (!value) {
+      gate.status.textContent = "Bitte einen gueltigen Namen eingeben.";
+      return;
+    }
+    gate.button.disabled = true;
+    gate.status.textContent = "Pruefe Namen...";
+    const result = await registerPlayer(value);
+    gate.button.disabled = false;
+    if (!result.ok) {
+      gate.status.textContent = "Name ungueltig oder Server nicht erreichbar.";
+      return;
+    }
+    gate.overlay.remove();
+    startServerSync();
+  };
+
+  gate.button.addEventListener("click", () => {
+    void submit();
+  });
+  gate.input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void submit();
+    }
+  });
+  gate.input.focus();
+}
+
 function format(num) {
   const value = Number.isInteger(num) ? num : roundValue(num);
   const abs = Math.abs(value);
@@ -2026,7 +2316,7 @@ function closeResetModal() {
   resetModal.setAttribute("aria-hidden", "true");
 }
 
-function resetAccount() {
+async function resetAccount() {
   const shouldResetCosmetics = resetCosmeticsToggle ? resetCosmeticsToggle.checked : true;
 
   state.cookies = 0;
@@ -2093,8 +2383,50 @@ function resetAccount() {
   rouletteSpinning = false;
   wheelSpinning = false;
 
+  const currentName = playerName || (() => {
+    try {
+      return localStorage.getItem(PLAYER_NAME_KEY) || "";
+    } catch (error) {
+      return "";
+    }
+  })();
+  if (currentName) {
+    await requestJson("/api/player/reset", {
+      method: "POST",
+      body: JSON.stringify({ playerName: currentName })
+    });
+  }
+
+  if (serverSyncTimer) {
+    clearInterval(serverSyncTimer);
+    serverSyncTimer = null;
+  }
+  if (syncCountdownTimer) {
+    clearInterval(syncCountdownTimer);
+    syncCountdownTimer = null;
+  }
+  nextServerSyncAt = 0;
+  leaderboardSnapshot = [];
+  playerName = "";
+  if (syncStatusCountdownEl) {
+    syncStatusCountdownEl.textContent = "-";
+  }
+  if (syncStatusRankEl) {
+    syncStatusRankEl.textContent = "Platz wird berechnet...";
+  }
+  if (chaseBannerEl) {
+    chaseBannerEl.classList.add("hidden");
+  }
+  try {
+    localStorage.removeItem(PLAYER_NAME_KEY);
+  } catch (error) {
+    // Ignore storage failures.
+  }
+
   closeResetModal();
   updateStats();
+  showInfoToast("Account und Leaderboard-Eintrag wurden zurueckgesetzt.");
+  void ensurePlayerIdentity();
 }
 
 function currentTowerChance() {
@@ -2971,5 +3303,10 @@ buildRouletteWheel();
 setInterval(tick, 1000);
 loadState();
 updateStats();
+void ensurePlayerIdentity();
+window.addEventListener("beforeunload", () => {
+  void syncPlayerStats();
+});
+
 
 
