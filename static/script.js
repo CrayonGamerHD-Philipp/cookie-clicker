@@ -1,4 +1,4 @@
-﻿const cookieCountEl = document.getElementById("cookieCount");
+const cookieCountEl = document.getElementById("cookieCount");
 const perClickEl = document.getElementById("perClick");
 const clickCountEl = document.getElementById("clickCount");
 const totalEl = document.getElementById("total");
@@ -92,6 +92,8 @@ const statsBlackjackEl = document.getElementById("statsBlackjack");
 const statsSlotsEl = document.getElementById("statsSlots");
 const statsRouletteEl = document.getElementById("statsRoulette");
 const statsLootboxEl = document.getElementById("statsLootbox");
+const achievementSummaryEl = document.getElementById("achievementSummary");
+const achievementListEl = document.getElementById("achievementList");
 const financeModal = document.getElementById("financeModal");
 const financeOpenButton = document.getElementById("financeOpen");
 const financeCloseButton = document.getElementById("financeClose");
@@ -122,6 +124,10 @@ const rouletteBoard = document.getElementById("rouletteBoard");
 const rouletteSelection = document.getElementById("rouletteSelection");
 const statsWheelEl = document.getElementById("statsWheel");
 const gameToast = document.getElementById("gameToast");
+const achievementModal = document.getElementById("achievementModal");
+const achievementOpenButton = document.getElementById("achievementOpen");
+const achievementCloseButton = document.getElementById("achievementClose");
+const achievementCloseOverlay = document.getElementById("achievementCloseOverlay");
 const resetModal = document.getElementById("resetModal");
 const devModeExitButton = document.getElementById("devModeExit");
 const resetOpenButton = document.getElementById("resetOpen");
@@ -134,6 +140,9 @@ const resetCloseOverlay = document.getElementById("resetCloseOverlay");
 const resetConfirmButton = document.getElementById("resetConfirm");
 const resetCancelButton = document.getElementById("resetCancel");
 const resetCosmeticsToggle = document.getElementById("resetCosmeticsToggle");
+const accountAuthOpenButton = document.getElementById("accountAuthOpen");
+const accountLogoutButton = document.getElementById("accountLogout");
+const accountStateEl = document.getElementById("accountState");
 const wheelModal = document.getElementById("wheelModal");
 const wheelOpenButton = document.getElementById("wheelOpen");
 const wheelBuyButton = document.getElementById("wheelBuy");
@@ -155,12 +164,20 @@ const towerPayoutEl = document.getElementById("towerPayout");
 const STORAGE_KEY = "hethey-cookie-clicker-v1";
 const DEV_STORAGE_KEY = "hethey-cookie-clicker-dev-v1";
 const DEV_MODE_KEY = "hethey-cookie-clicker-dev-mode";
+const PLAYER_NAME_KEY = "hethey-player-name";
+const GUEST_NAME_KEY = "hethey-guest-player-name";
+const GUEST_MODE_KEY = "hethey-guest-mode";
+const ACCOUNT_TOKEN_KEY = "hethey-account-token";
+const ACCOUNT_NAME_KEY = "hethey-account-name";
+const ACHIEVEMENT_GROUP_COLLAPSE_KEY = "hethey-achievement-group-collapse-v1";
 const LEVEL_UP_BASE_COST = 250_000_000;
 const LEVEL_UP_SCALE = 2;
 const LEVEL_GAIN_STEP = 0.5;
 const UPGRADE_LEVEL_COST_SCALE = 1.35;
 const RELEASES_BASE_URL = "https://github.com/CrayonGamerHD-Philipp/cookie-clicker/releases";
+const RELEASES_API_URL = "https://api.github.com/repos/CrayonGamerHD-Philipp/cookie-clicker/releases/latest";
 const LOOTBOX_COST = 10_000_000;
+const SERVER_SYNC_INTERVAL_MS = 30_000;
 
 const upgrades = [
   { name: "Sprinkles", type: "click", power: 1, baseCost: 20, desc: "+1 pro Klick" },
@@ -256,6 +273,48 @@ const colorCosmetics = [
       "--cookie-spot": "rgba(14, 34, 74, 0.28)",
       "--cookie-text": "#fff7ee"
     }
+  },
+  {
+    key: "aurora-frost",
+    name: "Aurora Frost",
+    cost: 0,
+    unlockAchievement: "clicker-tier-5",
+    desc: "Achievement exklusiv: Polar-Frost mit Neon-Akzenten.",
+    owned: false,
+    theme: {
+      "--cookie-top": "#9be8ff",
+      "--cookie-bottom": "#1f8dbe",
+      "--cookie-spot": "rgba(14, 68, 95, 0.26)",
+      "--cookie-text": "#eefcff"
+    }
+  },
+  {
+    key: "ember-sunrise",
+    name: "Ember Sunrise",
+    cost: 0,
+    unlockAchievement: "wins-tier-4",
+    desc: "Achievement exklusiv: Glutrot mit warmen Goldkruemeln.",
+    owned: false,
+    theme: {
+      "--cookie-top": "#ffbf88",
+      "--cookie-bottom": "#c84a1e",
+      "--cookie-spot": "rgba(96, 32, 12, 0.26)",
+      "--cookie-text": "#fff6e8"
+    }
+  },
+  {
+    key: "night-neon",
+    name: "Night Neon",
+    cost: 0,
+    unlockAchievement: "lootboxes-tier-4",
+    desc: "Achievement exklusiv: Tiefes Violett mit Neon-Kanten.",
+    owned: false,
+    theme: {
+      "--cookie-top": "#6b5d8f",
+      "--cookie-bottom": "#2a183f",
+      "--cookie-spot": "rgba(158, 120, 236, 0.23)",
+      "--cookie-text": "#f8f1ff"
+    }
   }
 ];
 
@@ -265,6 +324,10 @@ const accessoryCosmetics = [
   { key: "crown", name: "Krone", cost: 5_000_000_000, desc: "Goldene Krone fuer den Kekskoenig.", owned: false },
   { key: "witch", name: "Hexenhut", cost: 3_500_000_000, desc: "Spitzer Hexenhut mit dunklem Band.", owned: false },
   { key: "cowboy", name: "Cowboyhut", cost: 4_500_000_000, desc: "Breiter Westernhut mit warmem Lederlook.", owned: false },
+  { key: "halo", name: "Heiligenschein", cost: 0, unlockAchievement: "bonus-tier-3", desc: "Achievement exklusiv: Leuchtender Ring ueber dem Keks.", owned: false },
+  { key: "laurels", name: "Lorbeer", cost: 0, unlockAchievement: "games-started-tier-4", desc: "Achievement exklusiv: Sieger-Lorbeer fuer Grinder.", owned: false },
+  { key: "visor", name: "Neon-Visor", cost: 0, unlockAchievement: "cps-tier-4", desc: "Achievement exklusiv: Futuristisches Visor-Band.", owned: false },
+  { key: "monocle", name: "Monokel", cost: 0, unlockAchievement: "bank-tier-3", desc: "Achievement exklusiv: Edler Monokel-Look.", owned: false },
   { key: "chef", name: "Kochmuetze", cost: 375_000, desc: "Legacy", owned: false, hidden: true },
   { key: "captain", name: "Kapitaenshut", cost: 10_000_000, desc: "Legacy", owned: false, hidden: true }
 ];
@@ -290,6 +353,34 @@ const skinCosmetics = [
       "--cookie-spot": "rgba(255, 255, 255, 0)",
       "--cookie-text": "#fff7ee"
     }
+  },
+  {
+    key: "ember-core",
+    name: "Ember Core",
+    cost: 0,
+    unlockAchievement: "tower-tier-3",
+    desc: "Achievement exklusiv: Vulkanischer Kern mit Magma-Rand.",
+    owned: false,
+    theme: {
+      "--cookie-top": "#ff9765",
+      "--cookie-bottom": "#842212",
+      "--cookie-spot": "rgba(255, 220, 140, 0.18)",
+      "--cookie-text": "#fff6ea"
+    }
+  },
+  {
+    key: "glitchbyte",
+    name: "Glitchbyte",
+    cost: 0,
+    unlockAchievement: "slots-tier-3",
+    desc: "Achievement exklusiv: Pixel-Skin im Retro-Arcade-Stil.",
+    owned: false,
+    theme: {
+      "--cookie-top": "#94f9d9",
+      "--cookie-bottom": "#1a9278",
+      "--cookie-spot": "rgba(18, 66, 58, 0.2)",
+      "--cookie-text": "#ddfff4"
+    }
   }
 ];
 
@@ -301,6 +392,24 @@ const miscCosmetics = [
     desc: "Keine zusaetzliche Sonderfigur.",
     owned: true,
     svg: ""
+  },
+  {
+    key: "medal",
+    name: "Siegermedaille",
+    cost: 0,
+    unlockAchievement: "wins-tier-5",
+    desc: "Achievement exklusiv: Goldmedaille am Keks.",
+    owned: false,
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220"><g fill="none" fill-rule="evenodd"><path fill="#2f6fc7" d="M96 18h28l-8 58h-12z"/><path fill="#d84f56" d="M74 18h22l22 58H96z"/><circle cx="110" cy="128" r="54" fill="#ffcb5a" stroke="#b6781f" stroke-width="10"/><circle cx="110" cy="128" r="26" fill="#fff3cf" stroke="#b6781f" stroke-width="8"/><path fill="#c28b2d" d="M110 95l10 20 22 3-16 15 4 22-20-11-20 11 4-22-16-15 22-3z"/></g></svg>`
+  },
+  {
+    key: "comet-tail",
+    name: "Comet Trail",
+    cost: 0,
+    unlockAchievement: "lootboxes-tier-5",
+    desc: "Achievement exklusiv: Leuchtender Kometenschweif.",
+    owned: false,
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 220"><defs><linearGradient id="g" x1="0%" y1="50%" x2="100%" y2="50%"><stop offset="0%" stop-color="#fff2b0" stop-opacity=".2"/><stop offset="70%" stop-color="#ffd06a" stop-opacity=".9"/><stop offset="100%" stop-color="#ff8a2d"/></linearGradient></defs><path d="M8 164c44-38 96-54 160-60l36-4c-22 20-34 40-44 66-64 4-109 14-152 35z" fill="url(#g)"/><circle cx="196" cy="94" r="30" fill="#ffd979" stroke="#e4922f" stroke-width="8"/><circle cx="196" cy="94" r="12" fill="#fff4ca"/></svg>`
   },
   {
     key: "kirby",
@@ -397,6 +506,19 @@ let wheelSpinning = false;
 let wheelRotation = 0;
 let activeUpgradeTab = "click";
 let activeCosmeticsCategory = "colors";
+let playerName = "";
+let accountToken = "";
+let accountName = "";
+let isGuestMode = false;
+let serverSyncTimer = null;
+let syncCountdownTimer = null;
+let nextServerSyncAt = 0;
+let leaderboardSnapshot = [];
+let syncStatusCountdownEl = null;
+let syncStatusRankEl = null;
+let chaseBannerEl = null;
+let statsSyncCursor = null;
+let accountSaveUpdatedAt = null;
 
 const gameStats = {
   tower: { wins: 0, losses: 0, net: 0 },
@@ -406,6 +528,133 @@ const gameStats = {
   wheel: { wins: 0, losses: 0, net: 0 },
   lootbox: { opens: 0, net: 0 }
 };
+
+const achievementMetricKeys = [
+  "manualClicks",
+  "totalLootboxesOpened",
+  "upgradesPurchased",
+  "gamesStarted",
+  "gameWins",
+  "gameLosses",
+  "towerGames",
+  "blackjackGames",
+  "slotsGames",
+  "rouletteGames",
+  "wheelGames",
+  "totalBetPlaced",
+  "totalPayoutReceived",
+  "biggestSingleWin",
+  "levelUps",
+  "bonusesCollected",
+  "boostsActivated",
+  "gamesUnlocked",
+  "cosmeticsOwned",
+  "highestLevel",
+  "highestCookies",
+  "highestPerClick",
+  "highestCps",
+  "totalCookiesGenerated",
+  "secondsPlayed"
+];
+
+function createAchievementProgress() {
+  return {
+    manualClicks: 0,
+    totalLootboxesOpened: 0,
+    upgradesPurchased: 0,
+    gamesStarted: 0,
+    gameWins: 0,
+    gameLosses: 0,
+    towerGames: 0,
+    blackjackGames: 0,
+    slotsGames: 0,
+    rouletteGames: 0,
+    wheelGames: 0,
+    totalBetPlaced: 0,
+    totalPayoutReceived: 0,
+    biggestSingleWin: 0,
+    levelUps: 0,
+    bonusesCollected: 0,
+    boostsActivated: 0,
+    gamesUnlocked: 0,
+    cosmeticsOwned: 0,
+    highestLevel: 1,
+    highestCookies: 0,
+    highestPerClick: 1,
+    highestCps: 0,
+    totalCookiesGenerated: 0,
+    secondsPlayed: 0,
+    unlocked: {}
+  };
+}
+
+const achievementProgress = createAchievementProgress();
+let hasSavedAchievementGroupCollapseState = false;
+const collapsedAchievementGroups = (() => {
+  try {
+    const raw = localStorage.getItem(ACHIEVEMENT_GROUP_COLLAPSE_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set();
+    hasSavedAchievementGroupCollapseState = true;
+    return new Set(parsed.filter((entry) => typeof entry === "string" && entry.trim()));
+  } catch (_error) {
+    return new Set();
+  }
+})();
+
+function persistCollapsedAchievementGroups() {
+  try {
+    hasSavedAchievementGroupCollapseState = true;
+    localStorage.setItem(ACHIEVEMENT_GROUP_COLLAPSE_KEY, JSON.stringify([...collapsedAchievementGroups]));
+  } catch (_error) {
+    // Ignore storage failures.
+  }
+}
+
+function formatAchievementTarget(value) {
+  return new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 }).format(Math.floor(Math.max(0, Number(value) || 0)));
+}
+
+const achievementGroups = [
+  { category: "Core", group: "clicker", title: "Click Titan", metric: "manualClicks", icon: "bi-hand-index-thumb", tiers: [250, 1_000, 10_000, 100_000, 1_000_000, 10_000_000], unit: "Klicks" },
+  { category: "Core", group: "upgrades", title: "Ausbauer", metric: "upgradesPurchased", icon: "bi-hammer", tiers: [25, 100, 250, 500, 1_000, 2_500], unit: "Upgrades" },
+  { category: "Core", group: "level", title: "Ofenmeister", metric: "highestLevel", icon: "bi-fire", tiers: [5, 10, 25, 50, 75, 100], unit: "Level" },
+  { category: "Core", group: "levelups", title: "Reborn Baker", metric: "levelUps", icon: "bi-arrow-repeat", tiers: [1, 3, 10, 25, 50, 100, 250], unit: "Level-Ups" },
+  { category: "Core", group: "playtime", title: "Schichtleiter", metric: "secondsPlayed", icon: "bi-clock-history", tiers: [600, 3_600, 21_600, 86_400, 604_800, 2_592_000], unit: "Sekunden Spielzeit" },
+  { category: "Economy", group: "cps", title: "Fliessband", metric: "highestCps", icon: "bi-speedometer2", tiers: [100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000], unit: "Cookies/Sek" },
+  { category: "Economy", group: "per-click", title: "Super Click", metric: "highestPerClick", icon: "bi-lightning-charge", tiers: [10, 100, 1_000, 10_000, 100_000, 1_000_000], unit: "Cookies/Klick" },
+  { category: "Economy", group: "cookies-generated", title: "Backstuben-Tycoon", metric: "totalCookiesGenerated", icon: "bi-graph-up-arrow", tiers: [1_000_000, 100_000_000, 10_000_000_000, 1_000_000_000_000, 100_000_000_000_000], unit: "erzeugte Cookies" },
+  { category: "Economy", group: "bank", title: "Safe voll", metric: "highestCookies", icon: "bi-piggy-bank", tiers: [100_000, 10_000_000, 1_000_000_000, 100_000_000_000, 1_000_000_000_000], unit: "Cookies auf der Hand" },
+  { category: "Economy", group: "bonus", title: "Kruemel-Collector", metric: "bonusesCollected", icon: "bi-sun", tiers: [5, 25, 100, 500, 2_000], unit: "Bonus-Einsammlungen" },
+  { category: "Economy", group: "boost", title: "Boost Alchemist", metric: "boostsActivated", icon: "bi-rocket-takeoff", tiers: [5, 25, 100, 500, 2_000], unit: "aktivierte Boosts" },
+  { category: "Casino", group: "games-started", title: "Casino Stammgast", metric: "gamesStarted", icon: "bi-dice-5", tiers: [25, 100, 500, 1_000, 5_000, 20_000], unit: "Runden" },
+  { category: "Casino", group: "wins", title: "High Roller", metric: "gameWins", icon: "bi-trophy", tiers: [10, 50, 100, 500, 2_000, 10_000], unit: "Siege" },
+  { category: "Casino", group: "bets", title: "Big Spender", metric: "totalBetPlaced", icon: "bi-cash-stack", tiers: [1_000_000, 100_000_000, 1_000_000_000, 10_000_000_000, 100_000_000_000], unit: "gesetzte Cookies" },
+  { category: "Casino", group: "payout", title: "Kassensturz", metric: "totalPayoutReceived", icon: "bi-wallet2", tiers: [1_000_000, 100_000_000, 1_000_000_000, 10_000_000_000, 100_000_000_000], unit: "ausgezahlte Cookies" },
+  { category: "Casino", group: "single-win", title: "Jackpot", metric: "biggestSingleWin", icon: "bi-stars", tiers: [10_000, 1_000_000, 100_000_000, 1_000_000_000, 10_000_000_000], unit: "groesster Einzelgewinn" },
+  { category: "Casino", group: "tower", title: "Tower Kletterer", metric: "towerGames", icon: "bi-building", tiers: [10, 50, 250, 1_000, 5_000], unit: "Tower-Runden" },
+  { category: "Casino", group: "blackjack", title: "Kartencount", metric: "blackjackGames", icon: "bi-suit-spade", tiers: [10, 50, 250, 1_000, 5_000], unit: "Blackjack-Runden" },
+  { category: "Casino", group: "slots", title: "Walzenfieber", metric: "slotsGames", icon: "bi-dice-6", tiers: [10, 50, 250, 1_000, 5_000], unit: "Slots-Runden" },
+  { category: "Casino", group: "roulette", title: "Roulette Runner", metric: "rouletteGames", icon: "bi-record-circle", tiers: [10, 50, 250, 1_000, 5_000], unit: "Roulette-Runden" },
+  { category: "Casino", group: "wheel", title: "Rad Rebelle", metric: "wheelGames", icon: "bi-disc", tiers: [10, 50, 250, 1_000, 5_000], unit: "Gluecksrad-Runden" },
+  { category: "Collection", group: "lootboxes", title: "Loot Jager", metric: "totalLootboxesOpened", icon: "bi-box-seam", tiers: [10, 50, 100, 500, 2_500, 10_000, 25_000], unit: "Lootboxes" },
+  { category: "Collection", group: "unlocks", title: "Arcade Betreiber", metric: "gamesUnlocked", icon: "bi-unlock", tiers: [1, 3, 6], unit: "freigeschaltete Spiele" },
+  { category: "Collection", group: "cosmetics", title: "Style Connoisseur", metric: "cosmeticsOwned", icon: "bi-palette", tiers: [1, 5, 10, 15, 20, 30], unit: "freigeschaltete Cosmetics" }
+];
+
+const achievementDefinitions = achievementGroups.flatMap((group) =>
+  group.tiers.map((target, index) => ({
+    key: `${group.group}-tier-${index + 1}`,
+    group: group.group,
+    tier: index + 1,
+    title: `${group.title} - Stufe ${index + 1}`,
+    desc: `Erreiche ${formatAchievementTarget(target)} ${group.unit}.`,
+    metric: group.metric,
+    target,
+    icon: group.icon
+  }))
+);
 
 let toastTimer = null;
 
@@ -423,6 +672,235 @@ function applyUpgradeCounts(counts) {
 
 function roundValue(value) {
   return Math.round(value * 100) / 100;
+}
+
+function formatAchievementNumber(value) {
+  return new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 }).format(Math.floor(Math.max(0, Number(value) || 0)));
+}
+
+function normalizeAchievementProgress(saved) {
+  const normalized = createAchievementProgress();
+  if (!saved || typeof saved !== "object") {
+    return normalized;
+  }
+
+  achievementMetricKeys.forEach((key) => {
+    normalized[key] = Math.max(0, Number(saved[key]) || 0);
+  });
+
+  const unlockedRaw = saved.unlocked;
+  if (unlockedRaw && typeof unlockedRaw === "object") {
+    Object.keys(unlockedRaw).forEach((key) => {
+      if (!achievementDefinitions.some((achievement) => achievement.key === key)) {
+        return;
+      }
+      const unlockedAt = unlockedRaw[key];
+      if (typeof unlockedAt === "string" && unlockedAt.trim()) {
+        normalized.unlocked[key] = unlockedAt;
+      } else if (unlockedAt === true) {
+        normalized.unlocked[key] = new Date().toISOString();
+      }
+    });
+  }
+
+  return normalized;
+}
+
+function resetAchievementProgress() {
+  const initial = createAchievementProgress();
+  achievementMetricKeys.forEach((key) => {
+    achievementProgress[key] = initial[key];
+  });
+  achievementProgress.unlocked = {};
+}
+
+function setAchievementMetric(metric, value) {
+  if (!achievementMetricKeys.includes(metric)) return;
+  achievementProgress[metric] = Math.max(0, Number(value) || 0);
+}
+
+function bumpAchievementMetric(metric, amount = 1) {
+  if (!achievementMetricKeys.includes(metric)) return;
+  achievementProgress[metric] = Math.max(0, Number(achievementProgress[metric]) || 0) + Math.max(0, Number(amount) || 0);
+}
+
+function raiseAchievementMetric(metric, value) {
+  if (!achievementMetricKeys.includes(metric)) return;
+  const current = Math.max(0, Number(achievementProgress[metric]) || 0);
+  const next = Math.max(0, Number(value) || 0);
+  achievementProgress[metric] = Math.max(current, next);
+}
+
+function getAchievementValue(definition) {
+  return Math.max(0, Number(achievementProgress[definition.metric]) || 0);
+}
+
+function isAchievementUnlocked(achievementKey) {
+  return Boolean(achievementKey && achievementProgress.unlocked[achievementKey]);
+}
+
+function findAchievementDefinition(achievementKey) {
+  return achievementDefinitions.find((achievement) => achievement.key === achievementKey) || null;
+}
+
+function isAchievementLockedCosmetic(cosmetic) {
+  return Boolean(cosmetic && cosmetic.unlockAchievement && !isAchievementUnlocked(cosmetic.unlockAchievement));
+}
+
+function unlockAchievementExclusiveCosmetics() {
+  const newlyOwned = [];
+  const collections = [
+    { entries: colorCosmetics, label: "Farbe" },
+    { entries: accessoryCosmetics, label: "Accessoire" },
+    { entries: skinCosmetics, label: "Skin" },
+    { entries: miscCosmetics, label: "Cosmetic" }
+  ];
+  collections.forEach(({ entries, label }) => {
+    entries.forEach((entry) => {
+      if (!entry || entry.owned || !entry.unlockAchievement) return;
+      if (!isAchievementUnlocked(entry.unlockAchievement)) return;
+      entry.owned = true;
+      newlyOwned.push({ name: entry.name, label });
+    });
+  });
+  return newlyOwned;
+}
+
+function countUnlockedGames() {
+  return Object.values(gameUnlocks).filter((entry) => entry.unlocked).length;
+}
+
+function countOwnedCosmetics() {
+  const colors = colorCosmetics.filter((entry) => entry.owned && entry.key !== "classic").length;
+  const accessories = accessoryCosmetics.filter((entry) => entry.owned && !entry.hidden && entry.key !== "none").length;
+  const skins = skinCosmetics.filter((entry) => entry.owned && entry.key !== "none").length;
+  const miscs = miscCosmetics.filter((entry) => entry.owned && entry.key !== "none").length;
+  return colors + accessories + skins + miscs;
+}
+
+function syncAchievementDerivedMetrics() {
+  const towerGames = gameStats.tower.wins + gameStats.tower.losses;
+  const blackjackGames = gameStats.blackjack.wins + gameStats.blackjack.losses;
+  const slotsGames = gameStats.slots.wins + gameStats.slots.losses;
+  const rouletteGames = gameStats.roulette.wins + gameStats.roulette.losses;
+  const wheelGames = gameStats.wheel.wins + gameStats.wheel.losses;
+
+  raiseAchievementMetric("highestLevel", state.level);
+  raiseAchievementMetric("highestCookies", state.cookies);
+  raiseAchievementMetric("highestPerClick", state.perClick);
+  raiseAchievementMetric("highestCps", state.cps);
+  raiseAchievementMetric("totalCookiesGenerated", state.total);
+  raiseAchievementMetric("manualClicks", state.clicks);
+  raiseAchievementMetric("totalLootboxesOpened", gameStats.lootbox.opens);
+  raiseAchievementMetric("towerGames", towerGames);
+  raiseAchievementMetric("blackjackGames", blackjackGames);
+  raiseAchievementMetric("slotsGames", slotsGames);
+  raiseAchievementMetric("rouletteGames", rouletteGames);
+  raiseAchievementMetric("wheelGames", wheelGames);
+  raiseAchievementMetric("gamesUnlocked", countUnlockedGames());
+  raiseAchievementMetric("cosmeticsOwned", countOwnedCosmetics());
+}
+
+function evaluateAchievements(silent = false) {
+  const newlyUnlocked = [];
+  achievementDefinitions.forEach((achievement) => {
+    if (achievementProgress.unlocked[achievement.key]) {
+      return;
+    }
+    const value = getAchievementValue(achievement);
+    if (value >= achievement.target) {
+      achievementProgress.unlocked[achievement.key] = new Date().toISOString();
+      newlyUnlocked.push(achievement);
+    }
+  });
+
+  const newlyUnlockedCosmetics = unlockAchievementExclusiveCosmetics();
+
+  if (!silent && newlyUnlocked.length > 0) {
+    const first = newlyUnlocked[0];
+    const suffix = newlyUnlocked.length > 1 ? ` (+${newlyUnlocked.length - 1})` : "";
+    showInfoToast(`Achievement freigeschaltet: ${first.title}${suffix}`);
+  }
+  if (!silent && newlyUnlockedCosmetics.length > 0) {
+    const first = newlyUnlockedCosmetics[0];
+    const suffix = newlyUnlockedCosmetics.length > 1 ? ` (+${newlyUnlockedCosmetics.length - 1})` : "";
+    showInfoToast(`${first.label} freigeschaltet: ${first.name}${suffix}`);
+  }
+}
+
+function renderAchievements() {
+  if (!achievementSummaryEl || !achievementListEl) return;
+
+  const unlockedCount = achievementDefinitions.filter((achievement) => achievementProgress.unlocked[achievement.key]).length;
+  achievementSummaryEl.textContent = `${unlockedCount} / ${achievementDefinitions.length}`;
+  achievementListEl.innerHTML = "";
+  achievementGroups.forEach((group) => {
+    const defs = achievementDefinitions
+      .filter((achievement) => achievement.group === group.group)
+      .sort((a, b) => a.tier - b.tier);
+    const unlockedTiers = defs.filter((achievement) => achievementProgress.unlocked[achievement.key]).length;
+    const isGroupCollapsed = hasSavedAchievementGroupCollapseState
+      ? collapsedAchievementGroups.has(group.group)
+      : true;
+
+    const groupBlock = document.createElement("div");
+    groupBlock.className = `achievement-group${isGroupCollapsed ? " collapsed" : ""}`;
+    groupBlock.innerHTML = `
+      <button type="button" class="achievement-group-head" aria-expanded="${String(!isGroupCollapsed)}">
+        <span class="achievement-icon" aria-hidden="true"><i class="bi ${group.icon || "bi-award"}"></i></span>
+        <div class="achievement-group-meta">
+          <strong>${group.title}</strong>
+          <span>${unlockedTiers} / ${defs.length} Stufen</span>
+        </div>
+        <i class="bi bi-chevron-down achievement-group-chevron" aria-hidden="true"></i>
+      </button>
+      <div class="achievement-group-content"></div>
+    `;
+    const groupContent = groupBlock.querySelector(".achievement-group-content");
+    const groupToggle = groupBlock.querySelector(".achievement-group-head");
+    if (groupToggle) {
+      groupToggle.addEventListener("click", () => {
+        const nextCollapsed = !groupBlock.classList.contains("collapsed");
+        groupBlock.classList.toggle("collapsed", nextCollapsed);
+        groupToggle.setAttribute("aria-expanded", String(!nextCollapsed));
+        if (nextCollapsed) {
+          collapsedAchievementGroups.add(group.group);
+        } else {
+          collapsedAchievementGroups.delete(group.group);
+        }
+        persistCollapsedAchievementGroups();
+      });
+    }
+
+    defs.forEach((achievement) => {
+      const unlocked = Boolean(achievementProgress.unlocked[achievement.key]);
+      const current = getAchievementValue(achievement);
+      const ratio = Math.max(0, Math.min(1, achievement.target > 0 ? current / achievement.target : 0));
+      const item = document.createElement("div");
+      item.className = `achievement-item${unlocked ? " unlocked" : ""}`;
+      const doneLabel = unlocked
+        ? `<span class="achievement-state-check" aria-hidden="true"><i class="bi bi-check2-circle"></i></span> Erledigt`
+        : "In Arbeit";
+      item.innerHTML = `
+        <div class="achievement-row">
+          <div class="achievement-copy">
+            <p class="achievement-title">${achievement.title}</p>
+            <p class="achievement-desc">${achievement.desc}</p>
+            <div class="achievement-progress-row">
+              <span class="achievement-progress">${formatAchievementNumber(Math.min(current, achievement.target))} / ${formatAchievementNumber(achievement.target)}</span>
+              <span class="achievement-state${unlocked ? " unlocked" : ""}">${doneLabel}</span>
+            </div>
+            <div class="achievement-progress-track" aria-hidden="true">
+              <span class="achievement-progress-fill${unlocked ? " unlocked" : ""}" style="width:${Math.round(ratio * 100)}%"></span>
+            </div>
+          </div>
+        </div>
+      `;
+      groupContent?.appendChild(item);
+    });
+
+    achievementListEl.appendChild(groupBlock);
+  });
 }
 
 function levelGainMultiplier() {
@@ -585,6 +1063,7 @@ function activateBoost(rarityKey) {
     multiplier: rarity.multiplier,
     expiresAt: Date.now() + rarity.durationMs
   });
+  bumpAchievementMetric("boostsActivated", 1);
   recalculateProduction();
   showInfoToast(`${rarity.label}-Boost aktiviert: +${formatMultiplier(rarity.multiplier - 1)}x fuer ${rarity.durationLabel}`);
   updateStats();
@@ -596,10 +1075,10 @@ function randomFrom(list) {
 
 function availableLootboxCosmetics() {
   return [
-    ...colorCosmetics.filter((entry) => !entry.owned).map((entry) => ({ type: "color", entry })),
-    ...accessoryCosmetics.filter((entry) => !entry.owned && !entry.hidden).map((entry) => ({ type: "accessory", entry })),
-    ...skinCosmetics.filter((entry) => !entry.owned).map((entry) => ({ type: "skin", entry })),
-    ...miscCosmetics.filter((entry) => !entry.owned).map((entry) => ({ type: "misc", entry }))
+    ...colorCosmetics.filter((entry) => !entry.owned && !entry.unlockAchievement).map((entry) => ({ type: "color", entry })),
+    ...accessoryCosmetics.filter((entry) => !entry.owned && !entry.hidden && !entry.unlockAchievement).map((entry) => ({ type: "accessory", entry })),
+    ...skinCosmetics.filter((entry) => !entry.owned && !entry.unlockAchievement).map((entry) => ({ type: "skin", entry })),
+    ...miscCosmetics.filter((entry) => !entry.owned && !entry.unlockAchievement).map((entry) => ({ type: "misc", entry }))
   ];
 }
 
@@ -735,6 +1214,17 @@ function rollLootboxReward() {
 function recordLootboxResult(reward) {
   gameStats.lootbox.opens += 1;
   gameStats.lootbox.net += (Number(reward.cookiePayout) || 0) - LOOTBOX_COST;
+  bumpAchievementMetric("gamesStarted", 1);
+  bumpAchievementMetric("totalLootboxesOpened", 1);
+  bumpAchievementMetric("totalBetPlaced", LOOTBOX_COST);
+  bumpAchievementMetric("totalPayoutReceived", Number(reward.cookiePayout) || 0);
+  const net = (Number(reward.cookiePayout) || 0) - LOOTBOX_COST;
+  if (net > 0) {
+    bumpAchievementMetric("gameWins", 1);
+    raiseAchievementMetric("biggestSingleWin", net);
+  } else if (net < 0) {
+    bumpAchievementMetric("gameLosses", 1);
+  }
 }
 
 function resetLootboxVisual() {
@@ -944,25 +1434,26 @@ function upgradeLevelCostMultiplier() {
 }
 
 function calculateBaseProduction() {
-  let perClick = 1;
-  let cps = 0;
+  const basePerClick = 1;
+  let upgradePerClick = 0;
+  let upgradeCps = 0;
   upgrades.forEach((upgrade) => {
     if (upgrade.type === "click") {
-      perClick += upgrade.power * upgrade.count;
+      upgradePerClick += upgrade.power * upgrade.count;
     } else {
-      cps += upgrade.power * upgrade.count;
+      upgradeCps += upgrade.power * upgrade.count;
     }
   });
-  return { perClick, cps };
+  return { basePerClick, upgradePerClick, upgradeCps };
 }
 
 function recalculateProduction() {
   const baseProduction = calculateBaseProduction();
   const multiplier = totalGainMultiplier();
-  state.basePerClick = baseProduction.perClick;
-  state.baseCps = baseProduction.cps;
-  state.perClick = roundValue(baseProduction.perClick * multiplier);
-  state.cps = roundValue(baseProduction.cps * multiplier);
+  state.basePerClick = roundValue(baseProduction.basePerClick + baseProduction.upgradePerClick);
+  state.baseCps = roundValue(baseProduction.upgradeCps);
+  state.perClick = roundValue((baseProduction.basePerClick * multiplier) + baseProduction.upgradePerClick);
+  state.cps = roundValue(baseProduction.upgradeCps);
 }
 
 function scaleGain(amount) {
@@ -1128,6 +1619,7 @@ function resetProgressState() {
   });
   gameStats.lootbox.opens = 0;
   gameStats.lootbox.net = 0;
+  resetAchievementProgress();
   Object.keys(gameUnlocks).forEach((key) => {
     gameUnlocks[key].unlocked = false;
   });
@@ -1153,6 +1645,7 @@ function resetProgressState() {
   wheelRotation = 0;
   rouletteBetChoice = "red";
   rouletteBetNumber = 7;
+  statsSyncCursor = null;
   recalculateProduction();
   applyCosmeticTheme();
 }
@@ -1169,6 +1662,7 @@ function loadState(forceDevMode = null) {
   try {
     const raw = localStorage.getItem(currentSaveKey());
     if (!raw) {
+      statsSyncCursor = initialStatsCursor();
       applyCosmeticTheme();
       return;
     }
@@ -1206,6 +1700,28 @@ function loadState(forceDevMode = null) {
       const lootboxEntry = saved.stats.lootbox || {};
       gameStats.lootbox.opens = Number(lootboxEntry.opens) || 0;
       gameStats.lootbox.net = Number(lootboxEntry.net) || 0;
+    }
+    const loadedAchievementProgress = normalizeAchievementProgress(saved.achievements);
+    achievementMetricKeys.forEach((metric) => {
+      setAchievementMetric(metric, loadedAchievementProgress[metric]);
+    });
+    achievementProgress.unlocked = { ...loadedAchievementProgress.unlocked };
+    if (saved.statsSyncCursor && typeof saved.statsSyncCursor === "object") {
+      const cursor = saved.statsSyncCursor;
+      statsSyncCursor = {
+        clicks: Math.max(0, Math.floor(Number(cursor.clicks) || 0)),
+        gamesPlayed: Math.max(0, Math.floor(Number(cursor.gamesPlayed) || 0)),
+        lootboxesOpened: Math.max(0, Math.floor(Number(cursor.lootboxesOpened) || 0)),
+        cookiesGenerated: Math.max(0, Math.floor(Number(cursor.cookiesGenerated) || 0)),
+        gamesByMode: {
+          tower: Math.max(0, Math.floor(Number(cursor.gamesByMode?.tower) || 0)),
+          blackjack: Math.max(0, Math.floor(Number(cursor.gamesByMode?.blackjack) || 0)),
+          slots: Math.max(0, Math.floor(Number(cursor.gamesByMode?.slots) || 0)),
+          roulette: Math.max(0, Math.floor(Number(cursor.gamesByMode?.roulette) || 0)),
+          wheel: Math.max(0, Math.floor(Number(cursor.gamesByMode?.wheel) || 0)),
+          lootbox: Math.max(0, Math.floor(Number(cursor.gamesByMode?.lootbox) || 0))
+        }
+      };
     }
     if (saved.unlocks) {
       Object.keys(gameUnlocks).forEach((key) => {
@@ -1265,6 +1781,11 @@ function loadState(forceDevMode = null) {
   } catch (error) {
     resetProgressState();
   }
+  if (!statsSyncCursor) {
+    statsSyncCursor = initialStatsCursor();
+  }
+  syncAchievementDerivedMetrics();
+  evaluateAchievements(true);
   applyCosmeticTheme();
 }
 
@@ -1297,6 +1818,11 @@ function saveState() {
       }
     },
     stats: gameStats,
+    statsSyncCursor: statsSyncCursor || initialStatsCursor(),
+    achievements: {
+      ...Object.fromEntries(achievementMetricKeys.map((metric) => [metric, achievementProgress[metric]])),
+      unlocked: { ...achievementProgress.unlocked }
+    },
     unlocks: Object.fromEntries(
       Object.entries(gameUnlocks).map(([key, entry]) => [key, entry.unlocked])
     )
@@ -1307,6 +1833,1254 @@ function saveState() {
   } catch (error) {
     // Ignore storage failures (private mode, quota).
   }
+}
+
+function totalGamesPlayed() {
+  return (
+    gameStats.tower.wins + gameStats.tower.losses +
+    gameStats.blackjack.wins + gameStats.blackjack.losses +
+    gameStats.slots.wins + gameStats.slots.losses +
+    gameStats.roulette.wins + gameStats.roulette.losses +
+    gameStats.wheel.wins + gameStats.wheel.losses +
+    gameStats.lootbox.opens
+  );
+}
+
+function gamesByModeSnapshot() {
+  return {
+    tower: gameStats.tower.wins + gameStats.tower.losses,
+    blackjack: gameStats.blackjack.wins + gameStats.blackjack.losses,
+    slots: gameStats.slots.wins + gameStats.slots.losses,
+    roulette: gameStats.roulette.wins + gameStats.roulette.losses,
+    wheel: gameStats.wheel.wins + gameStats.wheel.losses,
+    lootbox: gameStats.lootbox.opens
+  };
+}
+
+function currentStatsSnapshot() {
+  return {
+    clicks: Math.max(0, Math.floor(Number(state.clicks) || 0)),
+    gamesPlayed: Math.max(0, Math.floor(totalGamesPlayed())),
+    lootboxesOpened: Math.max(0, Math.floor(gameStats.lootbox.opens || 0)),
+    cookiesGenerated: Math.max(0, Math.floor(Number(state.total) || 0)),
+    gamesByMode: gamesByModeSnapshot()
+  };
+}
+
+function initialStatsCursor() {
+  // Keep existing click/game totals as baseline to avoid duplicate historic sync.
+  // Lootboxes/cookies start at zero so previously missing values can backfill once.
+  const byMode = gamesByModeSnapshot();
+  return {
+    clicks: Math.max(0, Math.floor(Number(state.clicks) || 0)),
+    gamesPlayed: Math.max(0, Math.floor(totalGamesPlayed())),
+    lootboxesOpened: 0,
+    cookiesGenerated: 0,
+    gamesByMode: {
+      tower: byMode.tower,
+      blackjack: byMode.blackjack,
+      slots: byMode.slots,
+      roulette: byMode.roulette,
+      wheel: byMode.wheel,
+      lootbox: byMode.lootbox
+    }
+  };
+}
+
+function computeStatsDelta(current, baseline) {
+  const base = baseline || initialStatsCursor();
+  const modeDelta = {};
+  Object.keys(current.gamesByMode).forEach((mode) => {
+    const now = Math.max(0, Math.floor(Number(current.gamesByMode[mode]) || 0));
+    const before = Math.max(0, Math.floor(Number(base.gamesByMode?.[mode]) || 0));
+    modeDelta[mode] = Math.max(0, now - before);
+  });
+
+  return {
+    clicks: Math.max(0, current.clicks - Math.max(0, Math.floor(Number(base.clicks) || 0))),
+    gamesPlayed: Math.max(0, current.gamesPlayed - Math.max(0, Math.floor(Number(base.gamesPlayed) || 0))),
+    lootboxesOpened: Math.max(0, current.lootboxesOpened - Math.max(0, Math.floor(Number(base.lootboxesOpened) || 0))),
+    cookiesGenerated: Math.max(0, current.cookiesGenerated - Math.max(0, Math.floor(Number(base.cookiesGenerated) || 0))),
+    gamesByMode: modeDelta
+  };
+}
+
+async function requestJson(path, options = {}) {
+  const authTokenValue = typeof options.authToken === "string" ? options.authToken : "";
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {})
+  };
+  if (authTokenValue) {
+    headers.Authorization = `Bearer ${authTokenValue}`;
+  }
+  const requestOptions = {
+    ...options,
+    headers
+  };
+  delete requestOptions.authToken;
+  try {
+    const response = await fetch(path, {
+      ...requestOptions
+    });
+    const data = await response.json().catch(() => ({}));
+    return {
+      ok: response.ok,
+      status: response.status,
+      ...data
+    };
+  } catch (error) {
+    return { ok: false, status: 0 };
+  }
+}
+
+async function registerPlayer(name) {
+  const normalized = String(name || "").trim().slice(0, 24);
+  if (!normalized) {
+    return { ok: false };
+  }
+  const response = await requestJson("/game/api/player/register", {
+    method: "POST",
+    body: JSON.stringify({ playerName: normalized })
+  });
+  if (!response.ok) {
+    return { ok: false };
+  }
+  playerName = normalized;
+  try {
+    localStorage.setItem(PLAYER_NAME_KEY, playerName);
+  } catch (error) {
+    // Ignore storage failures.
+  }
+  return { ok: true };
+}
+
+async function syncPlayerStats() {
+  if (!playerName || isGuestMode) {
+    return { ok: false };
+  }
+  const unlockedAchievements = Object.keys(achievementProgress.unlocked || {}).length;
+  const profileSnapshot = {
+    stats: {
+      level: Math.max(1, Math.floor(Number(state.level) || 1)),
+      clicks: Math.floor(Number(state.clicks) || 0),
+      cookies: Math.floor(Number(state.cookies) || 0),
+      totalCookiesGenerated: Math.floor(Number(state.total) || 0),
+      gamesPlayed: Math.floor(totalGamesPlayed()),
+      gamesByMode: {
+        tower: Number(gameStats.tower.wins || 0) + Number(gameStats.tower.losses || 0),
+        blackjack: Number(gameStats.blackjack.wins || 0) + Number(gameStats.blackjack.losses || 0),
+        slots: Number(gameStats.slots.wins || 0) + Number(gameStats.slots.losses || 0),
+        roulette: Number(gameStats.roulette.wins || 0) + Number(gameStats.roulette.losses || 0),
+        wheel: Number(gameStats.wheel.wins || 0) + Number(gameStats.wheel.losses || 0),
+        lootbox: Number(gameStats.lootbox.opens || 0)
+      }
+    },
+    achievements: {
+      unlocked: unlockedAchievements,
+      total: achievementDefinitions.length
+    },
+    look: {
+      colorName: activeColorCosmetic().name || "Classic Bake",
+      skinName: activeSkinCosmetic().name || "Ohne Skin",
+      miscName: activeMiscCosmetic().name || "Ohne",
+      accessoryName: activeAccessoryCosmetic().name || "Ohne",
+      skinKey: activeSkinCosmetic().key || "none",
+      accessoryKey: activeAccessoryCosmetic().key || "none",
+      colorTheme: { ...(activeColorCosmetic().theme || {}) }
+    }
+  };
+  return requestJson("/game/api/leaderboard", {
+    method: "POST",
+    body: JSON.stringify({
+      playerName,
+      level: Math.max(1, Math.floor(Number(state.level) || 1)),
+      score: Math.floor(state.total),
+      totalClicks: Math.floor(state.clicks),
+      currentCookies: Math.floor(state.cookies),
+      profileSnapshot,
+      totalGames: Math.floor(totalGamesPlayed())
+    })
+  });
+}
+
+async function syncGlobalStats() {
+  if (!playerName || isGuestMode) {
+    return { ok: false };
+  }
+  const snapshot = currentStatsSnapshot();
+  const delta = computeStatsDelta(snapshot, statsSyncCursor);
+
+  const hasChanges =
+    delta.clicks > 0 ||
+    delta.gamesPlayed > 0 ||
+    delta.lootboxesOpened > 0 ||
+    delta.cookiesGenerated > 0 ||
+    Object.values(delta.gamesByMode).some((value) => Number(value) > 0);
+
+  if (!hasChanges) {
+    return { ok: true };
+  }
+
+  const response = await requestJson("/game/api/stats/event", {
+    method: "POST",
+    body: JSON.stringify({
+      playerName,
+      delta
+    })
+  });
+
+  if (response.ok) {
+    statsSyncCursor = snapshot;
+    saveState();
+  }
+  return response;
+}
+
+async function loadLeaderboardSnapshot() {
+  if (!playerName || isGuestMode) {
+    return;
+  }
+  const response = await requestJson("/game/api/leaderboard", { method: "GET" });
+  if (!response.ok || !Array.isArray(response.leaderboard)) {
+    return;
+  }
+  leaderboardSnapshot = response.leaderboard;
+}
+
+function formatCountdown(seconds) {
+  const safe = Math.max(0, Math.floor(seconds));
+  const minutes = Math.floor(safe / 60);
+  const rest = safe % 60;
+  return `${minutes}:${String(rest).padStart(2, "0")}`;
+}
+
+function renderSyncStatusBar() {
+  if (syncStatusCountdownEl) {
+    return;
+  }
+  const footerEl = document.querySelector(".footer");
+  if (!footerEl) {
+    return;
+  }
+  const line = document.createElement("p");
+  line.className = "sync-status-subtle";
+  line.innerHTML = `Auto-Sync in <strong id="syncStatusCountdown">-</strong>`;
+  footerEl.appendChild(line);
+  syncStatusCountdownEl = line.querySelector("#syncStatusCountdown");
+
+  const rankLine = document.createElement("p");
+  rankLine.className = "sync-status-subtle";
+  rankLine.innerHTML = `<span id="syncStatusRank">Platz wird berechnet...</span>`;
+  footerEl.appendChild(rankLine);
+  syncStatusRankEl = rankLine.querySelector("#syncStatusRank");
+}
+
+function renderChaseBanner() {
+  if (chaseBannerEl) {
+    return;
+  }
+  const scene = document.querySelector(".scene");
+  if (!scene) {
+    return;
+  }
+  const banner = document.createElement("div");
+  banner.className = "chase-banner hidden";
+  banner.innerHTML = `Naechster Spieler in <strong id="chaseBannerDelta">-</strong>`;
+  const hero = scene.querySelector(".hero");
+  if (hero && hero.parentNode) {
+    hero.parentNode.insertBefore(banner, hero.nextSibling);
+  } else {
+    scene.prepend(banner);
+  }
+  chaseBannerEl = banner;
+}
+
+function updateSyncStatusBar() {
+  if (!syncStatusCountdownEl) {
+    return;
+  }
+  const remainingSeconds = nextServerSyncAt
+    ? Math.max(0, Math.ceil((nextServerSyncAt - Date.now()) / 1000))
+    : 0;
+  syncStatusCountdownEl.textContent = formatCountdown(remainingSeconds);
+
+  if (syncStatusRankEl) {
+    const myLevel = Math.max(1, Math.floor(Number(state.level) || 1));
+    const myClicks = Math.floor(Number(state.clicks) || 0);
+    const myCookies = Math.floor(Number(state.cookies) || 0);
+    const others = leaderboardSnapshot
+      .filter((entry) => entry && entry.playerName !== playerName)
+      .map((entry) => ({
+        playerName: entry.playerName,
+        level: Math.max(1, Math.floor(Number(entry.bestLevel) || 1)),
+        clicks: Math.floor(Number(entry.totalClicks) || 0),
+        cookies: Math.floor(Number(entry.currentCookies) || 0)
+      }));
+    const isBetterThanMine = (entry) =>
+      entry.level > myLevel ||
+      (entry.level === myLevel && entry.clicks > myClicks) ||
+      (entry.level === myLevel && entry.clicks === myClicks && entry.cookies > myCookies);
+    const rank = 1 + others.filter(isBetterThanMine).length;
+    const nextHigher = others
+      .filter(isBetterThanMine)
+      .sort((a, b) => (a.level - b.level) || (a.clicks - b.clicks) || (a.cookies - b.cookies))[0] || null;
+    if (!others.length) {
+      syncStatusRankEl.textContent = "Platz 1 - noch keine weiteren Spieler";
+    } else if (nextHigher === null) {
+      syncStatusRankEl.textContent = `Platz ${rank} - du bist aktuell vorne`;
+    } else if (nextHigher.level > myLevel) {
+      const deltaLevel = nextHigher.level - myLevel;
+      syncStatusRankEl.textContent = `Platz ${rank} - noch ${deltaLevel} Level bis Platz ${rank - 1}`;
+    } else if (nextHigher.clicks > myClicks) {
+      const deltaClicks = Math.max(0, nextHigher.clicks - myClicks);
+      syncStatusRankEl.textContent = `Platz ${rank} - noch ${format(deltaClicks)} Klicks bis Platz ${rank - 1}`;
+    } else {
+      const deltaCookies = Math.max(0, nextHigher.cookies - myCookies);
+      syncStatusRankEl.textContent = `Platz ${rank} - noch ${format(deltaCookies)} Cookies bis Platz ${rank - 1}`;
+    }
+  }
+
+  const myLevel = Math.max(1, Math.floor(Number(state.level) || 1));
+  const myClicks = Math.floor(Number(state.clicks) || 0);
+  const myCookies = Math.floor(Number(state.cookies) || 0);
+  const nextEntry = leaderboardSnapshot
+    .filter((entry) => {
+      if (!entry || entry.playerName === playerName) return false;
+      const entryLevel = Math.max(1, Math.floor(Number(entry.bestLevel) || 1));
+      const entryClicks = Math.floor(Number(entry.totalClicks) || 0);
+      const entryCookies = Math.floor(Number(entry.currentCookies) || 0);
+      return entryLevel > myLevel ||
+        (entryLevel === myLevel && entryClicks > myClicks) ||
+        (entryLevel === myLevel && entryClicks === myClicks && entryCookies > myCookies);
+    })
+    .sort((a, b) => {
+      const levelDiff = (Math.max(1, Math.floor(Number(a.bestLevel) || 1)) - Math.max(1, Math.floor(Number(b.bestLevel) || 1)));
+      if (levelDiff !== 0) return levelDiff;
+      const clickDiff = Math.floor(Number(a.totalClicks) || 0) - Math.floor(Number(b.totalClicks) || 0);
+      if (clickDiff !== 0) return clickDiff;
+      return Math.floor(Number(a.currentCookies) || 0) - Math.floor(Number(b.currentCookies) || 0);
+    })[0];
+  if (!chaseBannerEl) {
+    return;
+  }
+  if (!nextEntry) {
+    chaseBannerEl.classList.add("hidden");
+    return;
+  }
+
+  const nextLevel = Math.max(1, Math.floor(Number(nextEntry.bestLevel) || 1));
+  const nextClicks = Math.floor(Number(nextEntry.totalClicks) || 0);
+  const nextCookies = Math.floor(Number(nextEntry.currentCookies) || 0);
+  const target = chaseBannerEl.querySelector("#chaseBannerDelta");
+  if (target) {
+    if (nextLevel > myLevel) {
+      target.textContent = `${nextLevel - myLevel} Level (${nextEntry.playerName})`;
+    } else if (nextClicks > myClicks) {
+      target.textContent = `${format(nextClicks - myClicks)} Klicks (${nextEntry.playerName})`;
+    } else {
+      target.textContent = `${format(Math.max(0, nextCookies - myCookies))} Cookies (${nextEntry.playerName})`;
+    }
+  }
+  chaseBannerEl.classList.remove("hidden");
+}
+function startSyncStatusCountdown() {
+  if (syncCountdownTimer) {
+    clearInterval(syncCountdownTimer);
+  }
+  syncCountdownTimer = setInterval(updateSyncStatusBar, 1000);
+}
+
+async function runServerSyncCycle() {
+  nextServerSyncAt = Date.now() + SERVER_SYNC_INTERVAL_MS;
+  updateSyncStatusBar();
+  await syncGlobalStats();
+  await syncPlayerStats();
+  await syncAccountSave();
+  await loadLeaderboardSnapshot();
+  updateSyncStatusBar();
+}
+
+function startServerSync() {
+  if (!playerName || isGuestMode) {
+    return;
+  }
+  if (serverSyncTimer) {
+    clearInterval(serverSyncTimer);
+  }
+  renderSyncStatusBar();
+  renderChaseBanner();
+  startSyncStatusCountdown();
+  void runServerSyncCycle();
+  serverSyncTimer = setInterval(() => {
+    void runServerSyncCycle();
+  }, SERVER_SYNC_INTERVAL_MS);
+}
+
+function getCurrentLocalSaveObject() {
+  try {
+    const raw = localStorage.getItem(currentSaveKey());
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (error) {
+    return null;
+  }
+}
+
+function extractSavePower(save) {
+  const level = Math.max(1, Number(save?.level) || 1);
+  const total = Math.max(0, Number(save?.total) || 0);
+  return { level, total };
+}
+
+function toNonNegativeNumber(value) {
+  return Math.max(0, Number(value) || 0);
+}
+
+function toNonNegativeInt(value) {
+  return Math.max(0, Math.floor(Number(value) || 0));
+}
+
+function mergeNumberByMax(a, b, integer = false) {
+  const left = integer ? toNonNegativeInt(a) : toNonNegativeNumber(a);
+  const right = integer ? toNonNegativeInt(b) : toNonNegativeNumber(b);
+  return Math.max(left, right);
+}
+
+function mergeUpgradeCounts(localUpgrades, cloudUpgrades) {
+  const local = Array.isArray(localUpgrades) ? localUpgrades : [];
+  const cloud = Array.isArray(cloudUpgrades) ? cloudUpgrades : [];
+  const size = Math.max(local.length, cloud.length, upgrades.length);
+  const merged = [];
+  for (let i = 0; i < size; i += 1) {
+    merged.push(mergeNumberByMax(local[i], cloud[i], true));
+  }
+  return merged;
+}
+
+function mergeBoostInventory(localInventory, cloudInventory) {
+  const merged = {};
+  boostRarities.forEach((rarity) => {
+    merged[rarity.key] = mergeNumberByMax(localInventory?.[rarity.key], cloudInventory?.[rarity.key], true);
+  });
+  return merged;
+}
+
+function normalizeBoost(boost) {
+  if (!boost || typeof boost !== "object") return null;
+  const expiresAt = Number(boost.expiresAt) || 0;
+  if (expiresAt <= Date.now()) return null;
+  const id = typeof boost.id === "string" && boost.id ? boost.id : `${expiresAt}-${Math.random().toString(36).slice(2, 8)}`;
+  return {
+    id,
+    rarity: typeof boost.rarity === "string" ? boost.rarity : "common",
+    label: typeof boost.label === "string" ? boost.label : "Gewoehnlich",
+    multiplier: Number(boost.multiplier) || 1,
+    expiresAt
+  };
+}
+
+function mergeActiveBoosts(localBoosts, cloudBoosts) {
+  const mergedMap = new Map();
+  const ingest = (list) => {
+    (Array.isArray(list) ? list : []).forEach((entry) => {
+      const boost = normalizeBoost(entry);
+      if (!boost) return;
+      const existing = mergedMap.get(boost.id);
+      if (!existing || boost.expiresAt > existing.expiresAt) {
+        mergedMap.set(boost.id, boost);
+      }
+    });
+  };
+  ingest(localBoosts);
+  ingest(cloudBoosts);
+  return Array.from(mergedMap.values());
+}
+
+function mergeOwnedKeys(localOwned, cloudOwned, allowedKeys) {
+  const allowed = new Set(allowedKeys);
+  const merged = new Set();
+  (Array.isArray(localOwned) ? localOwned : []).forEach((key) => {
+    if (typeof key === "string" && allowed.has(key)) merged.add(key);
+  });
+  (Array.isArray(cloudOwned) ? cloudOwned : []).forEach((key) => {
+    if (typeof key === "string" && allowed.has(key)) merged.add(key);
+  });
+  return Array.from(merged);
+}
+
+function pickActiveOwnedKey(localActive, cloudActive, ownedSet, fallbackKey) {
+  if (typeof localActive === "string" && ownedSet.has(localActive)) return localActive;
+  if (typeof cloudActive === "string" && ownedSet.has(cloudActive)) return cloudActive;
+  return fallbackKey;
+}
+
+function mergeCosmetics(localCosmetics, cloudCosmetics) {
+  const local = localCosmetics && typeof localCosmetics === "object" ? localCosmetics : {};
+  const cloud = cloudCosmetics && typeof cloudCosmetics === "object" ? cloudCosmetics : {};
+
+  const colorOwned = mergeOwnedKeys(local.colors?.owned, cloud.colors?.owned, colorCosmetics.map((entry) => entry.key));
+  const accessoryOwned = mergeOwnedKeys(local.accessories?.owned, cloud.accessories?.owned, accessoryCosmetics.filter((entry) => !entry.hidden).map((entry) => entry.key));
+  const skinOwned = mergeOwnedKeys(local.skins?.owned, cloud.skins?.owned, skinCosmetics.map((entry) => entry.key));
+  const miscOwned = mergeOwnedKeys(local.miscs?.owned, cloud.miscs?.owned, miscCosmetics.map((entry) => entry.key));
+
+  const colorOwnedSet = new Set(colorOwned);
+  const accessoryOwnedSet = new Set(accessoryOwned);
+  const skinOwnedSet = new Set(skinOwned);
+  const miscOwnedSet = new Set(miscOwned);
+
+  return {
+    colors: {
+      active: pickActiveOwnedKey(local.colors?.active, cloud.colors?.active, colorOwnedSet, "classic"),
+      owned: colorOwned
+    },
+    accessories: {
+      active: pickActiveOwnedKey(local.accessories?.active, cloud.accessories?.active, accessoryOwnedSet, "none"),
+      owned: accessoryOwned
+    },
+    skins: {
+      active: pickActiveOwnedKey(local.skins?.active, cloud.skins?.active, skinOwnedSet, "none"),
+      owned: skinOwned
+    },
+    miscs: {
+      active: pickActiveOwnedKey(local.miscs?.active, cloud.miscs?.active, miscOwnedSet, "none"),
+      owned: miscOwned
+    }
+  };
+}
+
+function mergeModeStats(localStats, cloudStats, mode) {
+  return {
+    wins: mergeNumberByMax(localStats?.[mode]?.wins, cloudStats?.[mode]?.wins, true),
+    losses: mergeNumberByMax(localStats?.[mode]?.losses, cloudStats?.[mode]?.losses, true),
+    net: mergeNumberByMax(localStats?.[mode]?.net, cloudStats?.[mode]?.net)
+  };
+}
+
+function mergeStats(localStats, cloudStats) {
+  return {
+    tower: mergeModeStats(localStats, cloudStats, "tower"),
+    blackjack: mergeModeStats(localStats, cloudStats, "blackjack"),
+    slots: mergeModeStats(localStats, cloudStats, "slots"),
+    roulette: mergeModeStats(localStats, cloudStats, "roulette"),
+    wheel: mergeModeStats(localStats, cloudStats, "wheel"),
+    lootbox: {
+      opens: mergeNumberByMax(localStats?.lootbox?.opens, cloudStats?.lootbox?.opens, true),
+      net: mergeNumberByMax(localStats?.lootbox?.net, cloudStats?.lootbox?.net)
+    }
+  };
+}
+
+function mergeGamesByMode(localModes, cloudModes) {
+  return {
+    tower: mergeNumberByMax(localModes?.tower, cloudModes?.tower, true),
+    blackjack: mergeNumberByMax(localModes?.blackjack, cloudModes?.blackjack, true),
+    slots: mergeNumberByMax(localModes?.slots, cloudModes?.slots, true),
+    roulette: mergeNumberByMax(localModes?.roulette, cloudModes?.roulette, true),
+    wheel: mergeNumberByMax(localModes?.wheel, cloudModes?.wheel, true),
+    lootbox: mergeNumberByMax(localModes?.lootbox, cloudModes?.lootbox, true)
+  };
+}
+
+function mergeStatsCursor(localCursor, cloudCursor) {
+  return {
+    clicks: mergeNumberByMax(localCursor?.clicks, cloudCursor?.clicks, true),
+    gamesPlayed: mergeNumberByMax(localCursor?.gamesPlayed, cloudCursor?.gamesPlayed, true),
+    lootboxesOpened: mergeNumberByMax(localCursor?.lootboxesOpened, cloudCursor?.lootboxesOpened, true),
+    cookiesGenerated: mergeNumberByMax(localCursor?.cookiesGenerated, cloudCursor?.cookiesGenerated, true),
+    gamesByMode: mergeGamesByMode(localCursor?.gamesByMode, cloudCursor?.gamesByMode)
+  };
+}
+
+function mergeUnlocks(localUnlocks, cloudUnlocks) {
+  const merged = {};
+  Object.keys(gameUnlocks).forEach((key) => {
+    merged[key] = Boolean(localUnlocks?.[key]) || Boolean(cloudUnlocks?.[key]);
+  });
+  return merged;
+}
+
+function mergeAchievementProgress(localAchievements, cloudAchievements) {
+  const local = normalizeAchievementProgress(localAchievements);
+  const cloud = normalizeAchievementProgress(cloudAchievements);
+  const merged = createAchievementProgress();
+
+  achievementMetricKeys.forEach((metric) => {
+    merged[metric] = mergeNumberByMax(local[metric], cloud[metric]);
+  });
+
+  const unlocked = {};
+  achievementDefinitions.forEach((achievement) => {
+    const localAt = local.unlocked?.[achievement.key];
+    const cloudAt = cloud.unlocked?.[achievement.key];
+    if (localAt || cloudAt) {
+      unlocked[achievement.key] = localAt || cloudAt || new Date().toISOString();
+    }
+  });
+  merged.unlocked = unlocked;
+
+  return merged;
+}
+
+function isObject(value) {
+  return Boolean(value) && typeof value === "object";
+}
+
+function mergeAccountSaves(localSave, cloudSave) {
+  const local = isObject(localSave) ? localSave : null;
+  const cloud = isObject(cloudSave) ? cloudSave : null;
+  if (!local && !cloud) return null;
+  if (!local) return cloud;
+  if (!cloud) return local;
+
+  return {
+    cookies: mergeNumberByMax(local.cookies, cloud.cookies),
+    total: mergeNumberByMax(local.total, cloud.total),
+    clicks: mergeNumberByMax(local.clicks, cloud.clicks, true),
+    level: Math.max(1, mergeNumberByMax(local.level, cloud.level, true)),
+    boostInventory: mergeBoostInventory(local.boostInventory, cloud.boostInventory),
+    boosts: mergeActiveBoosts(local.boosts, cloud.boosts),
+    lastBonusAt: mergeNumberByMax(local.lastBonusAt, cloud.lastBonusAt, true),
+    upgrades: mergeUpgradeCounts(local.upgrades, cloud.upgrades),
+    cosmetics: mergeCosmetics(local.cosmetics, cloud.cosmetics),
+    stats: mergeStats(local.stats, cloud.stats),
+    statsSyncCursor: mergeStatsCursor(local.statsSyncCursor, cloud.statsSyncCursor),
+    achievements: mergeAchievementProgress(local.achievements, cloud.achievements),
+    unlocks: mergeUnlocks(local.unlocks, cloud.unlocks)
+  };
+}
+
+function areSavesEqual(left, right) {
+  try {
+    return JSON.stringify(left) === JSON.stringify(right);
+  } catch (_error) {
+    return false;
+  }
+}
+
+function writeLocalSaveAndApply(save) {
+  if (!save || typeof save !== "object") return;
+  try {
+    localStorage.setItem(currentSaveKey(), JSON.stringify(save));
+    loadState(state.devMode);
+    updateStats();
+  } catch (error) {
+    // Ignore storage failures.
+  }
+}
+
+async function syncAccountSave(attempt = 0) {
+  if (!accountToken || isGuestMode) {
+    return { ok: false };
+  }
+  const save = getCurrentLocalSaveObject();
+  if (!save) {
+    return { ok: true };
+  }
+  const response = await requestJson("/game/api/auth/save", {
+    method: "POST",
+    authToken: accountToken,
+    body: JSON.stringify({
+      save,
+      expectedUpdatedAt: accountSaveUpdatedAt
+    })
+  });
+  if (response.ok) {
+    accountSaveUpdatedAt = typeof response.updatedAt === "string" ? response.updatedAt : accountSaveUpdatedAt;
+    return response;
+  }
+
+  if (response.status === 409 && attempt < 1) {
+    accountSaveUpdatedAt = typeof response.updatedAt === "string" ? response.updatedAt : null;
+    const mergedSave = mergeAccountSaves(save, response.save);
+    if (mergedSave) {
+      const changed = !areSavesEqual(save, mergedSave);
+      if (changed) {
+        writeLocalSaveAndApply(mergedSave);
+      }
+      const retry = await syncAccountSave(attempt + 1);
+      if (retry.ok && changed) {
+        showInfoToast("Spielstand-Konflikt automatisch zusammengefuehrt.");
+      }
+      return retry;
+    }
+  }
+
+  return response;
+}
+
+function setAccountSession(token, username, resolvedPlayerName) {
+  if (isGuestMode && playerName) {
+    try {
+      localStorage.setItem(GUEST_NAME_KEY, playerName);
+    } catch (error) {
+      // Ignore storage failures.
+    }
+  }
+  accountToken = token;
+  accountName = username;
+  accountSaveUpdatedAt = null;
+  playerName = resolvedPlayerName;
+  isGuestMode = false;
+  try {
+    localStorage.setItem(ACCOUNT_TOKEN_KEY, token);
+    localStorage.setItem(ACCOUNT_NAME_KEY, username);
+    localStorage.setItem(PLAYER_NAME_KEY, resolvedPlayerName);
+    localStorage.setItem(GUEST_MODE_KEY, "false");
+  } catch (error) {
+    // Ignore storage failures.
+  }
+}
+
+function readStoredGuestName() {
+  try {
+    return (localStorage.getItem(GUEST_NAME_KEY) || "").trim();
+  } catch (error) {
+    return "";
+  }
+}
+
+function writeStoredGuestName(name) {
+  const value = String(name || "").trim();
+  if (!value) return;
+  try {
+    localStorage.setItem(GUEST_NAME_KEY, value);
+    localStorage.setItem(PLAYER_NAME_KEY, value);
+  } catch (error) {
+    // Ignore storage failures.
+  }
+}
+
+async function restoreCloudSave() {
+  if (!accountToken) {
+    return;
+  }
+  const response = await requestJson("/game/api/auth/save", {
+    method: "GET",
+    authToken: accountToken
+  });
+  if (!response.ok) {
+    return;
+  }
+  accountSaveUpdatedAt = typeof response.updatedAt === "string" ? response.updatedAt : null;
+  const localSave = getCurrentLocalSaveObject();
+  const cloudSave = response.save;
+  const mergedSave = mergeAccountSaves(localSave, cloudSave);
+  if (!mergedSave) {
+    return;
+  }
+  const changedLocal = !areSavesEqual(localSave, mergedSave);
+  const differsFromCloud = !areSavesEqual(cloudSave, mergedSave);
+  if (changedLocal) {
+    writeLocalSaveAndApply(mergedSave);
+    showInfoToast("Cloud-Spielstand geladen.");
+  }
+  if (differsFromCloud) {
+    await syncAccountSave();
+  }
+}
+
+function clearAccountSession() {
+  accountToken = "";
+  accountName = "";
+  accountSaveUpdatedAt = null;
+  try {
+    localStorage.removeItem(ACCOUNT_TOKEN_KEY);
+    localStorage.removeItem(ACCOUNT_NAME_KEY);
+  } catch (error) {
+    // Ignore storage failures.
+  }
+}
+
+function stopServerSync() {
+  if (serverSyncTimer) {
+    clearInterval(serverSyncTimer);
+    serverSyncTimer = null;
+  }
+  if (syncCountdownTimer) {
+    clearInterval(syncCountdownTimer);
+    syncCountdownTimer = null;
+  }
+  nextServerSyncAt = 0;
+  leaderboardSnapshot = [];
+  if (syncStatusCountdownEl) {
+    syncStatusCountdownEl.textContent = "-";
+  }
+  if (syncStatusRankEl) {
+    syncStatusRankEl.textContent = "Platz wird berechnet...";
+  }
+  if (chaseBannerEl) {
+    chaseBannerEl.classList.add("hidden");
+  }
+}
+
+function updateAccountUi() {
+  if (!accountAuthOpenButton || !accountLogoutButton || !accountStateEl) {
+    return;
+  }
+  const loggedIn = Boolean(accountToken && accountName && !isGuestMode);
+  accountAuthOpenButton.classList.toggle("hidden", loggedIn);
+  accountLogoutButton.classList.toggle("hidden", !loggedIn);
+  if (loggedIn) {
+    accountStateEl.textContent = `Eingeloggt als ${accountName}`;
+    return;
+  }
+  if (playerName) {
+    accountStateEl.textContent = `Gastmodus aktiv (${playerName})`;
+    return;
+  }
+  accountStateEl.textContent = "Kein Spielername gesetzt";
+}
+
+function openGuestNameModal() {
+  if (document.querySelector(".player-gate")) {
+    return;
+  }
+  const overlay = document.createElement("div");
+  overlay.className = "player-gate";
+  overlay.innerHTML = `
+    <div class="player-gate-card" role="dialog" aria-modal="true" aria-labelledby="guestNameTitle">
+      <p class="eyebrow">Gastmodus</p>
+      <h2 id="guestNameTitle">Neuen Spielernamen waehlen</h2>
+      <p class="player-gate-copy">Du bist ausgeloggt. Bitte gib jetzt einen neuen Spielernamen ein.</p>
+      <div class="player-gate-row player-gate-auth-row">
+        <input id="guestNameInput" class="player-gate-input" type="text" maxlength="24" placeholder="Neuer Spielername">
+      </div>
+      <div class="player-gate-actions">
+        <button id="guestNameSave" class="player-gate-button" type="button">Speichern</button>
+      </div>
+      <p id="guestNameStatus" class="player-gate-status">Nur Buchstaben, Zahlen, Leerzeichen, Punkt, Unterstrich und Bindestrich.</p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const input = overlay.querySelector("#guestNameInput");
+  const button = overlay.querySelector("#guestNameSave");
+  const status = overlay.querySelector("#guestNameStatus");
+
+  const submit = async () => {
+    const value = input.value.trim();
+    if (!value) {
+      status.textContent = "Bitte einen gueltigen Namen eingeben.";
+      return;
+    }
+    button.disabled = true;
+    input.disabled = true;
+    status.textContent = "Speichere Namen...";
+    const result = await registerPlayer(value);
+    if (!result.ok) {
+      button.disabled = false;
+      input.disabled = false;
+      status.textContent = "Name konnte nicht registriert werden. Bitte pruefen.";
+      return;
+    }
+    isGuestMode = true;
+    writeStoredGuestName(value);
+    updateAccountUi();
+    overlay.remove();
+    showInfoToast("Gastname gespeichert.");
+  };
+
+  button.addEventListener("click", () => {
+    void submit();
+  });
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void submit();
+    }
+  });
+  input.focus();
+}
+
+function openIdentityBootstrapModal() {
+  if (document.querySelector(".player-gate")) {
+    return;
+  }
+  const overlay = document.createElement("div");
+  overlay.className = "player-gate";
+  overlay.innerHTML = `
+    <div class="player-gate-card" role="dialog" aria-modal="true" aria-labelledby="identityBootstrapTitle">
+      <p class="eyebrow">Willkommen</p>
+      <h2 id="identityBootstrapTitle">Spielername oder Login</h2>
+      <p class="player-gate-copy">Bitte waehle: Gastname setzen oder mit Account einloggen.</p>
+      <div class="player-gate-row player-gate-auth-row">
+        <input id="identityGuestInput" class="player-gate-input" type="text" maxlength="24" placeholder="Dein Gastname">
+      </div>
+      <div class="player-gate-actions">
+        <button id="identityGuestSave" class="player-gate-button" type="button">Gastname setzen</button>
+        <button id="identityAccountOpen" class="player-gate-button player-gate-secondary" type="button">Account Login / Registrierung</button>
+      </div>
+      <p id="identityBootstrapStatus" class="player-gate-status">Ohne Gastname oder Account geht es nicht weiter.</p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const input = overlay.querySelector("#identityGuestInput");
+  const guestSaveButton = overlay.querySelector("#identityGuestSave");
+  const accountOpenButton = overlay.querySelector("#identityAccountOpen");
+  const status = overlay.querySelector("#identityBootstrapStatus");
+
+  const saveGuest = async () => {
+    const value = input.value.trim();
+    if (!value) {
+      status.textContent = "Bitte einen gueltigen Namen eingeben.";
+      return;
+    }
+    guestSaveButton.disabled = true;
+    accountOpenButton.disabled = true;
+    input.disabled = true;
+    status.textContent = "Speichere Gastnamen...";
+    const result = await registerPlayer(value);
+    if (!result.ok) {
+      guestSaveButton.disabled = false;
+      accountOpenButton.disabled = false;
+      input.disabled = false;
+      status.textContent = "Name konnte nicht registriert werden.";
+      return;
+    }
+    isGuestMode = true;
+    writeStoredGuestName(value);
+    updateAccountUi();
+    overlay.remove();
+    showInfoToast("Gastname gespeichert.");
+  };
+
+  guestSaveButton.addEventListener("click", () => {
+    void saveGuest();
+  });
+  accountOpenButton.addEventListener("click", () => {
+    overlay.remove();
+    openAccountAuthModal();
+  });
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void saveGuest();
+    }
+  });
+  input.focus();
+}
+
+function enforcePlayerIdentityGate() {
+  if (playerName) {
+    return;
+  }
+  if (document.querySelector(".player-gate")) {
+    return;
+  }
+  openIdentityBootstrapModal();
+}
+
+function createAccountAuthModal() {
+  const overlay = document.createElement("div");
+  overlay.className = "player-gate";
+  overlay.innerHTML = `
+    <div class="player-gate-card player-gate-account" role="dialog" aria-modal="true" aria-labelledby="playerGateTitle">
+      <p class="eyebrow">Account</p>
+      <h2 id="playerGateTitle">Login oder Registrierung</h2>
+      <p class="player-gate-copy">Optional: Mit Account wird dein Spielstand ueber mehrere Geraete synchronisiert.</p>
+      <div class="player-gate-tabs" role="tablist" aria-label="Account Modus">
+        <button id="playerGateTabLogin" class="player-gate-tab active" type="button" role="tab" aria-selected="true">Login</button>
+        <button id="playerGateTabRegister" class="player-gate-tab" type="button" role="tab" aria-selected="false">Registrieren</button>
+      </div>
+      <div class="player-gate-row player-gate-auth-row">
+        <input id="playerGateUser" class="player-gate-input" type="text" maxlength="24" placeholder="Username (a-z, 0-9, ._-)">
+        <input id="playerGatePassword" class="player-gate-input" type="password" maxlength="128" placeholder="Passwort (mind. 8 Zeichen)">
+        <input id="playerGatePasswordConfirm" class="player-gate-input hidden" type="password" maxlength="128" placeholder="Passwort bestaetigen">
+      </div>
+      <div class="player-gate-actions">
+        <button id="playerGateSubmit" class="player-gate-button" type="button">Login</button>
+        <button id="playerGateGuest" class="player-gate-button player-gate-ghost" type="button">Zurueck zum Gastmodus</button>
+      </div>
+      <p id="playerGateStatus" class="player-gate-status">Gastmodus bleibt Standard, Login ist optional.</p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const tabLogin = overlay.querySelector("#playerGateTabLogin");
+  const tabRegister = overlay.querySelector("#playerGateTabRegister");
+  const userInput = overlay.querySelector("#playerGateUser");
+  const passwordInput = overlay.querySelector("#playerGatePassword");
+  const passwordConfirmInput = overlay.querySelector("#playerGatePasswordConfirm");
+  const submitButton = overlay.querySelector("#playerGateSubmit");
+  const guestButton = overlay.querySelector("#playerGateGuest");
+  const status = overlay.querySelector("#playerGateStatus");
+  return {
+    overlay,
+    tabLogin,
+    tabRegister,
+    userInput,
+    passwordInput,
+    passwordConfirmInput,
+    submitButton,
+    guestButton,
+    status
+  };
+}
+
+function openAccountAuthModal() {
+  if (document.querySelector(".player-gate")) {
+    return;
+  }
+  const gate = createAccountAuthModal();
+  let mode = "login";
+
+  const setMode = (nextMode) => {
+    mode = nextMode === "register" ? "register" : "login";
+    const isRegister = mode === "register";
+    gate.tabLogin.classList.toggle("active", !isRegister);
+    gate.tabRegister.classList.toggle("active", isRegister);
+    gate.tabLogin.setAttribute("aria-selected", String(!isRegister));
+    gate.tabRegister.setAttribute("aria-selected", String(isRegister));
+    gate.submitButton.textContent = isRegister ? "Registrieren" : "Login";
+    gate.passwordConfirmInput.classList.toggle("hidden", !isRegister);
+    if (!isRegister) {
+      gate.passwordConfirmInput.value = "";
+    }
+  };
+
+  const setPending = (pending, message) => {
+    gate.tabLogin.disabled = pending;
+    gate.tabRegister.disabled = pending;
+    gate.submitButton.disabled = pending;
+    gate.guestButton.disabled = pending;
+    gate.userInput.disabled = pending;
+    gate.passwordInput.disabled = pending;
+    gate.passwordConfirmInput.disabled = pending;
+    gate.status.textContent = message;
+  };
+
+  const submitAuth = async (mode) => {
+    const username = gate.userInput.value.trim();
+    const password = gate.passwordInput.value;
+    const passwordConfirm = gate.passwordConfirmInput.value;
+    if (!username || !password) {
+      gate.status.textContent = "Username und Passwort ausfuellen.";
+      return;
+    }
+    if (mode === "register") {
+      if (!passwordConfirm) {
+        gate.status.textContent = "Bitte Passwort bestaetigen.";
+        return;
+      }
+      if (password !== passwordConfirm) {
+        gate.status.textContent = "Passwoerter stimmen nicht ueberein.";
+        return;
+      }
+    }
+    setPending(true, mode === "login" ? "Login laeuft..." : "Registrierung laeuft...");
+    const endpoint = mode === "login" ? "/game/api/auth/login" : "/game/api/auth/register";
+    const preferredPlayerName = mode === "register" && isGuestMode ? (playerName || readStoredGuestName()) : "";
+    const result = await requestJson(endpoint, {
+      method: "POST",
+      body: JSON.stringify({
+        username,
+        password,
+        preferredPlayerName
+      })
+    });
+    setPending(false, "Gast: nur lokal. Account: Cloud-Save + geraeteuebergreifend.");
+    if (!result.ok) {
+      if (result.status === 0) {
+        gate.status.textContent = "Server nicht erreichbar. Bitte erneut versuchen.";
+        return;
+      }
+      if (mode === "login") {
+        gate.status.textContent = "Falscher Username oder Passwort.";
+      } else {
+        gate.status.textContent = result.error || "Registrierung fehlgeschlagen.";
+      }
+      return;
+    }
+    if (!result.token || !result.username || !result.playerName) {
+      gate.status.textContent = "Unerwartete Serverantwort. Bitte erneut versuchen.";
+      return;
+    }
+
+    // Treat successful auth response as success even if optional follow-up sync steps fail.
+    setAccountSession(result.token, result.username, result.playerName);
+    const registerResult = await registerPlayer(result.playerName);
+    if (!registerResult.ok) {
+      gate.status.textContent = "Login erfolgreich, aber Player-Sync fehlgeschlagen.";
+    }
+    try {
+      await restoreCloudSave();
+    } catch (_error) {
+      // Ignore cloud restore errors to avoid blocking login.
+    }
+    try {
+      stopServerSync();
+      startServerSync();
+    } catch (_error) {
+      // Ignore sync timer boot errors; user is still logged in.
+    }
+    updateAccountUi();
+    if (gate.overlay && gate.overlay.parentNode) {
+      gate.overlay.remove();
+    }
+    if (mode === "login") {
+      showInfoToast("Login erfolgreich.");
+    } else {
+      showInfoToast("Registrierung erfolgreich. Du bist jetzt eingeloggt.");
+    }
+  };
+
+  gate.tabLogin.addEventListener("click", () => {
+    setMode("login");
+  });
+  gate.tabRegister.addEventListener("click", () => {
+    setMode("register");
+  });
+  gate.submitButton.addEventListener("click", () => {
+    void submitAuth(mode);
+  });
+  gate.guestButton.addEventListener("click", () => {
+    isGuestMode = true;
+    gate.overlay.remove();
+    const guestName = readStoredGuestName();
+    playerName = guestName || "";
+    try {
+      localStorage.setItem(GUEST_MODE_KEY, "true");
+      if (guestName) {
+        localStorage.setItem(PLAYER_NAME_KEY, guestName);
+      } else {
+        localStorage.removeItem(PLAYER_NAME_KEY);
+      }
+    } catch (error) {
+      // Ignore storage failures.
+    }
+    updateAccountUi();
+    enforcePlayerIdentityGate();
+  });
+  gate.passwordInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void submitAuth(mode);
+    }
+  });
+  gate.passwordConfirmInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void submitAuth(mode);
+    }
+  });
+  setMode("login");
+  gate.userInput.focus();
+}
+
+async function logoutAccount() {
+  const tokenToRevoke = accountToken;
+
+  // Hard local reset on logout: clear both normal and dev save slots.
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(DEV_STORAGE_KEY);
+    localStorage.setItem(DEV_MODE_KEY, "false");
+  } catch (error) {
+    // Ignore storage failures.
+  }
+  loadState(false);
+  updateStats();
+
+  clearAccountSession();
+  const storedGuestName = readStoredGuestName();
+  playerName = storedGuestName || "";
+  isGuestMode = true;
+  stopServerSync();
+  updateAccountUi();
+  const openGate = document.querySelector(".player-gate");
+  if (openGate && openGate.parentNode) {
+    openGate.remove();
+  }
+  try {
+    localStorage.setItem(GUEST_MODE_KEY, "true");
+    if (storedGuestName) {
+      localStorage.setItem(PLAYER_NAME_KEY, storedGuestName);
+    } else {
+      localStorage.removeItem(PLAYER_NAME_KEY);
+    }
+  } catch (error) {
+    // Ignore storage failures.
+  }
+  if (tokenToRevoke) {
+    void requestJson("/game/api/auth/logout", {
+      method: "POST",
+      authToken: tokenToRevoke
+    });
+  }
+  if (storedGuestName) {
+    void registerPlayer(storedGuestName);
+  } else {
+    openIdentityBootstrapModal();
+  }
+  showInfoToast("Abgemeldet. Lokaler Spielstand wurde zurueckgesetzt.");
+}
+
+async function ensurePlayerIdentity() {
+  let savedToken = "";
+  let savedPlayerName = "";
+  let savedGuestName = "";
+  try {
+    savedToken = localStorage.getItem(ACCOUNT_TOKEN_KEY) || "";
+    accountName = localStorage.getItem(ACCOUNT_NAME_KEY) || "";
+    savedPlayerName = localStorage.getItem(PLAYER_NAME_KEY) || "";
+    savedGuestName = localStorage.getItem(GUEST_NAME_KEY) || "";
+  } catch (error) {
+    savedToken = "";
+    accountName = "";
+    savedPlayerName = "";
+    savedGuestName = "";
+  }
+
+  if (savedToken) {
+    const session = await requestJson("/game/api/auth/session", {
+      method: "GET",
+      authToken: savedToken
+    });
+    if (session.ok && session.playerName && session.username) {
+      setAccountSession(savedToken, session.username, session.playerName);
+      await registerPlayer(session.playerName);
+      await restoreCloudSave();
+      startServerSync();
+      updateAccountUi();
+      return;
+    }
+    // Keep login data locally unless server explicitly says token is invalid.
+    if (session.status === 401 || session.status === 403) {
+      clearAccountSession();
+    } else {
+      accountToken = savedToken;
+      accountName = accountName || "Account";
+      isGuestMode = false;
+      if (savedPlayerName) {
+        playerName = savedPlayerName.trim();
+      }
+      updateAccountUi();
+      return;
+    }
+  }
+
+  isGuestMode = true;
+  playerName = (savedPlayerName || savedGuestName || "").trim();
+  stopServerSync();
+  updateAccountUi();
+  try {
+    localStorage.setItem(GUEST_MODE_KEY, "true");
+    if (playerName) {
+      localStorage.setItem(PLAYER_NAME_KEY, playerName);
+      localStorage.setItem(GUEST_NAME_KEY, playerName);
+    }
+  } catch (error) {
+    // Ignore storage failures.
+  }
+  if (playerName) {
+    await registerPlayer(playerName);
+  }
+  if (!playerName) {
+    openIdentityBootstrapModal();
+    return;
+  }
+  enforcePlayerIdentityGate();
 }
 
 function format(num) {
@@ -1320,6 +3094,42 @@ function format(num) {
     minimumFractionDigits: 0,
     maximumFractionDigits: Number.isInteger(value) ? 0 : 2
   });
+}
+
+function formatCompact(num) {
+  const value = Number.isInteger(num) ? num : roundValue(num);
+  const abs = Math.abs(value);
+  if (abs < 1_000) {
+    return value.toLocaleString("de-DE", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: Number.isInteger(value) ? 0 : 2
+    });
+  }
+
+  const units = [
+    { value: 1e30, suffix: "no" },
+    { value: 1e27, suffix: "oc" },
+    { value: 1e24, suffix: "sp" },
+    { value: 1e21, suffix: "sx" },
+    { value: 1e18, suffix: "qi" },
+    { value: 1e15, suffix: "qa" },
+    { value: 1e12, suffix: "t" },
+    { value: 1e9, suffix: "b" },
+    { value: 1e6, suffix: "m" },
+    { value: 1e3, suffix: "k" }
+  ];
+
+  const unit = units.find((entry) => abs >= entry.value);
+  if (!unit) {
+    return format(value);
+  }
+
+  const scaled = value / unit.value;
+  const digits = abs >= unit.value * 100 ? 0 : abs >= unit.value * 10 ? 1 : 2;
+  return `${scaled.toLocaleString("de-DE", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: digits
+  })}${unit.suffix}`;
 }
 
 function formatFull(num) {
@@ -1370,6 +3180,35 @@ function updateVersionLink() {
   }
   appVersionLinkEl.href = RELEASES_BASE_URL;
   appVersionLinkEl.setAttribute("aria-disabled", "true");
+}
+
+function normalizeReleaseVersion(rawVersion) {
+  const value = typeof rawVersion === "string" ? rawVersion.trim() : "";
+  if (!value) return "";
+  return value.startsWith("v") ? value : `v${value}`;
+}
+
+async function hydrateAppVersion() {
+  if (!appVersionEl) return;
+  try {
+    const response = await fetch(RELEASES_API_URL, {
+      headers: {
+        Accept: "application/vnd.github+json"
+      }
+    });
+    if (!response.ok) {
+      return;
+    }
+    const data = await response.json().catch(() => ({}));
+    const resolved = normalizeReleaseVersion(data?.tag_name);
+    if (!resolved) {
+      return;
+    }
+    appVersionEl.textContent = resolved;
+    updateVersionLink();
+  } catch (error) {
+    // Keep local fallback when release lookup is unavailable.
+  }
 }
 
 function toggleDevMode() {
@@ -1507,7 +3346,7 @@ function selectColorCosmetic(key) {
 
 function buyColorCosmetic(key) {
   const cosmetic = colorCosmetics.find((entry) => entry.key === key);
-  if (!cosmetic || cosmetic.owned || !canAfford(cosmetic.cost)) {
+  if (!cosmetic || cosmetic.owned || cosmetic.unlockAchievement || !canAfford(cosmetic.cost)) {
     return;
   }
   spendCookies(cosmetic.cost);
@@ -1530,7 +3369,7 @@ function selectAccessoryCosmetic(key) {
 
 function buyAccessoryCosmetic(key) {
   const cosmetic = accessoryCosmetics.find((entry) => entry.key === key);
-  if (!cosmetic || cosmetic.owned || !canAfford(cosmetic.cost)) {
+  if (!cosmetic || cosmetic.owned || cosmetic.unlockAchievement || !canAfford(cosmetic.cost)) {
     return;
   }
   spendCookies(cosmetic.cost);
@@ -1563,7 +3402,7 @@ function selectMiscCosmetic(key) {
 
 function buySkinCosmetic(key) {
   const cosmetic = skinCosmetics.find((entry) => entry.key === key);
-  if (!cosmetic || cosmetic.owned || !canAfford(cosmetic.cost)) {
+  if (!cosmetic || cosmetic.owned || cosmetic.unlockAchievement || !canAfford(cosmetic.cost)) {
     return;
   }
   spendCookies(cosmetic.cost);
@@ -1576,7 +3415,7 @@ function buySkinCosmetic(key) {
 
 function buyMiscCosmetic(key) {
   const cosmetic = miscCosmetics.find((entry) => entry.key === key);
-  if (!cosmetic || cosmetic.owned || !canAfford(cosmetic.cost)) {
+  if (!cosmetic || cosmetic.owned || cosmetic.unlockAchievement || !canAfford(cosmetic.cost)) {
     return;
   }
   spendCookies(cosmetic.cost);
@@ -1595,9 +3434,14 @@ function renderCosmeticCards(listEl, entries, activeKey, onSelect, onBuy, previe
   entries.filter((cosmetic) => !cosmetic.hidden).forEach((cosmetic) => {
     const item = document.createElement("div");
     const isActive = cosmetic.key === activeKey;
+    const isAchievementLocked = isAchievementLockedCosmetic(cosmetic);
+    const unlockAchievement = cosmetic.unlockAchievement ? findAchievementDefinition(cosmetic.unlockAchievement) : null;
     item.className = "cosmetic-card";
     if (cosmetic.owned) {
       item.classList.add("owned");
+    }
+    if (isAchievementLocked) {
+      item.classList.add("locked-achievement");
     }
     if (isActive) {
       item.classList.add("selected");
@@ -1610,11 +3454,16 @@ function renderCosmeticCards(listEl, entries, activeKey, onSelect, onBuy, previe
     title.textContent = cosmetic.name;
 
     const desc = document.createElement("p");
-    desc.textContent = cosmetic.owned
-      ? cosmetic.desc
-      : (state.devMode
+    if (cosmetic.owned) {
+      desc.textContent = cosmetic.desc;
+    } else if (cosmetic.unlockAchievement) {
+      const achievementLabel = unlockAchievement ? unlockAchievement.title : "passendes Achievement";
+      desc.textContent = `${cosmetic.desc} - Freischalten via: ${achievementLabel}`;
+    } else {
+      desc.textContent = state.devMode
         ? `${cosmetic.desc} - Kosten: Dev gratis (${format(cosmetic.cost)})`
-        : `${cosmetic.desc} - Kosten: ${format(cosmetic.cost)}`);
+        : `${cosmetic.desc} - Kosten: ${format(cosmetic.cost)}`;
+    }
 
     info.appendChild(title);
     info.appendChild(desc);
@@ -1622,6 +3471,9 @@ function renderCosmeticCards(listEl, entries, activeKey, onSelect, onBuy, previe
     const button = document.createElement("button");
     if (isActive) {
       button.textContent = "Aktiv";
+      button.disabled = true;
+    } else if (isAchievementLocked) {
+      button.textContent = "Gesperrt";
       button.disabled = true;
     } else if (cosmetic.owned) {
       button.textContent = "Auswaehlen";
@@ -1636,7 +3488,7 @@ function renderCosmeticCards(listEl, entries, activeKey, onSelect, onBuy, previe
     item.appendChild(info);
     item.appendChild(button);
 
-    if (!cosmetic.owned && !button.disabled) {
+    if (!cosmetic.owned && !button.disabled && !isAchievementLocked) {
       item.classList.add("affordable");
     }
 
@@ -1849,11 +3701,13 @@ function updateStats() {
   if (removeExpiredBoosts()) {
     recalculateProduction();
   }
+  syncAchievementDerivedMetrics();
+  evaluateAchievements();
   renderDevMode();
   updateVersionLink();
   setDisplayValue(cookieCountEl, state.cookies);
   setDisplayValue(perClickEl, state.perClick);
-  setDisplayValue(totalEl, state.total);
+  setDisplayValue(totalEl, state.total, "", formatCompact, formatFull);
   setDisplayValue(clickCountEl, state.clicks);
   setDisplayValue(rateEl, state.cps, " / sek");
   renderLevelProgress();
@@ -1868,6 +3722,7 @@ function updateStats() {
   renderWheel();
   renderRoulette();
   renderGameStats();
+  renderAchievements();
   updateFinanceOverview();
   saveState();
 }
@@ -1961,10 +3816,16 @@ function updateFinanceOverview() {
 
 function recordGameResult(key, bet, payout) {
   const net = payout - bet;
+  bumpAchievementMetric("gamesStarted", bet > 0 ? 1 : 0);
+  bumpAchievementMetric("totalBetPlaced", Math.max(0, Number(bet) || 0));
+  bumpAchievementMetric("totalPayoutReceived", Math.max(0, Number(payout) || 0));
   if (net > 0) {
     gameStats[key].wins += 1;
+    bumpAchievementMetric("gameWins", 1);
+    raiseAchievementMetric("biggestSingleWin", net);
   } else if (net < 0) {
     gameStats[key].losses += 1;
+    bumpAchievementMetric("gameLosses", 1);
   }
   gameStats[key].net += net;
 }
@@ -2026,7 +3887,7 @@ function closeResetModal() {
   resetModal.setAttribute("aria-hidden", "true");
 }
 
-function resetAccount() {
+async function resetAccount() {
   const shouldResetCosmetics = resetCosmeticsToggle ? resetCosmeticsToggle.checked : true;
 
   state.cookies = 0;
@@ -2069,6 +3930,7 @@ function resetAccount() {
   });
   gameStats.lootbox.opens = 0;
   gameStats.lootbox.net = 0;
+  resetAchievementProgress();
 
   Object.keys(gameUnlocks).forEach((key) => {
     gameUnlocks[key].unlocked = false;
@@ -2093,8 +3955,61 @@ function resetAccount() {
   rouletteSpinning = false;
   wheelSpinning = false;
 
+  const currentName = playerName || (() => {
+    try {
+      return localStorage.getItem(PLAYER_NAME_KEY) || "";
+    } catch (error) {
+      return "";
+    }
+  })();
+  if (currentName) {
+    await requestJson("/game/api/player/reset", {
+      method: "POST",
+      body: JSON.stringify({ playerName: currentName })
+    });
+  }
+
+  if (serverSyncTimer) {
+    clearInterval(serverSyncTimer);
+    serverSyncTimer = null;
+  }
+  if (syncCountdownTimer) {
+    clearInterval(syncCountdownTimer);
+    syncCountdownTimer = null;
+  }
+  nextServerSyncAt = 0;
+  leaderboardSnapshot = [];
+  const hadAccountSession = Boolean(accountToken);
+  const activeAccountToken = accountToken;
+  const activeAccountName = accountName;
+  const activePlayerName = playerName;
+  playerName = "";
+  isGuestMode = false;
+  try {
+    localStorage.removeItem(PLAYER_NAME_KEY);
+  } catch (error) {
+    // Ignore storage failures.
+  }
+
   closeResetModal();
   updateStats();
+  if (hadAccountSession && activePlayerName) {
+    setAccountSession(activeAccountToken, activeAccountName, activePlayerName);
+    await registerPlayer(activePlayerName);
+    await syncAccountSave();
+    showInfoToast("Spielstand wurde zurueckgesetzt.");
+    startServerSync();
+    updateAccountUi();
+    return;
+  }
+  showInfoToast("Fortschritt wurde lokal zurueckgesetzt.");
+  isGuestMode = true;
+  updateAccountUi();
+  try {
+    localStorage.setItem(GUEST_MODE_KEY, "true");
+  } catch (error) {
+    // Ignore storage failures.
+  }
 }
 
 function currentTowerChance() {
@@ -2211,6 +4126,19 @@ function closeWheelModal() {
   wheelModal.setAttribute("aria-hidden", "true");
 }
 
+function openAchievementModal() {
+  if (!achievementModal) return;
+  renderAchievements();
+  achievementModal.classList.remove("hidden");
+  achievementModal.setAttribute("aria-hidden", "false");
+}
+
+function closeAchievementModal() {
+  if (!achievementModal) return;
+  achievementModal.classList.add("hidden");
+  achievementModal.setAttribute("aria-hidden", "true");
+}
+
 function openFinanceModal() {
   if (!financeModal) return;
   financeModal.classList.remove("hidden");
@@ -2231,6 +4159,7 @@ function clickCookie() {
   state.cookies += state.perClick;
   state.total += state.perClick;
   state.clicks += 1;
+  bumpAchievementMetric("manualClicks", 1);
   maybeTriggerBonus();
   updateStats();
 }
@@ -2244,6 +4173,7 @@ function buyUpgrade(index) {
 
   spendCookies(cost);
   upgrade.count += 1;
+  bumpAchievementMetric("upgradesPurchased", 1);
   recalculateProduction();
   updateStats();
 }
@@ -2253,6 +4183,7 @@ function tick() {
   if (expiredBoosts) {
     recalculateProduction();
   }
+  bumpAchievementMetric("secondsPlayed", 1);
   if (state.cps > 0) {
     state.cookies += state.cps;
     state.total += state.cps;
@@ -2287,6 +4218,7 @@ function collectBonus() {
   const bonusAmount = scaleGain(50 + (state.basePerClick * 2));
   state.cookies += bonusAmount;
   state.total += bonusAmount;
+  bumpAchievementMetric("bonusesCollected", 1);
   state.bonusReady = false;
   bonusPanel.classList.add("hidden");
   updateStats();
@@ -2299,6 +4231,7 @@ function levelUp() {
   }
 
   state.level += 1;
+  bumpAchievementMetric("levelUps", 1);
   if (state.devMode) {
     state.cookies = Math.max(0, state.cookies);
   } else {
@@ -2902,6 +4835,9 @@ cosmeticsCategoryTabs.forEach((tab) => {
 if (financeOpenButton) financeOpenButton.addEventListener("click", openFinanceModal);
 if (financeCloseButton) financeCloseButton.addEventListener("click", closeFinanceModal);
 if (financeCloseOverlay) financeCloseOverlay.addEventListener("click", closeFinanceModal);
+if (achievementOpenButton) achievementOpenButton.addEventListener("click", openAchievementModal);
+if (achievementCloseButton) achievementCloseButton.addEventListener("click", closeAchievementModal);
+if (achievementCloseOverlay) achievementCloseOverlay.addEventListener("click", closeAchievementModal);
 towerOpenButton.addEventListener("click", openTowerModal);
 towerCloseButton.addEventListener("click", closeTowerModal);
 towerCloseOverlay.addEventListener("click", closeTowerModal);
@@ -2960,6 +4896,14 @@ upgradeTabs.forEach((tab) => {
   });
 });
 resetOpenButton.addEventListener("click", openResetModal);
+if (accountAuthOpenButton) {
+  accountAuthOpenButton.addEventListener("click", openAccountAuthModal);
+}
+if (accountLogoutButton) {
+  accountLogoutButton.addEventListener("click", () => {
+    void logoutAccount();
+  });
+}
 if (devModeExitButton) devModeExitButton.addEventListener("click", toggleDevMode);
 if (devModeToggleButton) devModeToggleButton.addEventListener("click", toggleDevMode);
 resetCloseButton.addEventListener("click", closeResetModal);
@@ -2971,5 +4915,13 @@ buildRouletteWheel();
 setInterval(tick, 1000);
 loadState();
 updateStats();
+void hydrateAppVersion();
+updateAccountUi();
+void ensurePlayerIdentity();
+window.addEventListener("beforeunload", () => {
+  void syncPlayerStats();
+  void syncAccountSave();
+});
+
 
 

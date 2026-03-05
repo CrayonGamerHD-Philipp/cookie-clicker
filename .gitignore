@@ -1,5 +1,10 @@
 /tmp
 /out-tsc
+/dist
+/build
+/.svelte-kit
+.env
+.env.*
 
 /node_modules
 npm-debug.log*
@@ -9,3 +14,8 @@ yarn-error.log*
 .pnp.js
 
 .vscode/*
+
+backend/data/*.sqlite
+backend/data/*.sqlite-shm
+backend/data/*.sqlite-wal
+backend/data/*.json
