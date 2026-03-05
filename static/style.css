@@ -1898,61 +1898,73 @@ h1 {
 
 .tower-controls {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .tower-visual {
   position: relative;
-  height: 180px;
-  border-radius: 20px;
-  background: radial-gradient(circle at top, #ffe6c9, #f5d0aa 60%, #efc39a 100%);
+  height: 200px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #ffe8c9 0%, #f7cf9f 58%, #efbe8b 100%);
+  border: 1px solid rgba(85, 38, 20, 0.25);
   overflow: hidden;
-  padding: 14px;
+  padding: 12px 14px;
   display: grid;
   align-items: end;
   justify-items: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -8px 20px rgba(45, 16, 8, 0.22),
+    0 14px 26px rgba(59, 26, 13, 0.26);
 }
 
 .tower-stack {
   display: grid;
-  gap: 6px;
+  gap: 7px;
   justify-items: center;
   width: 100%;
-  transition: transform 220ms ease-out;
+  transition: transform 220ms ease-out, filter 220ms ease-out;
+  position: relative;
+  z-index: 1;
 }
 
 .tower-block {
-  width: min(140px, 70%);
-  height: 20px;
+  width: min(146px, 74%);
+  height: 18px;
   border-radius: 12px;
   background-image:
-    linear-gradient(90deg, #d5743a, #f0a260),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.18) 0 2px, transparent 2px 10px),
-    repeating-linear-gradient(90deg, rgba(60, 20, 10, 0.25) 0 12px, transparent 12px 24px);
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 6px 12px rgba(60, 20, 10, 0.2);
-  animation: blockRise 260ms ease-out;
+    linear-gradient(90deg, #ffc37d, #e78946 46%, #c76832 100%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.2) 0 2px, transparent 2px 9px),
+    repeating-linear-gradient(90deg, rgba(92, 37, 18, 0.24) 0 11px, transparent 11px 23px);
+  border: 1px solid rgba(105, 44, 20, 0.25);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 8px 14px rgba(45, 16, 8, 0.2);
+  animation: blockRise 240ms ease-out;
 }
 
 .tower-block:nth-child(odd) {
-  width: min(120px, 60%);
+  width: min(128px, 64%);
   background-image:
-    linear-gradient(90deg, #c96533, #e58c4d),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.16) 0 2px, transparent 2px 10px),
-    repeating-linear-gradient(90deg, rgba(60, 20, 10, 0.22) 0 12px, transparent 12px 24px);
+    linear-gradient(90deg, #fcb86f, #df7f3d 52%, #b75b2c 100%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.18) 0 2px, transparent 2px 9px),
+    repeating-linear-gradient(90deg, rgba(92, 37, 18, 0.22) 0 10px, transparent 10px 22px);
 }
 
 .tower-base {
   position: absolute;
-  bottom: 8px;
-  width: min(160px, 80%);
-  height: 28px;
+  bottom: 10px;
+  width: min(174px, 84%);
+  height: 24px;
   border-radius: 16px;
-  background: #a34a1c;
-  box-shadow: inset 0 4px 0 rgba(255, 255, 255, 0.3);
+  background: linear-gradient(180deg, #8d421e, #6f3118);
+  border: 1px solid rgba(76, 31, 13, 0.45);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2), 0 8px 16px rgba(37, 15, 7, 0.25);
 }
 
 .tower-crash .tower-stack {
   animation: towerShake 380ms ease-in-out;
+  filter: saturate(0.88);
 }
 
 .tower-crash .tower-block {
@@ -2007,16 +2019,22 @@ h1 {
   grid-template-columns: 1fr auto;
   gap: 6px 12px;
   align-items: center;
-  background: #fbe8d2;
+  background: linear-gradient(180deg, #fff1dc, #f8dfbf);
+  border: 1px solid #e7c99f;
   border-radius: 16px;
   padding: 10px 14px;
   font-size: 0.9rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 .tower-status {
   margin: 0;
   font-size: 0.85rem;
-  opacity: 0.8;
+  color: #6f3d22;
+  background: #fff7ea;
+  border: 1px solid #edd3b2;
+  border-radius: 12px;
+  padding: 8px 10px;
 }
 
 .modal {
@@ -3033,6 +3051,19 @@ h1 {
   .upgrade-tab,
   .reset-open {
     min-height: 44px;
+  }
+
+  .tower-visual {
+    height: 176px;
+    border-radius: 18px;
+  }
+
+  .tower-block {
+    width: min(130px, 80%);
+  }
+
+  .tower-block:nth-child(odd) {
+    width: min(114px, 70%);
   }
 
   .modal-card.modal-cosmetics {
