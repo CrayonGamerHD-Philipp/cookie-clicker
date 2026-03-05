@@ -24,6 +24,9 @@
 
   const format = (value: number) => new Intl.NumberFormat("de-DE").format(Math.floor(Number(value) || 0));
   const updatedAt = new Date(data.profile.updatedAt || Date.now());
+  const achievementRatio = data.profile.achievementsTotal > 0
+    ? Math.max(0, Math.min(100, Math.round((data.profile.achievementsUnlocked / data.profile.achievementsTotal) * 100)))
+    : 0;
 </script>
 
 <svelte:head>
@@ -49,37 +52,55 @@
       </a>
     </section>
 
+    <section class="leaderboard-player-kpis">
+      <article class="leaderboard-kpi-tile leaderboard-panel">
+        <span class="leaderboard-kpi-icon"><i class="bi bi-fire" aria-hidden="true"></i></span>
+        <span class="leaderboard-kpi-label">Level</span>
+        <strong class="leaderboard-kpi-value">{format(data.profile.level)}</strong>
+      </article>
+      <article class="leaderboard-kpi-tile leaderboard-panel">
+        <span class="leaderboard-kpi-icon"><i class="bi bi-hand-index-thumb" aria-hidden="true"></i></span>
+        <span class="leaderboard-kpi-label">Klicks</span>
+        <strong class="leaderboard-kpi-value">{format(data.profile.clicks)}</strong>
+      </article>
+      <article class="leaderboard-kpi-tile leaderboard-panel">
+        <span class="leaderboard-kpi-icon"><i class="bi bi-cookie" aria-hidden="true"></i></span>
+        <span class="leaderboard-kpi-label">Cookies</span>
+        <strong class="leaderboard-kpi-value">{format(data.profile.cookies)}</strong>
+      </article>
+      <article class="leaderboard-kpi-tile leaderboard-panel">
+        <span class="leaderboard-kpi-icon"><i class="bi bi-controller" aria-hidden="true"></i></span>
+        <span class="leaderboard-kpi-label">Spiele</span>
+        <strong class="leaderboard-kpi-value">{format(data.profile.totalGames)}</strong>
+      </article>
+    </section>
+
     <section class="leaderboard-player-grid">
       <article class="leaderboard-player-card leaderboard-panel">
-        <h2><i class="bi bi-graph-up-arrow" aria-hidden="true"></i> Live Werte</h2>
-        <p><strong>Level:</strong> {format(data.profile.level)}</p>
-        <p><strong>Klicks:</strong> {format(data.profile.clicks)}</p>
-        <p><strong>Cookies:</strong> {format(data.profile.cookies)}</p>
-        <p><strong>Spiele:</strong> {format(data.profile.totalGames)}</p>
+        <h2><i class="bi bi-trophy" aria-hidden="true"></i> Achievements</h2>
+        <p><strong>Freigeschaltet:</strong> {format(data.profile.achievementsUnlocked)} / {format(data.profile.achievementsTotal)}</p>
+        <div class="leaderboard-achievement-track" aria-hidden="true">
+          <span class="leaderboard-achievement-fill" style={`width: ${achievementRatio}%`}></span>
+        </div>
+        <p class="leaderboard-muted">Fortschritt: {achievementRatio}%</p>
         <p><strong>Zuletzt gesehen:</strong> {updatedAt.toLocaleString("de-DE")}</p>
       </article>
 
       <article class="leaderboard-player-card leaderboard-panel">
-        <h2><i class="bi bi-trophy" aria-hidden="true"></i> Achievements</h2>
-        <p>
-          <strong>Freigeschaltet:</strong> {format(data.profile.achievementsUnlocked)} / {format(data.profile.achievementsTotal)}
-        </p>
+        <h2><i class="bi bi-joystick" aria-hidden="true"></i> Spiele-Stats</h2>
+        <div class="leaderboard-mode-list">
+          <p><i class="bi bi-building" aria-hidden="true"></i> Tower <strong>{format(data.profile.gamesByMode?.tower || 0)}</strong></p>
+          <p><i class="bi bi-suit-spade" aria-hidden="true"></i> Blackjack <strong>{format(data.profile.gamesByMode?.blackjack || 0)}</strong></p>
+          <p><i class="bi bi-dice-6" aria-hidden="true"></i> Slots <strong>{format(data.profile.gamesByMode?.slots || 0)}</strong></p>
+          <p><i class="bi bi-record-circle" aria-hidden="true"></i> Roulette <strong>{format(data.profile.gamesByMode?.roulette || 0)}</strong></p>
+          <p><i class="bi bi-disc" aria-hidden="true"></i> Gluecksrad <strong>{format(data.profile.gamesByMode?.wheel || 0)}</strong></p>
+          <p><i class="bi bi-box-seam" aria-hidden="true"></i> Lootboxen <strong>{format(data.profile.gamesByMode?.lootbox || 0)}</strong></p>
+        </div>
       </article>
 
       <article class="leaderboard-player-card leaderboard-panel">
-        <h2><i class="bi bi-joystick" aria-hidden="true"></i> Spiele-Stats</h2>
-        <p><strong>Tower:</strong> {format(data.profile.gamesByMode?.tower || 0)}</p>
-        <p><strong>Blackjack:</strong> {format(data.profile.gamesByMode?.blackjack || 0)}</p>
-        <p><strong>Slots:</strong> {format(data.profile.gamesByMode?.slots || 0)}</p>
-        <p><strong>Roulette:</strong> {format(data.profile.gamesByMode?.roulette || 0)}</p>
-        <p><strong>Gluecksrad:</strong> {format(data.profile.gamesByMode?.wheel || 0)}</p>
-        <p><strong>Lootboxen:</strong> {format(data.profile.gamesByMode?.lootbox || 0)}</p>
-      </article>
-    </section>
-
-    <section class="leaderboard-player-card leaderboard-panel">
-      <h2><i class="bi bi-palette2" aria-hidden="true"></i> Aktueller Cookie-Look</h2>
-      <div class="leaderboard-look">
+        <h2><i class="bi bi-palette2" aria-hidden="true"></i> Aktueller Cookie-Look</h2>
+        <div class="leaderboard-look">
         <div
           class="cosmetics-preview-cookie leaderboard-cookie-look"
           style="
@@ -100,6 +121,7 @@
           <p><strong>Hut:</strong> {data.profile.look.accessoryName}</p>
         </div>
       </div>
+      </article>
     </section>
   </main>
 </div>

@@ -368,7 +368,7 @@ export async function updateLeaderboardScore(
       total_clicks = CASE WHEN total_clicks > ? THEN total_clicks ELSE ? END,
       current_cookies = ?,
       total_games = CASE WHEN total_games > ? THEN total_games ELSE ? END,
-      profile_snapshot = ?,
+      profile_snapshot = COALESCE(?, profile_snapshot),
       last_seen_at = ?
     WHERE id = ?
   `).run(
@@ -539,6 +539,15 @@ export async function getLeaderboardPlayerProfile(playerName: string): Promise<{
     }
   }
 
+  const unlockedRaw = snapshot.achievements?.unlocked;
+  const unlockedCount = typeof unlockedRaw === "number"
+    ? unlockedRaw
+    : (unlockedRaw && typeof unlockedRaw === "object" ? Object.keys(unlockedRaw).length : 0);
+  const totalRaw = snapshot.achievements?.total;
+  const totalCount = typeof totalRaw === "number"
+    ? totalRaw
+    : 0;
+
   return {
     ok: true,
     found: true,
@@ -549,8 +558,8 @@ export async function getLeaderboardPlayerProfile(playerName: string): Promise<{
       cookies: Math.max(0, Number(snapshot.stats?.cookies) || Number(row.cookies) || 0),
       totalGames: Math.max(0, Number(snapshot.stats?.gamesPlayed) || Number(row.totalGames) || 0),
       updatedAt: row.updatedAt || nowIso(),
-      achievementsUnlocked: Math.max(0, Number(snapshot.achievements?.unlocked) || 0),
-      achievementsTotal: Math.max(0, Number(snapshot.achievements?.total) || 0),
+      achievementsUnlocked: Math.max(0, Number(unlockedCount) || 0),
+      achievementsTotal: Math.max(0, Number(totalCount) || 0),
       gamesByMode: snapshot.stats?.gamesByMode || {},
       look: {
         colorName: snapshot.look?.colorName || "Classic Bake",
