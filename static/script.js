@@ -597,19 +597,19 @@ const achievementGroups = [
   { category: "Core", group: "clicker", title: "Click Titan", metric: "manualClicks", icon: "bi-hand-index-thumb", tiers: [250, 1_000, 10_000, 100_000, 1_000_000, 10_000_000], unit: "Klicks" },
   { category: "Core", group: "upgrades", title: "Ausbauer", metric: "upgradesPurchased", icon: "bi-hammer", tiers: [25, 100, 250, 500, 1_000, 2_500], unit: "Upgrades" },
   { category: "Core", group: "level", title: "Ofenmeister", metric: "highestLevel", icon: "bi-fire", tiers: [5, 10, 25, 50, 75, 100], unit: "Level" },
-  { category: "Core", group: "levelups", title: "Reborn Baker", metric: "levelUps", icon: "bi-arrow-repeat", tiers: [1, 3, 10, 25, 50], unit: "Level-Ups" },
-  { category: "Core", group: "playtime", title: "Schichtleiter", metric: "secondsPlayed", icon: "bi-clock-history", tiers: [600, 3_600, 21_600, 86_400, 604_800], unit: "Sekunden Spielzeit" },
+  { category: "Core", group: "levelups", title: "Reborn Baker", metric: "levelUps", icon: "bi-arrow-repeat", tiers: [1, 3, 10, 25, 50, 100, 250], unit: "Level-Ups" },
+  { category: "Core", group: "playtime", title: "Schichtleiter", metric: "secondsPlayed", icon: "bi-clock-history", tiers: [600, 3_600, 21_600, 86_400, 604_800, 2_592_000], unit: "Sekunden Spielzeit" },
   { category: "Economy", group: "cps", title: "Fliessband", metric: "highestCps", icon: "bi-speedometer2", tiers: [100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000], unit: "Cookies/Sek" },
-  { category: "Economy", group: "per-click", title: "Super Click", metric: "highestPerClick", icon: "bi-lightning-charge", tiers: [10, 100, 1_000, 10_000, 100_000], unit: "Cookies/Klick" },
+  { category: "Economy", group: "per-click", title: "Super Click", metric: "highestPerClick", icon: "bi-lightning-charge", tiers: [10, 100, 1_000, 10_000, 100_000, 1_000_000], unit: "Cookies/Klick" },
   { category: "Economy", group: "cookies-generated", title: "Backstuben-Tycoon", metric: "totalCookiesGenerated", icon: "bi-graph-up-arrow", tiers: [1_000_000, 100_000_000, 10_000_000_000, 1_000_000_000_000, 100_000_000_000_000], unit: "erzeugte Cookies" },
-  { category: "Economy", group: "bank", title: "Safe voll", metric: "highestCookies", icon: "bi-piggy-bank", tiers: [100_000, 10_000_000, 1_000_000_000, 100_000_000_000], unit: "Cookies auf der Hand" },
+  { category: "Economy", group: "bank", title: "Safe voll", metric: "highestCookies", icon: "bi-piggy-bank", tiers: [100_000, 10_000_000, 1_000_000_000, 100_000_000_000, 1_000_000_000_000], unit: "Cookies auf der Hand" },
   { category: "Economy", group: "bonus", title: "Kruemel-Collector", metric: "bonusesCollected", icon: "bi-sun", tiers: [5, 25, 100, 500, 2_000], unit: "Bonus-Einsammlungen" },
   { category: "Economy", group: "boost", title: "Boost Alchemist", metric: "boostsActivated", icon: "bi-rocket-takeoff", tiers: [5, 25, 100, 500, 2_000], unit: "aktivierte Boosts" },
   { category: "Casino", group: "games-started", title: "Casino Stammgast", metric: "gamesStarted", icon: "bi-dice-5", tiers: [25, 100, 500, 1_000, 5_000, 20_000], unit: "Runden" },
   { category: "Casino", group: "wins", title: "High Roller", metric: "gameWins", icon: "bi-trophy", tiers: [10, 50, 100, 500, 2_000, 10_000], unit: "Siege" },
   { category: "Casino", group: "bets", title: "Big Spender", metric: "totalBetPlaced", icon: "bi-cash-stack", tiers: [1_000_000, 100_000_000, 1_000_000_000, 10_000_000_000, 100_000_000_000], unit: "gesetzte Cookies" },
   { category: "Casino", group: "payout", title: "Kassensturz", metric: "totalPayoutReceived", icon: "bi-wallet2", tiers: [1_000_000, 100_000_000, 1_000_000_000, 10_000_000_000, 100_000_000_000], unit: "ausgezahlte Cookies" },
-  { category: "Casino", group: "single-win", title: "Jackpot", metric: "biggestSingleWin", icon: "bi-stars", tiers: [10_000, 1_000_000, 100_000_000, 1_000_000_000], unit: "groesster Einzelgewinn" },
+  { category: "Casino", group: "single-win", title: "Jackpot", metric: "biggestSingleWin", icon: "bi-stars", tiers: [10_000, 1_000_000, 100_000_000, 1_000_000_000, 10_000_000_000], unit: "groesster Einzelgewinn" },
   { category: "Casino", group: "tower", title: "Tower Kletterer", metric: "towerGames", icon: "bi-building", tiers: [10, 50, 250, 1_000, 5_000], unit: "Tower-Runden" },
   { category: "Casino", group: "blackjack", title: "Kartencount", metric: "blackjackGames", icon: "bi-suit-spade", tiers: [10, 50, 250, 1_000, 5_000], unit: "Blackjack-Runden" },
   { category: "Casino", group: "slots", title: "Walzenfieber", metric: "slotsGames", icon: "bi-dice-6", tiers: [10, 50, 250, 1_000, 5_000], unit: "Slots-Runden" },
@@ -617,7 +617,7 @@ const achievementGroups = [
   { category: "Casino", group: "wheel", title: "Rad Rebelle", metric: "wheelGames", icon: "bi-disc", tiers: [10, 50, 250, 1_000, 5_000], unit: "Gluecksrad-Runden" },
   { category: "Collection", group: "lootboxes", title: "Loot Jager", metric: "totalLootboxesOpened", icon: "bi-box-seam", tiers: [10, 50, 100, 500, 2_500, 10_000, 25_000], unit: "Lootboxes" },
   { category: "Collection", group: "unlocks", title: "Arcade Betreiber", metric: "gamesUnlocked", icon: "bi-unlock", tiers: [1, 3, 6], unit: "freigeschaltete Spiele" },
-  { category: "Collection", group: "cosmetics", title: "Style Connoisseur", metric: "cosmeticsOwned", icon: "bi-palette", tiers: [1, 5, 10, 15, 20], unit: "freigeschaltete Cosmetics" }
+  { category: "Collection", group: "cosmetics", title: "Style Connoisseur", metric: "cosmeticsOwned", icon: "bi-palette", tiers: [1, 5, 10, 15, 20, 30], unit: "freigeschaltete Cosmetics" }
 ];
 
 const achievementDefinitions = achievementGroups.flatMap((group) =>
