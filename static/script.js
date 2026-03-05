@@ -178,6 +178,7 @@ const RELEASES_BASE_URL = "https://github.com/CrayonGamerHD-Philipp/cookie-click
 const RELEASES_API_URL = "https://api.github.com/repos/CrayonGamerHD-Philipp/cookie-clicker/releases/latest";
 const LOOTBOX_COST = 10_000_000;
 const SERVER_SYNC_INTERVAL_MS = 30_000;
+const SAVE_THROTTLE_MS = 5_000;
 
 const upgrades = [
   { name: "Sprinkles", type: "click", power: 1, baseCost: 20, desc: "+1 pro Klick" },
@@ -657,6 +658,9 @@ const achievementDefinitions = achievementGroups.flatMap((group) =>
 );
 
 let toastTimer = null;
+let saveTimer = null;
+let lastSaveAt = 0;
+let statsUpdateQueued = false;
 
 function createEmptyBoostInventory() {
   return Object.fromEntries(boostRarities.map((rarity) => [rarity.key, 0]));
@@ -828,11 +832,19 @@ function evaluateAchievements(silent = false) {
   }
 }
 
-function renderAchievements() {
-  if (!achievementSummaryEl || !achievementListEl) return;
+function isModalVisible(modal) {
+  return Boolean(modal && !modal.classList.contains("hidden"));
+}
+
+function renderAchievements({ forceList = false } = {}) {
+  if (!achievementSummaryEl) return;
 
   const unlockedCount = achievementDefinitions.filter((achievement) => achievementProgress.unlocked[achievement.key]).length;
   achievementSummaryEl.textContent = `${unlockedCount} / ${achievementDefinitions.length}`;
+  if (!achievementListEl) return;
+  if (!forceList && !isModalVisible(achievementModal)) {
+    return;
+  }
   achievementListEl.innerHTML = "";
   achievementGroups.forEach((group) => {
     const defs = achievementDefinitions
@@ -1835,6 +1847,30 @@ function saveState() {
   }
 }
 
+function flushSaveState() {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  saveState();
+  lastSaveAt = Date.now();
+}
+
+function scheduleSaveState() {
+  const now = Date.now();
+  const elapsed = now - lastSaveAt;
+  if (elapsed >= SAVE_THROTTLE_MS) {
+    flushSaveState();
+    return;
+  }
+  if (saveTimer) {
+    return;
+  }
+  saveTimer = setTimeout(() => {
+    flushSaveState();
+  }, SAVE_THROTTLE_MS - elapsed);
+}
+
 function totalGamesPlayed() {
   return (
     gameStats.tower.wins + gameStats.tower.losses +
@@ -2032,7 +2068,7 @@ async function syncGlobalStats() {
 
   if (response.ok) {
     statsSyncCursor = snapshot;
-    saveState();
+    flushSaveState();
   }
   return response;
 }
@@ -3213,7 +3249,7 @@ async function hydrateAppVersion() {
 
 function toggleDevMode() {
   const nextMode = !state.devMode;
-  saveState();
+  flushSaveState();
   state.devMode = nextMode;
   try {
     localStorage.setItem(DEV_MODE_KEY, String(state.devMode));
@@ -3697,7 +3733,7 @@ function renderCosmetics() {
   );
 }
 
-function updateStats() {
+function performStatsUpdate() {
   if (removeExpiredBoosts()) {
     recalculateProduction();
   }
@@ -3712,19 +3748,30 @@ function updateStats() {
   setDisplayValue(rateEl, state.cps, " / sek");
   renderLevelProgress();
   renderBoosts();
-  renderLootboxes();
   renderUpgrades();
-  renderCosmetics();
   renderUnlocks();
-  renderTower();
-  renderBlackjack();
-  renderSlots();
-  renderWheel();
-  renderRoulette();
+  if (isModalVisible(lootboxModal)) renderLootboxes();
+  if (isModalVisible(cosmeticsModal)) renderCosmetics();
+  if (isModalVisible(towerModal)) renderTower();
+  if (isModalVisible(blackjackModal)) renderBlackjack();
+  if (isModalVisible(slotsModal)) renderSlots();
+  if (isModalVisible(wheelModal)) renderWheel();
+  if (isModalVisible(rouletteModal)) renderRoulette();
   renderGameStats();
   renderAchievements();
   updateFinanceOverview();
-  saveState();
+  scheduleSaveState();
+}
+
+function updateStats() {
+  if (statsUpdateQueued) {
+    return;
+  }
+  statsUpdateQueued = true;
+  requestAnimationFrame(() => {
+    statsUpdateQueued = false;
+    performStatsUpdate();
+  });
 }
 
 function renderUnlocks() {
@@ -4128,9 +4175,9 @@ function closeWheelModal() {
 
 function openAchievementModal() {
   if (!achievementModal) return;
-  renderAchievements();
   achievementModal.classList.remove("hidden");
   achievementModal.setAttribute("aria-hidden", "false");
+  renderAchievements({ forceList: true });
 }
 
 function closeAchievementModal() {
@@ -4919,6 +4966,7 @@ void hydrateAppVersion();
 updateAccountUi();
 void ensurePlayerIdentity();
 window.addEventListener("beforeunload", () => {
+  flushSaveState();
   void syncPlayerStats();
   void syncAccountSave();
 });
