@@ -1290,8 +1290,22 @@ h1 {
 }
 
 .achievement-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.74rem;
   color: rgba(43, 29, 18, 0.68);
+}
+
+.achievement-state.unlocked {
+  color: #8a3a13;
+  font-weight: 600;
+}
+
+.achievement-state-check {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
 }
 
 .achievement-progress-track {

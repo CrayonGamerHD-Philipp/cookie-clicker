@@ -850,7 +850,9 @@ function renderAchievements() {
         const ratio = Math.max(0, Math.min(1, achievement.target > 0 ? current / achievement.target : 0));
         const item = document.createElement("div");
         item.className = `achievement-item${unlocked ? " unlocked" : ""}`;
-        const doneLabel = unlocked ? "Erledigt" : "In Arbeit";
+        const doneLabel = unlocked
+          ? `<span class="achievement-state-check" aria-hidden="true"><i class="bi bi-check2-circle"></i></span> Erledigt`
+          : "In Arbeit";
         item.innerHTML = `
           <div class="achievement-row">
             <div class="achievement-copy">
@@ -858,7 +860,7 @@ function renderAchievements() {
               <p class="achievement-desc">${achievement.desc}</p>
               <div class="achievement-progress-row">
                 <span class="achievement-progress">${formatAchievementNumber(Math.min(current, achievement.target))} / ${formatAchievementNumber(achievement.target)}</span>
-                <span class="achievement-state">${doneLabel}</span>
+                <span class="achievement-state${unlocked ? " unlocked" : ""}">${doneLabel}</span>
               </div>
               <div class="achievement-progress-track" aria-hidden="true">
                 <span class="achievement-progress-fill${unlocked ? " unlocked" : ""}" style="width:${Math.round(ratio * 100)}%"></span>
