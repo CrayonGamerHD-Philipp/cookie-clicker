@@ -133,12 +133,13 @@ function renderEntries(entries) {
     .map((entry, index) => {
       const date = new Date(entry.updatedAt || Date.now());
       const isSelf = ownName && entry.playerName === ownName;
+      const profilePath = `/game/leaderboard/${encodeURIComponent(entry.playerName)}`;
       return `<tr class="${isSelf ? "is-self" : ""}">
         <td>${index + 1}</td>
-        <td>${entry.playerName}</td>
+        <td><a href="${profilePath}" data-sveltekit-reload>${entry.playerName}</a></td>
         <td>${formatNumber(entry.bestLevel)}</td>
-        <td title="${formatNumber(entry.bestScore)}">${formatCompactNumber(entry.bestScore)}</td>
         <td title="${formatNumber(entry.totalClicks)}">${formatCompactNumber(entry.totalClicks)}</td>
+        <td title="${formatNumber(entry.currentCookies)}">${formatCompactNumber(entry.currentCookies)}</td>
         <td>${date.toLocaleString("de-DE")}</td>
       </tr>`;
     })
@@ -170,6 +171,7 @@ async function saveCurrentScore() {
   const game = loadGameState();
   const level = Math.max(1, Math.floor(Number(game.level) || 1));
   const score = Math.floor(Number(game.total) || 0);
+  const currentCookies = Math.floor(Number(game.cookies) || 0);
   const clicks = Math.floor(Number(game.clicks) || 0);
   const totalGames = parseTotalGames(game);
 
@@ -189,6 +191,7 @@ async function saveCurrentScore() {
       level,
       score,
       totalClicks: clicks,
+      currentCookies,
       totalGames
     })
   });
@@ -197,7 +200,7 @@ async function saveCurrentScore() {
     return;
   }
 
-  setStatus(`Global gespeichert: ${name} mit ${formatNumber(score)} Punkten.`);
+  setStatus(`Global gespeichert: ${name} auf Level ${formatNumber(level)} mit ${formatNumber(clicks)} Klicks.`);
   await refreshLeaderboard();
 }
 
@@ -231,8 +234,9 @@ async function saveCurrentScore() {
   });
 
   const game = loadGameState();
-  const liveScore = Math.floor(Number(game.total) || 0);
-  setStatus(`Aktueller Spielstand: ${formatNumber(liveScore)} Punkte. Lade globales Leaderboard...`);
+  const liveLevel = Math.max(1, Math.floor(Number(game.level) || 1));
+  const liveClicks = Math.floor(Number(game.clicks) || 0);
+  setStatus(`Aktueller Spielstand: Level ${formatNumber(liveLevel)}, Klicks ${formatNumber(liveClicks)}. Lade globales Leaderboard...`);
 
   rangeButtons.forEach((button) => {
     button.addEventListener("click", () => {

@@ -3214,6 +3214,66 @@ h1 {
   line-height: 1.4;
 }
 
+.leaderboard-player-shell {
+  max-width: 920px;
+}
+
+.leaderboard-player-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.leaderboard-player-card {
+  border: 1px solid #ecd8c4;
+  border-radius: 16px;
+  background: #fffaf5;
+  padding: 14px;
+}
+
+.leaderboard-player-card h2 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.leaderboard-player-card p {
+  margin: 0 0 6px;
+}
+
+.leaderboard-look {
+  display: grid;
+  grid-template-columns: minmax(170px, 230px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.leaderboard-cookie-look {
+  width: min(210px, 100%);
+  margin: 0;
+}
+
+.leaderboard-look-meta {
+  display: grid;
+  gap: 4px;
+}
+
+.leaderboard-table td a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .leaderboard-player-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .leaderboard-look {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+}
+
 .player-gate {
   position: fixed;
   inset: 0;

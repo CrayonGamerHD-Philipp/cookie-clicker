@@ -9,7 +9,7 @@
   <header class="hero">
     <p class="eyebrow">HETHEY Backstube</p>
     <h1>Leaderboard</h1>
-    <p class="tagline">Trag deinen aktuellen Spielstand ein und vergleiche ihn global mit allen Spielern.</p>
+    <p class="tagline">Trag deinen aktuellen Spielstand ein und vergleiche ihn global mit allen Spielern. Klick auf einen Namen fuer das Detailprofil.</p>
   </header>
 
   <main class="leaderboard-shell">
@@ -26,7 +26,8 @@
     </div>
     <p class="leaderboard-muted">
       Auswertung: Hoeheres <strong>Level</strong> ist besser. Bei gleichem Level entscheidet der hoehere
-      <strong>Score</strong>. Bei komplettem Gleichstand steht der frueher gespeicherte Eintrag vorne.
+      <strong>Klicks</strong>-Wert. Danach zaehlen die aktuell gehaltenen <strong>Cookies</strong>. Bei komplettem
+      Gleichstand steht der frueher gespeicherte Eintrag vorne.
     </p>
 
     <div class="leaderboard-table-wrap">
@@ -36,8 +37,8 @@
             <th>Platz</th>
             <th>Name</th>
             <th>Level</th>
-            <th>Score</th>
             <th>Klicks</th>
+            <th>Cookies</th>
             <th>Gespeichert</th>
           </tr>
         </thead>

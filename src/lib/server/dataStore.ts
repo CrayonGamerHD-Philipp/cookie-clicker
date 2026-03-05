@@ -23,10 +23,10 @@ export type GlobalStats = {
 type PlayerRecord = {
   bestLevel: number;
   lastLevel: number;
-  bestScore: number;
-  lastScore: number;
   totalClicks: number;
+  currentCookies: number;
   totalGames: number;
+  profileSnapshot: string | null;
   firstSeenAt: string;
   lastSeenAt: string;
 };
@@ -40,11 +40,34 @@ export type LeaderboardEntry = {
   playerName: string;
   bestLevel: number;
   lastLevel: number;
-  bestScore: number;
-  lastScore: number;
   totalClicks: number;
+  currentCookies: number;
   totalGames: number;
   updatedAt: string;
+};
+
+export type PlayerProfileSnapshot = {
+  stats?: {
+    level?: number;
+    clicks?: number;
+    cookies?: number;
+    totalCookiesGenerated?: number;
+    gamesPlayed?: number;
+    gamesByMode?: Partial<Record<GameMode, number>>;
+  };
+  achievements?: {
+    unlocked?: number;
+    total?: number;
+  };
+  look?: {
+    colorName?: string;
+    skinName?: string;
+    miscName?: string;
+    accessoryName?: string;
+    skinKey?: string;
+    accessoryKey?: string;
+    colorTheme?: Record<string, string>;
+  };
 };
 
 let db: Database.Database | null = null;
@@ -94,7 +117,9 @@ function getDb() {
       best_score INTEGER NOT NULL DEFAULT 0,
       last_score INTEGER NOT NULL DEFAULT 0,
       total_clicks INTEGER NOT NULL DEFAULT 0,
+      current_cookies INTEGER NOT NULL DEFAULT 0,
       total_games INTEGER NOT NULL DEFAULT 0,
+      profile_snapshot TEXT,
       first_seen_at TEXT NOT NULL,
       last_seen_at TEXT NOT NULL
     );
@@ -121,6 +146,7 @@ function getDb() {
       level INTEGER NOT NULL DEFAULT 1,
       score INTEGER NOT NULL,
       total_clicks INTEGER NOT NULL,
+      current_cookies INTEGER NOT NULL DEFAULT 0,
       total_games INTEGER NOT NULL,
       created_at TEXT NOT NULL,
       FOREIGN KEY(player_id) REFERENCES players(id) ON DELETE CASCADE
@@ -149,7 +175,10 @@ function getDb() {
   };
   ensureColumn("players", "best_level", "INTEGER NOT NULL DEFAULT 1");
   ensureColumn("players", "last_level", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("players", "current_cookies", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn("players", "profile_snapshot", "TEXT");
   ensureColumn("score_submissions", "level", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("score_submissions", "current_cookies", "INTEGER NOT NULL DEFAULT 0");
 
   return db;
 }
@@ -231,8 +260,8 @@ export async function registerPlayer(playerName: string): Promise<{ ok: boolean;
   let created = false;
   if (!existing) {
     database.prepare(`
-      INSERT INTO players (name, best_level, last_level, best_score, last_score, total_clicks, total_games, first_seen_at, last_seen_at)
-      VALUES (?, 1, 1, 0, 0, 0, 0, ?, ?)
+      INSERT INTO players (name, best_level, last_level, best_score, last_score, total_clicks, current_cookies, total_games, profile_snapshot, first_seen_at, last_seen_at)
+      VALUES (?, 1, 1, 0, 0, 0, 0, 0, NULL, ?, ?)
     `).run(playerName, now, now);
     created = true;
     refreshUniquePlayersCount();
@@ -314,7 +343,9 @@ export async function updateLeaderboardScore(
   level: number,
   score: number,
   totalClicks: number,
-  totalGames: number
+  currentCookies: number,
+  totalGames: number,
+  profileSnapshot?: PlayerProfileSnapshot
 ): Promise<{ ok: boolean; bestScore?: number }> {
   const database = getDb();
   const now = nowIso();
@@ -335,15 +366,32 @@ export async function updateLeaderboardScore(
       last_score = ?,
       best_score = CASE WHEN best_score > ? THEN best_score ELSE ? END,
       total_clicks = CASE WHEN total_clicks > ? THEN total_clicks ELSE ? END,
+      current_cookies = ?,
       total_games = CASE WHEN total_games > ? THEN total_games ELSE ? END,
+      profile_snapshot = ?,
       last_seen_at = ?
     WHERE id = ?
-  `).run(level, level, level, score, score, score, totalClicks, totalClicks, totalGames, totalGames, now, player.id);
+  `).run(
+    level,
+    level,
+    level,
+    score,
+    score,
+    score,
+    totalClicks,
+    totalClicks,
+    currentCookies,
+    totalGames,
+    totalGames,
+    profileSnapshot ? JSON.stringify(profileSnapshot) : null,
+    now,
+    player.id
+  );
 
   database.prepare(`
-    INSERT INTO score_submissions (player_id, level, score, total_clicks, total_games, created_at)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(player.id, level, score, totalClicks, totalGames, now);
+    INSERT INTO score_submissions (player_id, level, score, total_clicks, current_cookies, total_games, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(player.id, level, score, totalClicks, currentCookies, totalGames, now);
 
   const clickDelta = Math.max(0, totalClicks - (Number(player.total_clicks) || 0));
   const gameDelta = Math.max(0, totalGames - (Number(player.total_games) || 0));
@@ -369,22 +417,20 @@ export async function getLeaderboard(range: LeaderboardRange, limit = 20): Promi
         name AS playerName,
         best_level AS bestLevel,
         last_level AS lastLevel,
-        best_score AS bestScore,
-        last_score AS lastScore,
         total_clicks AS totalClicks,
+        current_cookies AS currentCookies,
         total_games AS totalGames,
         last_seen_at AS updatedAt
       FROM players
-      ORDER BY best_level DESC, best_score DESC, last_seen_at ASC
+      ORDER BY best_level DESC, total_clicks DESC, current_cookies DESC, last_seen_at ASC
       LIMIT ?
     `).all(safeLimit) as LeaderboardEntry[];
     return rows.map((row) => ({
       ...row,
       bestLevel: Number(row.bestLevel) || 1,
       lastLevel: Number(row.lastLevel) || 1,
-      bestScore: Number(row.bestScore) || 0,
-      lastScore: Number(row.lastScore) || 0,
       totalClicks: Number(row.totalClicks) || 0,
+      currentCookies: Number(row.currentCookies) || 0,
       totalGames: Number(row.totalGames) || 0
     }));
   }
@@ -403,22 +449,21 @@ export async function getLeaderboard(range: LeaderboardRange, limit = 20): Promi
         ORDER BY s2.created_at DESC, s2.id DESC
         LIMIT 1
       ) AS lastLevel,
-      MAX(s.score) AS bestScore,
+      MAX(s.total_clicks) AS totalClicks,
       (
-        SELECT s2.score
+        SELECT s2.current_cookies
         FROM score_submissions s2
         WHERE s2.player_id = p.id AND s2.created_at >= ?
         ORDER BY s2.created_at DESC, s2.id DESC
         LIMIT 1
-      ) AS lastScore,
-      MAX(s.total_clicks) AS totalClicks,
+      ) AS currentCookies,
       MAX(s.total_games) AS totalGames,
       MAX(s.created_at) AS updatedAt
     FROM players p
     INNER JOIN score_submissions s ON s.player_id = p.id
     WHERE s.created_at >= ?
     GROUP BY p.id
-    ORDER BY bestLevel DESC, bestScore DESC, updatedAt ASC
+    ORDER BY bestLevel DESC, totalClicks DESC, currentCookies DESC, updatedAt ASC
     LIMIT ?
   `).all(start, start, start, safeLimit) as LeaderboardEntry[];
 
@@ -426,11 +471,98 @@ export async function getLeaderboard(range: LeaderboardRange, limit = 20): Promi
     ...row,
     bestLevel: Number(row.bestLevel) || 1,
     lastLevel: Number(row.lastLevel) || 1,
-    bestScore: Number(row.bestScore) || 0,
-    lastScore: Number(row.lastScore) || 0,
     totalClicks: Number(row.totalClicks) || 0,
+    currentCookies: Number(row.currentCookies) || 0,
     totalGames: Number(row.totalGames) || 0
   }));
+}
+
+export async function getLeaderboardPlayerProfile(playerName: string): Promise<{
+  ok: boolean;
+  found: boolean;
+  profile?: {
+    playerName: string;
+    level: number;
+    clicks: number;
+    cookies: number;
+    totalGames: number;
+    updatedAt: string;
+    achievementsUnlocked: number;
+    achievementsTotal: number;
+    gamesByMode: Partial<Record<GameMode, number>>;
+    look: {
+      colorName: string;
+      skinName: string;
+      miscName: string;
+      accessoryName: string;
+      skinKey: string;
+      accessoryKey: string;
+      colorTheme: Record<string, string>;
+    };
+  };
+}> {
+  const database = getDb();
+  const row = database.prepare(`
+    SELECT
+      name AS playerName,
+      best_level AS level,
+      total_clicks AS clicks,
+      current_cookies AS cookies,
+      total_games AS totalGames,
+      profile_snapshot AS profileSnapshot,
+      last_seen_at AS updatedAt
+    FROM players
+    WHERE name = ?
+  `).get(playerName) as {
+    playerName: string;
+    level: number;
+    clicks: number;
+    cookies: number;
+    totalGames: number;
+    profileSnapshot: string | null;
+    updatedAt: string;
+  } | undefined;
+
+  if (!row) {
+    return { ok: true, found: false };
+  }
+
+  let snapshot: PlayerProfileSnapshot = {};
+  if (row.profileSnapshot) {
+    try {
+      const parsed = JSON.parse(row.profileSnapshot) as PlayerProfileSnapshot;
+      if (parsed && typeof parsed === "object") {
+        snapshot = parsed;
+      }
+    } catch (_error) {
+      // Ignore malformed snapshots.
+    }
+  }
+
+  return {
+    ok: true,
+    found: true,
+    profile: {
+      playerName: row.playerName,
+      level: Math.max(1, Number(snapshot.stats?.level) || Number(row.level) || 1),
+      clicks: Math.max(0, Number(snapshot.stats?.clicks) || Number(row.clicks) || 0),
+      cookies: Math.max(0, Number(snapshot.stats?.cookies) || Number(row.cookies) || 0),
+      totalGames: Math.max(0, Number(snapshot.stats?.gamesPlayed) || Number(row.totalGames) || 0),
+      updatedAt: row.updatedAt || nowIso(),
+      achievementsUnlocked: Math.max(0, Number(snapshot.achievements?.unlocked) || 0),
+      achievementsTotal: Math.max(0, Number(snapshot.achievements?.total) || 0),
+      gamesByMode: snapshot.stats?.gamesByMode || {},
+      look: {
+        colorName: snapshot.look?.colorName || "Classic Bake",
+        skinName: snapshot.look?.skinName || "Ohne Skin",
+        miscName: snapshot.look?.miscName || "Ohne",
+        accessoryName: snapshot.look?.accessoryName || "Ohne",
+        skinKey: snapshot.look?.skinKey || "none",
+        accessoryKey: snapshot.look?.accessoryKey || "none",
+        colorTheme: snapshot.look?.colorTheme || {}
+      }
+    }
+  };
 }
 
 export async function resetPlayerAccount(playerName: string): Promise<{ ok: boolean; deleted: boolean }> {
@@ -453,10 +585,10 @@ export async function readData(): Promise<PersistedData> {
       name,
       best_level AS bestLevel,
       last_level AS lastLevel,
-      best_score AS bestScore,
-      last_score AS lastScore,
       total_clicks AS totalClicks,
+      current_cookies AS currentCookies,
       total_games AS totalGames,
+      profile_snapshot AS profileSnapshot,
       first_seen_at AS firstSeenAt,
       last_seen_at AS lastSeenAt
     FROM players
@@ -467,10 +599,10 @@ export async function readData(): Promise<PersistedData> {
     players[row.name] = {
       bestLevel: Number(row.bestLevel) || 1,
       lastLevel: Number(row.lastLevel) || 1,
-      bestScore: Number(row.bestScore) || 0,
-      lastScore: Number(row.lastScore) || 0,
       totalClicks: Number(row.totalClicks) || 0,
+      currentCookies: Number(row.currentCookies) || 0,
       totalGames: Number(row.totalGames) || 0,
+      profileSnapshot: row.profileSnapshot || null,
       firstSeenAt: row.firstSeenAt,
       lastSeenAt: row.lastSeenAt
     };

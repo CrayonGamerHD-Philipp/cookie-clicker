@@ -27,9 +27,13 @@ export async function POST({ request }) {
   const level = sanitizePositiveInt(body?.level, 1_000_000);
   const score = sanitizePositiveInt(body?.score, SCORE_MAX);
   const totalClicks = sanitizePositiveInt(body?.totalClicks, SCORE_MAX);
+  const currentCookies = sanitizePositiveInt(body?.currentCookies, SCORE_MAX);
   const totalGames = sanitizePositiveInt(body?.totalGames, 10_000_000);
+  const profileSnapshot = typeof body?.profileSnapshot === "object" && body?.profileSnapshot !== null
+    ? body.profileSnapshot
+    : undefined;
 
-  const result = await updateLeaderboardScore(playerName, level, score, totalClicks, totalGames);
+  const result = await updateLeaderboardScore(playerName, level, score, totalClicks, currentCookies, totalGames, profileSnapshot);
   if (!result.ok) {
     return json({ ok: false, error: "Player not registered" }, { status: 409 });
   }

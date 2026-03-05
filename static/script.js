@@ -1959,6 +1959,37 @@ async function syncPlayerStats() {
   if (!playerName || isGuestMode) {
     return { ok: false };
   }
+  const unlockedAchievements = Object.keys(achievementProgress.unlocked || {}).length;
+  const profileSnapshot = {
+    stats: {
+      level: Math.max(1, Math.floor(Number(state.level) || 1)),
+      clicks: Math.floor(Number(state.clicks) || 0),
+      cookies: Math.floor(Number(state.cookies) || 0),
+      totalCookiesGenerated: Math.floor(Number(state.total) || 0),
+      gamesPlayed: Math.floor(totalGamesPlayed()),
+      gamesByMode: {
+        tower: Number(gameStats.tower.wins || 0) + Number(gameStats.tower.losses || 0),
+        blackjack: Number(gameStats.blackjack.wins || 0) + Number(gameStats.blackjack.losses || 0),
+        slots: Number(gameStats.slots.wins || 0) + Number(gameStats.slots.losses || 0),
+        roulette: Number(gameStats.roulette.wins || 0) + Number(gameStats.roulette.losses || 0),
+        wheel: Number(gameStats.wheel.wins || 0) + Number(gameStats.wheel.losses || 0),
+        lootbox: Number(gameStats.lootbox.opens || 0)
+      }
+    },
+    achievements: {
+      unlocked: unlockedAchievements,
+      total: achievementDefinitions.length
+    },
+    look: {
+      colorName: activeColorCosmetic().name || "Classic Bake",
+      skinName: activeSkinCosmetic().name || "Ohne Skin",
+      miscName: activeMiscCosmetic().name || "Ohne",
+      accessoryName: activeAccessoryCosmetic().name || "Ohne",
+      skinKey: activeSkinCosmetic().key || "none",
+      accessoryKey: activeAccessoryCosmetic().key || "none",
+      colorTheme: { ...(activeColorCosmetic().theme || {}) }
+    }
+  };
   return requestJson("/game/api/leaderboard", {
     method: "POST",
     body: JSON.stringify({
@@ -1966,6 +1997,8 @@ async function syncPlayerStats() {
       level: Math.max(1, Math.floor(Number(state.level) || 1)),
       score: Math.floor(state.total),
       totalClicks: Math.floor(state.clicks),
+      currentCookies: Math.floor(state.cookies),
+      profileSnapshot,
       totalGames: Math.floor(totalGamesPlayed())
     })
   });
@@ -2074,73 +2107,83 @@ function updateSyncStatusBar() {
 
   if (syncStatusRankEl) {
     const myLevel = Math.max(1, Math.floor(Number(state.level) || 1));
-    const myScore = Math.floor(Number(state.total) || 0);
+    const myClicks = Math.floor(Number(state.clicks) || 0);
+    const myCookies = Math.floor(Number(state.cookies) || 0);
     const others = leaderboardSnapshot
       .filter((entry) => entry && entry.playerName !== playerName)
       .map((entry) => ({
         playerName: entry.playerName,
         level: Math.max(1, Math.floor(Number(entry.bestLevel) || 1)),
-        score: Math.floor(Number(entry.bestScore) || 0)
+        clicks: Math.floor(Number(entry.totalClicks) || 0),
+        cookies: Math.floor(Number(entry.currentCookies) || 0)
       }));
-    const isBetterThanMine = (entry) => entry.level > myLevel || (entry.level === myLevel && entry.score > myScore);
+    const isBetterThanMine = (entry) =>
+      entry.level > myLevel ||
+      (entry.level === myLevel && entry.clicks > myClicks) ||
+      (entry.level === myLevel && entry.clicks === myClicks && entry.cookies > myCookies);
     const rank = 1 + others.filter(isBetterThanMine).length;
     const nextHigher = others
       .filter(isBetterThanMine)
-      .sort((a, b) => (a.level - b.level) || (a.score - b.score))[0] || null;
+      .sort((a, b) => (a.level - b.level) || (a.clicks - b.clicks) || (a.cookies - b.cookies))[0] || null;
     if (!others.length) {
-      syncStatusRankEl.textContent = "Platz 1 • noch keine weiteren Spieler";
+      syncStatusRankEl.textContent = "Platz 1 - noch keine weiteren Spieler";
     } else if (nextHigher === null) {
-      syncStatusRankEl.textContent = `Platz ${rank} • du bist aktuell vorne`;
+      syncStatusRankEl.textContent = `Platz ${rank} - du bist aktuell vorne`;
     } else if (nextHigher.level > myLevel) {
       const deltaLevel = nextHigher.level - myLevel;
-      syncStatusRankEl.textContent = `Platz ${rank} • noch ${deltaLevel} Level bis Platz ${rank - 1}`;
+      syncStatusRankEl.textContent = `Platz ${rank} - noch ${deltaLevel} Level bis Platz ${rank - 1}`;
+    } else if (nextHigher.clicks > myClicks) {
+      const deltaClicks = Math.max(0, nextHigher.clicks - myClicks);
+      syncStatusRankEl.textContent = `Platz ${rank} - noch ${format(deltaClicks)} Klicks bis Platz ${rank - 1}`;
     } else {
-      const delta = Math.max(0, nextHigher.score - myScore);
-      syncStatusRankEl.textContent = `Platz ${rank} • noch ${format(delta)} bis Platz ${rank - 1}`;
+      const deltaCookies = Math.max(0, nextHigher.cookies - myCookies);
+      syncStatusRankEl.textContent = `Platz ${rank} - noch ${format(deltaCookies)} Cookies bis Platz ${rank - 1}`;
     }
   }
 
   const myLevel = Math.max(1, Math.floor(Number(state.level) || 1));
-  const myScore = Math.floor(Number(state.total) || 0);
+  const myClicks = Math.floor(Number(state.clicks) || 0);
+  const myCookies = Math.floor(Number(state.cookies) || 0);
   const nextEntry = leaderboardSnapshot
     .filter((entry) => {
       if (!entry || entry.playerName === playerName) return false;
       const entryLevel = Math.max(1, Math.floor(Number(entry.bestLevel) || 1));
-      const entryScore = Math.floor(Number(entry.bestScore) || 0);
-      return entryLevel > myLevel || (entryLevel === myLevel && entryScore > myScore);
+      const entryClicks = Math.floor(Number(entry.totalClicks) || 0);
+      const entryCookies = Math.floor(Number(entry.currentCookies) || 0);
+      return entryLevel > myLevel ||
+        (entryLevel === myLevel && entryClicks > myClicks) ||
+        (entryLevel === myLevel && entryClicks === myClicks && entryCookies > myCookies);
     })
     .sort((a, b) => {
       const levelDiff = (Math.max(1, Math.floor(Number(a.bestLevel) || 1)) - Math.max(1, Math.floor(Number(b.bestLevel) || 1)));
       if (levelDiff !== 0) return levelDiff;
-      return Math.floor(Number(a.bestScore) || 0) - Math.floor(Number(b.bestScore) || 0);
+      const clickDiff = Math.floor(Number(a.totalClicks) || 0) - Math.floor(Number(b.totalClicks) || 0);
+      if (clickDiff !== 0) return clickDiff;
+      return Math.floor(Number(a.currentCookies) || 0) - Math.floor(Number(b.currentCookies) || 0);
     })[0];
   if (!chaseBannerEl) {
     return;
   }
-  if (!nextEntry || myScore <= 0) {
+  if (!nextEntry) {
     chaseBannerEl.classList.add("hidden");
     return;
   }
 
   const nextLevel = Math.max(1, Math.floor(Number(nextEntry.bestLevel) || 1));
-  const nextScore = Math.floor(Number(nextEntry.bestScore) || 0);
+  const nextClicks = Math.floor(Number(nextEntry.totalClicks) || 0);
+  const nextCookies = Math.floor(Number(nextEntry.currentCookies) || 0);
   const target = chaseBannerEl.querySelector("#chaseBannerDelta");
   if (target) {
     if (nextLevel > myLevel) {
       target.textContent = `${nextLevel - myLevel} Level (${nextEntry.playerName})`;
+    } else if (nextClicks > myClicks) {
+      target.textContent = `${format(nextClicks - myClicks)} Klicks (${nextEntry.playerName})`;
     } else {
-      const inRange = nextScore <= myScore * 2;
-      if (!inRange) {
-        chaseBannerEl.classList.add("hidden");
-        return;
-      }
-      const delta = Math.max(0, nextScore - myScore);
-      target.textContent = `${format(delta)} (${nextEntry.playerName})`;
+      target.textContent = `${format(Math.max(0, nextCookies - myCookies))} Cookies (${nextEntry.playerName})`;
     }
   }
   chaseBannerEl.classList.remove("hidden");
 }
-
 function startSyncStatusCountdown() {
   if (syncCountdownTimer) {
     clearInterval(syncCountdownTimer);
