@@ -1,3 +1,21 @@
+<script lang="ts">
+  export let data: {
+    stats: {
+      uniquePlayers: number;
+      totalSessions: number;
+      totalClicks: number;
+      totalGamesPlayed: number;
+      totalLootboxesOpened: number;
+      totalCookiesGenerated: number;
+      lastUpdatedAt: string;
+    };
+  };
+
+  const format = (value: number) =>
+    new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 }).format(Math.floor(Number(value) || 0));
+  const updatedAt = new Date(data?.stats?.lastUpdatedAt || Date.now()).toLocaleString("de-DE");
+</script>
+
 <svelte:head>
   <title>Leaderboard - Cookie Klicker</title>
   <link rel="stylesheet" href="/style.css" />
@@ -41,6 +59,46 @@
         <strong>Klicks</strong>-Wert. Danach zaehlen die aktuell gehaltenen <strong>Cookies</strong>. Bei komplettem
         Gleichstand steht der frueher gespeicherte Eintrag vorne.
       </p>
+    </section>
+
+    <section class="leaderboard-panel leaderboard-live-stats">
+      <div class="leaderboard-live-stats-head">
+        <h2><i class="bi bi-bar-chart-line-fill" aria-hidden="true"></i> Live aus der Backstube</h2>
+        <p>Globale Werte wie auf der Startseite.</p>
+      </div>
+      <div class="leaderboard-stats-grid">
+        <div class="leaderboard-stat-card">
+          <span class="leaderboard-stat-icon"><i class="bi bi-people-fill"></i></span>
+          <span>Spieler gesamt</span>
+          <strong>{format(data.stats.uniquePlayers)}</strong>
+        </div>
+        <div class="leaderboard-stat-card">
+          <span class="leaderboard-stat-icon"><i class="bi bi-mouse2-fill"></i></span>
+          <span>Klicks gesamt</span>
+          <strong>{format(data.stats.totalClicks)}</strong>
+        </div>
+        <div class="leaderboard-stat-card">
+          <span class="leaderboard-stat-icon"><i class="bi bi-clock-history"></i></span>
+          <span>Sessions gesamt</span>
+          <strong>{format(data.stats.totalSessions)}</strong>
+        </div>
+        <div class="leaderboard-stat-card">
+          <span class="leaderboard-stat-icon"><i class="bi bi-joystick"></i></span>
+          <span>Games gesamt</span>
+          <strong>{format(data.stats.totalGamesPlayed)}</strong>
+        </div>
+        <div class="leaderboard-stat-card">
+          <span class="leaderboard-stat-icon"><i class="bi bi-box2-fill"></i></span>
+          <span>Lootboxen gesamt</span>
+          <strong>{format(data.stats.totalLootboxesOpened)}</strong>
+        </div>
+        <div class="leaderboard-stat-card">
+          <span class="leaderboard-stat-icon"><i class="bi bi-cookie"></i></span>
+          <span>Kekse erzeugt</span>
+          <strong>{format(data.stats.totalCookiesGenerated)}</strong>
+        </div>
+      </div>
+      <p class="leaderboard-muted">Letztes Update: {updatedAt}</p>
     </section>
 
     <section class="leaderboard-panel">
