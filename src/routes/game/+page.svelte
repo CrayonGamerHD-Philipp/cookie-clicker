@@ -158,6 +158,15 @@
             >
               Pro Sekunde
             </button>
+            <button
+              type="button"
+              class="upgrade-tab"
+              data-upgrade-tab="limits"
+              role="tab"
+              aria-selected="false"
+            >
+              Limits
+            </button>
           </div>
           <div id="upgradeList" class="upgrade-list"></div>
 

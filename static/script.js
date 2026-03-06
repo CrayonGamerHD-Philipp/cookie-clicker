@@ -491,6 +491,14 @@ const modeBetLimits = {
   roulette: { min: 10_000_000, max: 200_000_000 },
   wheel: { min: 25_000_000, max: 500_000_000 }
 };
+const betLimitUpgradeConfigs = {
+  tower: { title: "Tower Max-Limit", addPerLevel: 5_000_000, baseCost: 350_000_000 },
+  blackjack: { title: "Blackjack Max-Limit", addPerLevel: 10_000_000, baseCost: 420_000_000 },
+  slots: { title: "Slots Max-Limit", addPerLevel: 60_000_000, baseCost: 560_000_000 },
+  roulette: { title: "Roulette Max-Limit", addPerLevel: 40_000_000, baseCost: 510_000_000 },
+  wheel: { title: "Gluecksrad Max-Limit", addPerLevel: 75_000_000, baseCost: 620_000_000 }
+};
+const BET_LIMIT_UPGRADE_SCALE = 2.2;
 const modeDisplayNames = {
   tower: "Tower",
   blackjack: "Blackjack",
@@ -531,6 +539,13 @@ let rouletteRotation = 0;
 let wheelSpinning = false;
 let wheelRotation = 0;
 let activeUpgradeTab = "click";
+let betLimitUpgradeLevels = {
+  tower: 0,
+  blackjack: 0,
+  slots: 0,
+  roulette: 0,
+  wheel: 0
+};
 let activeCosmeticsCategory = "colors";
 let playerName = "";
 let accountToken = "";
@@ -1521,11 +1536,33 @@ function getBetLimitMultiplier() {
   return Math.max(1, totalGainMultiplier());
 }
 
+function getBetLimitUpgradeLevel(mode) {
+  return Math.max(0, Math.floor(Number(betLimitUpgradeLevels[mode]) || 0));
+}
+
+function getBetLimitUpgradeCost(mode) {
+  const config = betLimitUpgradeConfigs[mode];
+  if (!config) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+  const level = getBetLimitUpgradeLevel(mode);
+  return Math.floor(config.baseCost * Math.pow(BET_LIMIT_UPGRADE_SCALE, level));
+}
+
+function getBaseMaxBetWithUpgrades(mode) {
+  const limits = modeBetLimits[mode] || { min: 1, max: Number.MAX_SAFE_INTEGER };
+  const config = betLimitUpgradeConfigs[mode];
+  if (!config) {
+    return limits.max;
+  }
+  return limits.max + (config.addPerLevel * getBetLimitUpgradeLevel(mode));
+}
+
 function getBetLimits(mode) {
   const base = modeBetLimits[mode] || { min: 1, max: Number.MAX_SAFE_INTEGER };
   const multiplier = getBetLimitMultiplier();
   const min = Math.max(1, Math.floor(base.min * multiplier));
-  const max = Math.max(min, Math.floor(base.max * multiplier));
+  const max = Math.max(min, Math.floor(getBaseMaxBetWithUpgrades(mode) * multiplier));
   return { min, max, multiplier };
 }
 
@@ -1706,6 +1743,13 @@ function resetProgressState() {
   upgrades.forEach((upgrade) => {
     upgrade.count = 0;
   });
+  betLimitUpgradeLevels = {
+    tower: 0,
+    blackjack: 0,
+    slots: 0,
+    roulette: 0,
+    wheel: 0
+  };
   resetCosmeticsState();
   ["tower", "blackjack", "slots", "roulette", "wheel"].forEach((key) => {
     gameStats[key].wins = 0;
@@ -1785,6 +1829,11 @@ function loadState(forceDevMode = null) {
     state.lastBonusAt = Number(saved.lastBonusAt) || 0;
     state.bonusReady = false;
     applyUpgradeCounts(saved.upgrades || []);
+    if (saved.betLimitUpgrades && typeof saved.betLimitUpgrades === "object") {
+      Object.keys(modeBetLimits).forEach((mode) => {
+        betLimitUpgradeLevels[mode] = Math.max(0, Math.floor(Number(saved.betLimitUpgrades?.[mode]) || 0));
+      });
+    }
     if (saved.stats) {
       ["tower", "blackjack", "slots", "roulette", "wheel"].forEach((key) => {
         const entry = saved.stats[key] || {};
@@ -1894,6 +1943,7 @@ function saveState() {
     boosts: state.boosts,
     lastBonusAt: state.lastBonusAt,
     upgrades: upgrades.map((upgrade) => upgrade.count),
+    betLimitUpgrades: { ...betLimitUpgradeLevels },
     cosmetics: {
       colors: {
         active: activeColorCosmetic().key,
@@ -2438,6 +2488,14 @@ function mergeUpgradeCounts(localUpgrades, cloudUpgrades) {
   return merged;
 }
 
+function mergeBetLimitUpgrades(localLevels, cloudLevels) {
+  const merged = {};
+  Object.keys(modeBetLimits).forEach((mode) => {
+    merged[mode] = mergeNumberByMax(localLevels?.[mode], cloudLevels?.[mode], true);
+  });
+  return merged;
+}
+
 function mergeBoostInventory(localInventory, cloudInventory) {
   const merged = {};
   boostRarities.forEach((rarity) => {
@@ -2622,6 +2680,7 @@ function mergeAccountSaves(localSave, cloudSave) {
     boosts: mergeActiveBoosts(local.boosts, cloud.boosts),
     lastBonusAt: mergeNumberByMax(local.lastBonusAt, cloud.lastBonusAt, true),
     upgrades: mergeUpgradeCounts(local.upgrades, cloud.upgrades),
+    betLimitUpgrades: mergeBetLimitUpgrades(local.betLimitUpgrades, cloud.betLimitUpgrades),
     cosmetics: mergeCosmetics(local.cosmetics, cloud.cosmetics),
     stats: mergeStats(local.stats, cloud.stats),
     statsSyncCursor: mergeStatsCursor(local.statsSyncCursor, cloud.statsSyncCursor),
@@ -3473,9 +3532,67 @@ function renderUpgradeTabs() {
   });
 }
 
+function buyBetLimitUpgrade(mode) {
+  const config = betLimitUpgradeConfigs[mode];
+  if (!config) return;
+  const cost = getBetLimitUpgradeCost(mode);
+  if (!canAfford(cost)) {
+    return;
+  }
+  spendCookies(cost);
+  betLimitUpgradeLevels[mode] = getBetLimitUpgradeLevel(mode) + 1;
+  bumpAchievementMetric("upgradesPurchased", 1);
+  showGameToast(state.devMode ? 0 : -cost, `${modeDisplayNames[mode]} Limit+`);
+  updateStats();
+}
+
+function renderLimitUpgrades() {
+  Object.keys(modeBetLimits).forEach((mode) => {
+    const config = betLimitUpgradeConfigs[mode];
+    if (!config) return;
+
+    const item = document.createElement("div");
+    item.className = "upgrade";
+
+    const info = document.createElement("div");
+    const title = document.createElement("h3");
+    const level = getBetLimitUpgradeLevel(mode);
+    title.textContent = `${config.title} (Lv ${level})`;
+
+    const currentBaseMax = getBaseMaxBetWithUpgrades(mode);
+    const nextBaseMax = currentBaseMax + config.addPerLevel;
+    const currentCost = getBetLimitUpgradeCost(mode);
+    const desc = document.createElement("p");
+    desc.textContent = state.devMode
+      ? `Aktuell: ${format(currentBaseMax)} -> Naechstes: ${format(nextBaseMax)} - Kosten: Dev gratis (${format(currentCost)})`
+      : `Aktuell: ${format(currentBaseMax)} -> Naechstes: ${format(nextBaseMax)} - Kosten: ${format(currentCost)}`;
+
+    info.appendChild(title);
+    info.appendChild(desc);
+
+    const button = document.createElement("button");
+    button.textContent = "Limit erhoehen";
+    button.disabled = !canAfford(currentCost);
+    button.addEventListener("click", () => buyBetLimitUpgrade(mode));
+
+    item.appendChild(info);
+    item.appendChild(button);
+
+    if (!button.disabled) {
+      item.classList.add("affordable");
+    }
+
+    upgradeList.appendChild(item);
+  });
+}
+
 function renderUpgrades() {
   upgradeList.innerHTML = "";
   renderUpgradeTabs();
+  if (activeUpgradeTab === "limits") {
+    renderLimitUpgrades();
+    return;
+  }
   upgrades.forEach((upgrade, index) => {
     if (upgrade.type !== activeUpgradeTab) {
       return;
@@ -4162,6 +4279,13 @@ async function resetAccount() {
   upgrades.forEach((upgrade) => {
     upgrade.count = 0;
   });
+  betLimitUpgradeLevels = {
+    tower: 0,
+    blackjack: 0,
+    slots: 0,
+    roulette: 0,
+    wheel: 0
+  };
   recalculateProduction();
   if (shouldResetCosmetics) {
     resetCosmeticsState();
