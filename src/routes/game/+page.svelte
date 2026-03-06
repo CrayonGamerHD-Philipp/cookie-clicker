@@ -472,6 +472,7 @@
             <button id="towerAllIn" class="all-in-button" type="button">All In</button>
             <button id="towerStart">Start</button>
           </div>
+          <p id="towerBetLimits" class="bet-limits">Mindest: - | Maximum: -</p>
           <div class="tower-row">
             <button id="towerClimb" disabled>Naechste Stufe</button>
             <button id="towerCashout" disabled>Auszahlen</button>
@@ -504,6 +505,7 @@
               <button id="blackjackAllIn" class="all-in-button" type="button">All In</button>
               <button id="blackjackDeal">Deal</button>
             </div>
+            <p id="blackjackBetLimits" class="bet-limits">Mindest: - | Maximum: -</p>
             <div class="tower-row">
               <button id="blackjackHit" disabled>Hit</button>
               <button id="blackjackStand" disabled>Stand</button>
@@ -543,6 +545,7 @@
               <button id="slotsAllIn" class="all-in-button" type="button">All In</button>
               <button id="slotsSpin">Spin</button>
             </div>
+            <p id="slotsBetLimits" class="bet-limits">Mindest: - | Maximum: -</p>
             <p id="slotsStatus" class="tower-status">Setze einen Einsatz und drehe.</p>
           </div>
           <div class="slots-machine" id="slotsMachine">
@@ -624,6 +627,7 @@
               <button id="rouletteAllIn" class="all-in-button" type="button">All In</button>
               <button id="rouletteSpin">Spin</button>
             </div>
+            <p id="rouletteBetLimits" class="bet-limits">Mindest: - | Maximum: -</p>
             <div class="roulette-bets">
               <button class="roulette-chip" data-bet="red">Rot</button>
               <button class="roulette-chip" data-bet="black">Schwarz</button>
@@ -674,6 +678,7 @@
               <button id="wheelAllIn" class="all-in-button" type="button">All In</button>
               <button id="wheelSpin">Spin</button>
             </div>
+            <p id="wheelBetLimits" class="bet-limits">Mindest: - | Maximum: -</p>
             <p id="wheelStatus" class="tower-status">Bereit zum Drehen.</p>
             <div class="wheel-payouts">
               <p>x2</p>

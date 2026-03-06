@@ -51,6 +51,7 @@ const blackjackDealButton = document.getElementById("blackjackDeal");
 const blackjackHitButton = document.getElementById("blackjackHit");
 const blackjackStandButton = document.getElementById("blackjackStand");
 const blackjackStatus = document.getElementById("blackjackStatus");
+const blackjackBetLimitsEl = document.getElementById("blackjackBetLimits");
 const dealerHandEl = document.getElementById("dealerHand");
 const playerHandEl = document.getElementById("playerHand");
 const dealerTotalEl = document.getElementById("dealerTotal");
@@ -64,6 +65,7 @@ const slotsBetInput = document.getElementById("slotsBet");
 const slotsAllInButton = document.getElementById("slotsAllIn");
 const slotsSpinButton = document.getElementById("slotsSpin");
 const slotsStatus = document.getElementById("slotsStatus");
+const slotsBetLimitsEl = document.getElementById("slotsBetLimits");
 const lootboxModal = document.getElementById("lootboxModal");
 const lootboxOpenButton = document.getElementById("lootboxOpen");
 const lootboxBuyButton = document.getElementById("lootboxBuy");
@@ -124,6 +126,7 @@ const rouletteBetInput = document.getElementById("rouletteBet");
 const rouletteAllInButton = document.getElementById("rouletteAllIn");
 const rouletteSpinButton = document.getElementById("rouletteSpin");
 const rouletteStatus = document.getElementById("rouletteStatus");
+const rouletteBetLimitsEl = document.getElementById("rouletteBetLimits");
 const rouletteWheel = document.getElementById("rouletteWheel");
 const rouletteChips = Array.from(document.querySelectorAll(".roulette-chip"));
 const rouletteBoard = document.getElementById("rouletteBoard");
@@ -158,6 +161,7 @@ const wheelBetInput = document.getElementById("wheelBet");
 const wheelAllInButton = document.getElementById("wheelAllIn");
 const wheelSpinButton = document.getElementById("wheelSpin");
 const wheelStatus = document.getElementById("wheelStatus");
+const wheelBetLimitsEl = document.getElementById("wheelBetLimits");
 const fortuneWheel = document.getElementById("fortuneWheel");
 const towerBetInput = document.getElementById("towerBet");
 const towerAllInButton = document.getElementById("towerAllIn");
@@ -165,6 +169,7 @@ const towerStartButton = document.getElementById("towerStart");
 const towerClimbButton = document.getElementById("towerClimb");
 const towerCashoutButton = document.getElementById("towerCashout");
 const towerStatus = document.getElementById("towerStatus");
+const towerBetLimitsEl = document.getElementById("towerBetLimits");
 const towerMultiplierEl = document.getElementById("towerMultiplier");
 const towerPayoutEl = document.getElementById("towerPayout");
 const STORAGE_KEY = "hethey-cookie-clicker-v1";
@@ -1512,8 +1517,22 @@ function canAfford(amount) {
   return state.devMode || state.cookies >= amount;
 }
 
+function getBetLimitMultiplier() {
+  return Math.max(1, totalGainMultiplier());
+}
+
 function getBetLimits(mode) {
-  return modeBetLimits[mode] || { min: 1, max: Number.MAX_SAFE_INTEGER };
+  const base = modeBetLimits[mode] || { min: 1, max: Number.MAX_SAFE_INTEGER };
+  const multiplier = getBetLimitMultiplier();
+  const min = Math.max(1, Math.floor(base.min * multiplier));
+  const max = Math.max(min, Math.floor(base.max * multiplier));
+  return { min, max, multiplier };
+}
+
+function renderBetLimitHint(mode, targetEl) {
+  if (!targetEl) return;
+  const limits = getBetLimits(mode);
+  targetEl.textContent = `Mindest: ${format(limits.min)} | Maximum: ${format(limits.max)} | Multiplikator: x${formatMultiplier(limits.multiplier)}`;
 }
 
 function setBetInputLimits() {
@@ -1530,8 +1549,8 @@ function setBetInputLimits() {
     input.min = String(limits.min);
     input.max = String(limits.max);
     const current = Math.floor(Number(input.value) || 0);
-    if (current <= 0) {
-      input.value = String(limits.min);
+    if (current > limits.max) {
+      input.value = String(limits.max);
     }
   });
 }
@@ -1540,11 +1559,10 @@ function validateBet(mode, rawBet) {
   const limits = getBetLimits(mode);
   const label = modeDisplayNames[mode] || mode;
   const bet = Math.floor(Number(rawBet) || 0);
-  const hasMinLimit = mode !== "tower";
   if (bet <= 0) {
     return { ok: false, reason: "min", bet: 0, message: `${label}: Einsatz muss groesser als 0 sein.` };
   }
-  if (hasMinLimit && bet < limits.min) {
+  if (bet < limits.min) {
     return { ok: false, reason: "min", bet: 0, message: `${label}: Mindesteinsatz ${format(limits.min)}.` };
   }
   if (bet > limits.max) {
@@ -3863,6 +3881,7 @@ function performStatsUpdate() {
   if (removeExpiredBoosts()) {
     recalculateProduction();
   }
+  setBetInputLimits();
   syncAchievementDerivedMetrics();
   evaluateAchievements();
   renderDevMode();
@@ -4550,6 +4569,7 @@ function renderBlackjack() {
   dealerTotalEl.textContent = dealerHand.length ? (hideDealer ? "Total: ?" : `Total: ${dealerTotal}`) : "";
   playerTotalEl.textContent = playerHand.length ? `Total: ${playerTotal}` : "";
   const validation = validateBet("blackjack", blackjackBetInput.value);
+  renderBetLimitHint("blackjack", blackjackBetLimitsEl);
   blackjackDealButton.disabled = blackjackActive || !validation.ok;
   blackjackHitButton.disabled = !blackjackActive;
   blackjackStandButton.disabled = !blackjackActive;
@@ -4648,6 +4668,7 @@ function pickSlotSymbol() {
 
 function renderSlots() {
   const validation = validateBet("slots", slotsBetInput.value);
+  renderBetLimitHint("slots", slotsBetLimitsEl);
   slotsSpinButton.disabled = slotsSpinning || !validation.ok;
 }
 
@@ -4859,6 +4880,7 @@ function renderRouletteBoard() {
 
 function renderRoulette() {
   const validation = validateBet("roulette", rouletteBetInput.value);
+  renderBetLimitHint("roulette", rouletteBetLimitsEl);
   rouletteSpinButton.disabled = rouletteSpinning || !validation.ok;
   rouletteChips.forEach((chip) => {
     chip.classList.toggle("active", chip.dataset.bet === rouletteBetChoice);
@@ -4913,6 +4935,7 @@ function spinRoulette() {
 
 function renderWheel() {
   const validation = validateBet("wheel", wheelBetInput.value);
+  renderBetLimitHint("wheel", wheelBetLimitsEl);
   wheelSpinButton.disabled = wheelSpinning || !validation.ok;
 }
 
@@ -4979,6 +5002,7 @@ function renderTower() {
   setDisplayValue(towerPayoutEl, payout);
 
   const validation = validateBet("tower", towerBetInput.value);
+  renderBetLimitHint("tower", towerBetLimitsEl);
   const canStart = !state.towerActive && validation.ok;
   towerStartButton.disabled = !canStart;
   towerClimbButton.disabled = !state.towerActive;
@@ -4986,8 +5010,7 @@ function renderTower() {
   renderTowerVisual();
 
   if (!state.towerActive) {
-    const limits = getBetLimits("tower");
-    towerStatus.textContent = `Setze einen Einsatz (max ${format(limits.max)}). Ab x1.1 machst du Gewinn.`;
+    towerStatus.textContent = "Setze einen Einsatz. Ab x1.1 machst du Gewinn.";
   }
 }
 

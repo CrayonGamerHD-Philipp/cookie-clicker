@@ -2037,6 +2037,12 @@ h1 {
   padding: 8px 10px;
 }
 
+.bet-limits {
+  margin: -2px 0 0;
+  font-size: 0.78rem;
+  color: rgba(43, 29, 18, 0.72);
+}
+
 .modal {
   position: fixed;
   inset: 0;
