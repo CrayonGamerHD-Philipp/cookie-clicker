@@ -569,12 +569,12 @@
             <div class="slot-reel" id="slot8">&#x2B50;</div>
           </div>
           <div class="slots-payouts">
-            <p>3x &#x1F36A; = x6</p>
-            <p>3x &#x2B50; = x4</p>
-            <p>3x &#x1F514; = x3</p>
-            <p>3x &#x1F352; = x2</p>
-            <p>3x &#x1F34B; = x1.5</p>
-            <p>2x &#x1F36A; (in einer Linie) = x1.5</p>
+            <p>3x &#x1F36A; = x3.8</p>
+            <p>3x &#x2B50; = x2.6</p>
+            <p>3x &#x1F514; = x2.0</p>
+            <p>3x &#x1F352; = x1.35</p>
+            <p>3x &#x1F34B; = x1.15</p>
+            <p>2x &#x1F36A; (in einer Linie) = Bonus +x0.5</p>
           </div>
         </div>
       </div>
